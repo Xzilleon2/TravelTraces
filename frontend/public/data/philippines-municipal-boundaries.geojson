@@ -1,0 +1,46 @@
+{
+  "type": "FeatureCollection",
+  "name": "phase_i_municipal_boundaries_preview",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "City of Manila", "region": "Metro Manila" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[120.941, 14.565], [121.029, 14.565], [121.029, 14.633], [120.941, 14.633], [120.941, 14.565]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Cebu City", "region": "Central Visayas" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[123.84, 10.25], [123.975, 10.25], [123.975, 10.395], [123.84, 10.395], [123.84, 10.25]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Davao City", "region": "Davao Region" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[125.48, 6.98], [125.72, 6.98], [125.72, 7.22], [125.48, 7.22], [125.48, 6.98]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Baguio City", "region": "Cordillera Administrative Region" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[120.55, 16.36], [120.64, 16.36], [120.64, 16.45], [120.55, 16.45], [120.55, 16.36]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Iloilo City", "region": "Western Visayas" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[122.49, 10.66], [122.62, 10.66], [122.62, 10.78], [122.49, 10.78], [122.49, 10.66]]]
+      }
+    }
+  ]
+}

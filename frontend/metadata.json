@@ -1,0 +1,6 @@
+{
+  "name": "TravelTraces",
+  "description": "TravelTraces is a community-driven travel platform built for Southeast Asia travellers to explore, document, and share journeys across the region.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
