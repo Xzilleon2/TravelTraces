@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router";
-import { Menu, X, MapPin, LogOut, User, ChevronDown, MessageSquare, Trash2 } from "lucide-react";
+import { Menu, X, MapPin, LogOut, User, ChevronDown, MessageSquare, Bookmark } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { ChatPanel } from "./ChatPanel";
 import { MusicBox } from "./MusicBox";
@@ -9,8 +9,6 @@ const memberLinks = [
   { to: "/explore", label: "Explore" },
   { to: "/stories", label: "Stories" },
   { to: "/maps", label: "Maps", featured: true },
-  { to: "/travel-groups", label: "Groups" },
-  { to: "/saved-places", label: "Saved" },
   { to: "/community", label: "Community" },
   { to: "/events", label: "Events" },
 ];
@@ -162,8 +160,8 @@ export function Navbar() {
                     <NavLink to="/profile" onClick={() => setUserMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 1rem", color: "#1A1A1A", textDecoration: "none", fontSize: "0.875rem" }}>
                       <User size={15} /> My Profile
                     </NavLink>
-                    <NavLink to="/account/delete" onClick={() => setUserMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 1rem", color: "#C0392B", textDecoration: "none", fontSize: "0.875rem" }}>
-                      <Trash2 size={15} /> Delete Account
+                    <NavLink to="/saved-places" onClick={() => setUserMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 1rem", color: "#1A1A1A", textDecoration: "none", fontSize: "0.875rem" }}>
+                      <Bookmark size={15} /> Saved Places
                     </NavLink>
                     <MusicBox variant="menu" />
                     <button onClick={handleLogout} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 1rem", color: "#C0392B", background: "none", border: "none", cursor: "pointer", fontSize: "0.875rem", width: "100%", textAlign: "left" }}>
@@ -254,11 +252,11 @@ export function Navbar() {
                   <User size={15} /> My Profile
                 </NavLink>
                 <NavLink
-                  to="/account/delete"
+                  to="/saved-places"
                   onClick={() => setMobileOpen(false)}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", minHeight: 44, background: "rgba(192,57,43,0.12)", border: "1px solid rgba(192,57,43,0.28)", color: "#F5F0E8", padding: "0.6rem", borderRadius: "0.25rem", textDecoration: "none", fontFamily: "var(--font-label)", fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", minHeight: 44, background: "rgba(245,240,232,0.1)", border: "1px solid rgba(245,240,232,0.2)", color: "#F5F0E8", padding: "0.6rem", borderRadius: "0.25rem", textDecoration: "none", fontFamily: "var(--font-label)", fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}
                 >
-                  <Trash2 size={15} /> Delete Account
+                  <Bookmark size={15} /> Saved Places
                 </NavLink>
                 <button onClick={() => { void logout().finally(() => { setMobileOpen(false); navigate("/"); }); }} style={{ width: "100%", minHeight: 44, background: "rgba(192,57,43,0.15)", border: "1px solid rgba(192,57,43,0.3)", color: "#F5F0E8", padding: "0.6rem", borderRadius: "0.25rem", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Sign Out

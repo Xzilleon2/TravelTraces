@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Search, MapPin, Clock, Heart, Bookmark, Share2, X, ChevronLeft, ChevronRight, Send, MessageCircle } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Search, MapPin, Clock, Heart, Bookmark, Share2, ArrowLeft, ChevronLeft, ChevronRight, Send, MessageCircle } from "lucide-react";
 import { GatedPage } from "../components/GatedPage";
 import { useAuth } from "../context/AuthContext";
 import { UserProfileModal } from "../components/UserProfileModal";
@@ -38,6 +38,39 @@ const STORY_COMMENTS: Record<number, { id: number; author: string; avatar: strin
   6: [
     { id: 1, author: "Carlo Reyes", avatar: "https://images.unsplash.com/photo-1519101739220-83f6a14852ca?w=40&h=40&fit=crop&auto=format", text: "Sixty person limit for overnight camping is brilliant. Keeps the magic alive. Booking this ASAP.", time: "5 days ago", likes: 9 },
     { id: 2, author: "Marco Buenaventura", avatar: "https://images.unsplash.com/photo-1565565915331-293fd8113954?w=40&h=40&fit=crop&auto=format", text: "Manong Eddie sounds like a living encyclopedia of Hundred Islands. Legend.", time: "2 days ago", likes: 13 },
+  ],
+};
+
+const STORY_PHOTOS: Record<number, string[]> = {
+  1: [
+    "https://images.unsplash.com/photo-1632307918787-8cb52566dd35?w=1100&h=720&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1100&h=720&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?w=1100&h=720&fit=crop&auto=format",
+  ],
+  2: [
+    "https://images.unsplash.com/photo-1768639400843-d604ccce9c3e?w=1100&h=720&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1100&h=720&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1100&h=720&fit=crop&auto=format",
+  ],
+  3: [
+    "https://images.unsplash.com/photo-1609412058473-c199497c3c5d?w=1100&h=720&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1100&h=720&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1100&h=720&fit=crop&auto=format",
+  ],
+  4: [
+    "https://images.unsplash.com/photo-1672933354004-3cbd9874f099?w=1100&h=720&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=1100&h=720&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1506929562872-bb421503ef21?w=1100&h=720&fit=crop&auto=format",
+  ],
+  5: [
+    "https://images.unsplash.com/photo-1711060169357-ed923c9f2156?w=1100&h=720&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1100&h=720&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=1100&h=720&fit=crop&auto=format",
+  ],
+  6: [
+    "https://images.unsplash.com/photo-1688541197205-02bd8c71074d?w=1100&h=720&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1100&h=720&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1493558103817-58b2924bce98?w=1100&h=720&fit=crop&auto=format",
   ],
 };
 
@@ -136,9 +169,9 @@ const STORIES = [
 
 const categories = ["All", "Adventure", "Culture", "Deep Travel", "Reflection", "Food", "Hidden Gems"];
 
-function StoryModal({ story, onClose, onPrev, onNext, hasPrev, hasNext }: {
+function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext }: {
   story: typeof STORIES[0];
-  onClose: () => void;
+  onBack: () => void;
   onPrev: () => void;
   onNext: () => void;
   hasPrev: boolean;
@@ -151,6 +184,21 @@ function StoryModal({ story, onClose, onPrev, onNext, hasPrev, hasNext }: {
   const [comments, setComments] = useState(STORY_COMMENTS[story.id] ?? []);
   const [commentInput, setCommentInput] = useState("");
   const [likedComments, setLikedComments] = useState<Set<number>>(new Set());
+  const [photoIndex, setPhotoIndex] = useState(0);
+
+  const photos = STORY_PHOTOS[story.id] ?? [story.img];
+  const activePhoto = photos[photoIndex] ?? photos[0];
+  const hasMultiplePhotos = photos.length > 1;
+
+  useEffect(() => {
+    setLiked(false);
+    setSaved(false);
+    setViewingProfile(null);
+    setComments(STORY_COMMENTS[story.id] ?? []);
+    setCommentInput("");
+    setLikedComments(new Set());
+    setPhotoIndex(0);
+  }, [story.id]);
 
   const submitComment = () => {
     if (!commentInput.trim()) return;
@@ -167,59 +215,107 @@ function StoryModal({ story, onClose, onPrev, onNext, hasPrev, hasNext }: {
   };
 
   return (
-    <div
-      style={{ position: "fixed", inset: 0, zIndex: 100, backgroundColor: "rgba(26,26,26,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div style={{ backgroundColor: "#F5F0E8", borderRadius: "0.5rem", width: "100%", maxWidth: 760, maxHeight: "90vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 24px 64px rgba(0,0,0,0.25)" }}>
-        {/* Hero image */}
-        <div style={{ position: "relative", flexShrink: 0 }}>
-          <img src={story.img} alt={story.title} style={{ width: "100%", height: 280, objectFit: "cover", display: "block" }} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(26,26,26,0.6) 100%)" }} />
-          <button onClick={onClose} style={{ position: "absolute", top: "1rem", right: "1rem", background: "rgba(26,26,26,0.55)", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#F5F0E8" }}>
-            <X size={18} />
+    <div style={{ minHeight: "100vh", backgroundColor: "#F5F0E8", padding: "2rem clamp(1rem, 4vw, 2rem) 5rem" }}>
+      <article style={{ width: "min(100%, 1120px)", margin: "0 auto", backgroundColor: "#F5F0E8" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "center", marginBottom: "2rem", flexWrap: "wrap" }}>
+          <button
+            onClick={onBack}
+            style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", border: "1px solid rgba(45,74,45,0.18)", background: "transparent", color: "#2D4A2D", borderRadius: "999px", padding: "0.55rem 1rem", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}
+          >
+            <ArrowLeft size={15} /> Stories
           </button>
-          <div style={{ position: "absolute", bottom: "1rem", left: "1.5rem" }}>
-            <span style={{ padding: "0.2rem 0.6;rem", backgroundColor: "#C4713A", borderRadius: "0.2rem", fontSize: "0.7rem", fontFamily: "var(--font-label)", color: "#F5F0E8", letterSpacing: "0.08em", textTransform: "uppercase" }}>{story.category}</span>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            {hasPrev && (
+              <button aria-label="Previous story" onClick={onPrev} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", border: "1px solid rgba(45,74,45,0.18)", background: "transparent", color: "#2D4A2D", borderRadius: "999px", padding: "0.55rem 0.9rem", cursor: "pointer", fontFamily: "var(--font-ui)", fontSize: "0.82rem", fontWeight: 700 }}>
+                <ChevronLeft size={16} /> Previous
+              </button>
+            )}
+            {hasNext && (
+              <button aria-label="Next story" onClick={onNext} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", border: "1px solid rgba(45,74,45,0.18)", background: "transparent", color: "#2D4A2D", borderRadius: "999px", padding: "0.55rem 0.9rem", cursor: "pointer", fontFamily: "var(--font-ui)", fontSize: "0.82rem", fontWeight: 700 }}>
+                Next <ChevronRight size={16} />
+              </button>
+            )}
           </div>
-          {/* Nav arrows */}
-          {hasPrev && <button onClick={onPrev} style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", background: "rgba(26,26,26,0.5)", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#F5F0E8" }}><ChevronLeft size={18} /></button>}
-          {hasNext && <button onClick={onNext} style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", background: "rgba(26,26,26,0.5)", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#F5F0E8" }}><ChevronRight size={18} /></button>}
         </div>
 
-        {/* Content */}
-        <div style={{ overflow: "auto", padding: "2rem" }}>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.75rem", fontWeight: 600, color: "#2D4A2D", lineHeight: 1.3, marginBottom: "1.25rem" }}>{story.title}</h2>
+        <header style={{ width: "min(100%, 780px)", margin: "0 auto 2rem", textAlign: "left" }}>
+          <span style={{ display: "inline-flex", padding: "0.28rem 0.75rem", backgroundColor: "rgba(196,113,58,0.1)", border: "1px solid rgba(196,113,58,0.25)", borderRadius: "999px", fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#C4713A", marginBottom: "1rem" }}>
+            {story.category}
+          </span>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.45rem, 7vw, 5rem)", fontWeight: 600, color: "#1A1A1A", lineHeight: 0.98, letterSpacing: 0, marginBottom: "1rem" }}>{story.title}</h1>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "clamp(1.05rem, 2vw, 1.35rem)", lineHeight: 1.65, color: "#4A4A3A", margin: "0 0 1.35rem" }}>{story.excerpt}</p>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "0.75rem" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", borderTop: "1px solid rgba(45,74,45,0.14)", borderBottom: "1px solid rgba(45,74,45,0.14)", padding: "1rem 0", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
               <button onClick={() => { const k = AUTHOR_KEY[story.author]; if (k) setViewingProfile(GAMIFIED_USERS[k]); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-                <img src={story.authorAvatar} alt={story.author} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", display: "block" }} />
+                <img src={story.authorAvatar} alt={story.author} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", display: "block" }} />
               </button>
               <div>
-                <button onClick={() => { const k = AUTHOR_KEY[story.author]; if (k) setViewingProfile(GAMIFIED_USERS[k]); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: "0.9rem", color: "#1A1A1A" }}>{story.author}</button>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: "#6B6B5A" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8rem", fontFamily: "var(--font-ui)" }}><MapPin size={11} />{story.region}</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8rem", fontFamily: "var(--font-ui)" }}><Clock size={11} />{story.readTime} read</span>
+                <button onClick={() => { const k = AUTHOR_KEY[story.author]; if (k) setViewingProfile(GAMIFIED_USERS[k]); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: "0.94rem", color: "#1A1A1A" }}>{story.author}</button>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: "#6B6B5A", flexWrap: "wrap", marginTop: "0.15rem" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.82rem", fontFamily: "var(--font-ui)" }}><MapPin size={12} />{story.region}, Philippines</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.82rem", fontFamily: "var(--font-ui)" }}><Clock size={12} />Posted {story.date}</span>
+                  <span style={{ fontSize: "0.82rem", fontFamily: "var(--font-ui)" }}>{story.readTime} read</span>
                 </div>
               </div>
             </div>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              <button onClick={() => setLiked((v) => !v)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.875rem", border: "1px solid", borderColor: liked ? "#C4713A" : "rgba(45,74,45,0.2)", borderRadius: "0.25rem", background: liked ? "rgba(196,113,58,0.08)" : "none", color: liked ? "#C4713A" : "#6B6B5A", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)" }}>
+
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <button onClick={() => setLiked((v) => !v)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid", borderColor: liked ? "#C4713A" : "rgba(45,74,45,0.2)", borderRadius: "999px", background: liked ? "rgba(196,113,58,0.08)" : "none", color: liked ? "#C4713A" : "#6B6B5A", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
                 <Heart size={14} fill={liked ? "#C4713A" : "none"} /> {story.likes + (liked ? 1 : 0)}
               </button>
-              <button onClick={() => setSaved((v) => !v)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.875rem", border: "1px solid", borderColor: saved ? "#2D4A2D" : "rgba(45,74,45,0.2)", borderRadius: "0.25rem", background: saved ? "rgba(45,74,45,0.08)" : "none", color: saved ? "#2D4A2D" : "#6B6B5A", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)" }}>
+              <button onClick={() => setSaved((v) => !v)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid", borderColor: saved ? "#2D4A2D" : "rgba(45,74,45,0.2)", borderRadius: "999px", background: saved ? "rgba(45,74,45,0.08)" : "none", color: saved ? "#2D4A2D" : "#6B6B5A", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
                 <Bookmark size={14} fill={saved ? "#2D4A2D" : "none"} /> Save
               </button>
-              <button style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.875rem", border: "1px solid rgba(45,74,45,0.2)", borderRadius: "0.25rem", background: "none", color: "#6B6B5A", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)" }}>
+              <button style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid rgba(45,74,45,0.2)", borderRadius: "999px", background: "none", color: "#6B6B5A", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
                 <Share2 size={14} /> Share
               </button>
             </div>
           </div>
+        </header>
 
-          <div style={{ borderTop: "1px solid rgba(45,74,45,0.1)", paddingTop: "1.5rem" }}>
+        {/* Photo carousel */}
+        <figure style={{ position: "relative", margin: "0 0 2.5rem" }}>
+          <img src={activePhoto} alt={`${story.title} photo ${photoIndex + 1}`} style={{ width: "100%", height: "clamp(300px, 58vw, 620px)", objectFit: "cover", display: "block", borderRadius: "0.35rem" }} />
+          {hasMultiplePhotos && (
+            <>
+              <button
+                aria-label="Previous photo"
+                onClick={() => setPhotoIndex((current) => (current - 1 + photos.length) % photos.length)}
+                style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", background: "rgba(26,26,26,0.5)", border: "none", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#F5F0E8" }}
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                aria-label="Next photo"
+                onClick={() => setPhotoIndex((current) => (current + 1) % photos.length)}
+                style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", background: "rgba(26,26,26,0.5)", border: "none", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#F5F0E8" }}
+              >
+                <ChevronRight size={20} />
+              </button>
+              <div style={{ position: "absolute", bottom: "1.1rem", right: "1.5rem", display: "flex", alignItems: "center", gap: "0.4rem", background: "rgba(26,26,26,0.45)", borderRadius: "999px", padding: "0.35rem 0.55rem" }}>
+                {photos.map((_, index) => (
+                  <button
+                    key={index}
+                    aria-label={`Show photo ${index + 1}`}
+                    onClick={() => setPhotoIndex(index)}
+                    style={{ width: index === photoIndex ? 18 : 7, height: 7, borderRadius: "999px", border: "none", backgroundColor: index === photoIndex ? "#F5F0E8" : "rgba(245,240,232,0.45)", padding: 0, cursor: "pointer" }}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+          <figcaption style={{ width: "min(100%, 780px)", margin: "0.75rem auto 0", fontFamily: "var(--font-ui)", fontSize: "0.82rem", color: "#6B6B5A" }}>
+            Photo {photoIndex + 1} of {photos.length} from {story.region}.
+          </figcaption>
+        </figure>
+
+        {/* Content */}
+        <div style={{ width: "min(100%, 780px)", margin: "0 auto" }}>
+          <div>
+            <h3 style={{ fontFamily: "var(--font-label)", fontSize: "0.78rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#7A9E6F", marginBottom: "0.9rem" }}>Description</h3>
             {story.body.split("\n\n").map((para, i) => (
-              <p key={i} style={{ fontFamily: "var(--font-body)", fontSize: "1.025rem", lineHeight: 1.8, color: "#1A1A1A", marginBottom: "1.25rem" }}>{para}</p>
+              <p key={i} style={{ fontFamily: "var(--font-body)", fontSize: "clamp(1.05rem, 1.7vw, 1.2rem)", lineHeight: 1.85, color: "#1A1A1A", marginBottom: "1.45rem" }}>{para}</p>
             ))}
           </div>
 
@@ -278,7 +374,7 @@ function StoryModal({ story, onClose, onPrev, onNext, hasPrev, hasNext }: {
                         next.has(c.id) ? next.delete(c.id) : next.add(c.id);
                         return next;
                       })}
-                      style={{ display: "flex", alignItems: "center", gap: "0.3;rem", background: "none", border: "none", cursor: "pointer", color: likedComments.has(c.id) ? "#C4713A" : "#6B6B5A", fontFamily: "var(--font-ui)", fontSize: "0.78rem", padding: "0.3rem 0.25rem", marginTop: "0.25rem" }}
+                      style={{ display: "flex", alignItems: "center", gap: "0.3rem", background: "none", border: "none", cursor: "pointer", color: likedComments.has(c.id) ? "#C4713A" : "#6B6B5A", fontFamily: "var(--font-ui)", fontSize: "0.78rem", padding: "0.3rem 0.25rem", marginTop: "0.25rem" }}
                     >
                       <Heart size={13} fill={likedComments.has(c.id) ? "#C4713A" : "none"} />
                       {c.likes + (likedComments.has(c.id) ? 1 : 0)}
@@ -289,7 +385,7 @@ function StoryModal({ story, onClose, onPrev, onNext, hasPrev, hasNext }: {
             </div>
           </div>
         </div>
-      </div>
+      </article>
       {viewingProfile && <UserProfileModal user={viewingProfile} onClose={() => setViewingProfile(null)} />}
     </div>
   );
@@ -307,6 +403,19 @@ function StoriesContent() {
   });
 
   const activeIndex = activeStory !== null ? filtered.findIndex((s) => s.id === activeStory) : -1;
+
+  if (activeStory !== null && activeIndex >= 0) {
+    return (
+      <StoryArticleView
+        story={filtered[activeIndex]}
+        onBack={() => setActiveStory(null)}
+        onPrev={() => setActiveStory(filtered[activeIndex - 1].id)}
+        onNext={() => setActiveStory(filtered[activeIndex + 1].id)}
+        hasPrev={activeIndex > 0}
+        hasNext={activeIndex < filtered.length - 1}
+      />
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F5F0E8", padding: "3rem 1.5rem" }}>
@@ -391,17 +500,6 @@ function StoriesContent() {
           ))}
         </div>
       </div>
-
-      {activeStory !== null && activeIndex >= 0 && (
-        <StoryModal
-          story={filtered[activeIndex]}
-          onClose={() => setActiveStory(null)}
-          onPrev={() => setActiveStory(filtered[activeIndex - 1].id)}
-          onNext={() => setActiveStory(filtered[activeIndex + 1].id)}
-          hasPrev={activeIndex > 0}
-          hasNext={activeIndex < filtered.length - 1}
-        />
-      )}
 
       <style>{`
         @media (max-width: 640px) {

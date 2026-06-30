@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, BellOff, MessageSquare, MoreHorizontal, Search, Send, SquarePen, X } from "lucide-react";
+import { ArrowLeft, BellOff, MessageSquare, MoreHorizontal, Plus, Search, Send, SquarePen, Users, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { GAMIFIED_USERS, getLevelFromXp } from "./gamification";
 import { UserProfileModal } from "./UserProfileModal";
@@ -290,6 +290,10 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
   const [searchQuery, setSearchQuery] = useState("");
   const [activeConvId, setActiveConvId] = useState<number | null>(null);
   const [selectedProfileKey, setSelectedProfileKey] = useState<string | null>(null);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [createGroupOpen, setCreateGroupOpen] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [groupNote, setGroupNote] = useState("");
 
   if (!open) return null;
 
@@ -312,6 +316,35 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
 
   const handleUpdateConversation = (convId: number, messages: Msg[], lastMessage: string, unread: boolean) => {
     setConversations((current) => current.map((conv) => (conv.id === convId ? { ...conv, messages, lastMessage, time: "Just now", unread } : conv)));
+  };
+
+  const handleCreateGroup = () => {
+    const name = groupName.trim();
+    if (!name) return;
+    const note = groupNote.trim() || "New travel group created.";
+    const nextId = Math.max(...conversations.map((conv) => conv.id), 0) + 1;
+    const created: Conv = {
+      id: nextId,
+      name,
+      avatarBackground: "#2D4A2D",
+      initials: name.split(/\s+/).slice(0, 2).map((word) => word[0]).join("").toUpperCase().slice(0, 2) || "G",
+      lastMessage: `You: ${note}`,
+      time: "Just now",
+      online: false,
+      unread: false,
+      isGroup: true,
+      label: "Travel Group",
+      messages: [
+        { id: Date.now(), from: "me", text: note, time: "Just now", read: true },
+      ],
+    };
+    setConversations((current) => [created, ...current]);
+    setActiveTab("Events");
+    setActiveConvId(nextId);
+    setGroupName("");
+    setGroupNote("");
+    setCreateGroupOpen(false);
+    setOptionsOpen(false);
   };
 
   return (
@@ -340,9 +373,31 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
                   <button title="Compose message" className="grid min-h-8 min-w-8 place-items-center rounded-full bg-[#2D4A2D]/10 text-[#2D4A2D] transition hover:bg-[#2D4A2D]/15">
                     <SquarePen size={16} />
                   </button>
-                  <button title="Options" className="grid min-h-8 min-w-8 place-items-center rounded-full bg-[#2D4A2D]/10 text-[#2D4A2D] transition hover:bg-[#2D4A2D]/15">
-                    <MoreHorizontal size={16} />
-                  </button>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      title="Options"
+                      onClick={() => setOptionsOpen((value) => !value)}
+                      className="grid min-h-8 min-w-8 place-items-center rounded-full bg-[#2D4A2D]/10 text-[#2D4A2D] transition hover:bg-[#2D4A2D]/15"
+                    >
+                      <MoreHorizontal size={16} />
+                    </button>
+                    {optionsOpen ? (
+                      <div className="absolute right-0 top-[calc(100%+0.5rem)] z-10 w-48 overflow-hidden rounded-lg border border-[#2D4A2D]/15 bg-[#F5F0E8] shadow-[0_18px_40px_rgba(45,74,45,0.2)]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCreateGroupOpen(true);
+                            setOptionsOpen(false);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-3 text-left text-sm font-semibold text-[#2D4A2D] transition hover:bg-[#EDEAE0]"
+                        >
+                          <Users size={15} />
+                          Create a Group
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
                   <button onClick={onClose} title="Close panel" className="ml-1 grid min-h-8 min-w-8 place-items-center rounded-full bg-[#C4713A]/15 text-[#C4713A] transition hover:bg-[#C4713A]/25">
                     <X size={16} />
                   </button>
@@ -413,6 +468,59 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
           </>
         )}
       </aside>
+      {createGroupOpen ? (
+        <div className="fixed inset-0 z-[203] grid place-items-center bg-[#1A1A1A]/45 px-4 backdrop-blur-sm" onClick={() => setCreateGroupOpen(false)}>
+          <form
+            onClick={(event) => event.stopPropagation()}
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleCreateGroup();
+            }}
+            className="w-full max-w-[430px] rounded-xl border border-[#2D4A2D]/15 bg-[#F5F0E8] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.28)]"
+          >
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="mb-1 font-[var(--font-label)] text-[0.7rem] font-bold uppercase tracking-[0.12em] text-[#C4713A]">Travel group</p>
+                <h2 className="m-0 font-[var(--font-display)] text-3xl font-semibold leading-tight text-[#2D4A2D]">Create a Group</h2>
+              </div>
+              <button type="button" onClick={() => setCreateGroupOpen(false)} className="grid min-h-9 min-w-9 place-items-center rounded-full bg-[#2D4A2D]/10 text-[#2D4A2D] transition hover:bg-[#2D4A2D]/15" aria-label="Close create group">
+                <X size={17} />
+              </button>
+            </div>
+            <label className="mb-1 block text-xs font-bold uppercase tracking-[0.08em] text-[#6B6B5A]" htmlFor="chat-group-name">
+              Group name
+            </label>
+            <input
+              id="chat-group-name"
+              value={groupName}
+              onChange={(event) => setGroupName(event.target.value)}
+              placeholder="Example: Cebu Weekend Crew"
+              className="mb-3 min-h-11 w-full rounded-lg border border-[#2D4A2D]/15 bg-white px-3 text-sm text-[#1A1A1A] outline-none placeholder:text-[#6B6B5A] focus:border-[#2D4A2D]"
+              autoFocus
+            />
+            <label className="mb-1 block text-xs font-bold uppercase tracking-[0.08em] text-[#6B6B5A]" htmlFor="chat-group-note">
+              First message
+            </label>
+            <textarea
+              id="chat-group-note"
+              value={groupNote}
+              onChange={(event) => setGroupNote(event.target.value)}
+              placeholder="Add the first planning note for this group..."
+              rows={4}
+              className="mb-4 w-full resize-none rounded-lg border border-[#2D4A2D]/15 bg-white px-3 py-2 text-sm leading-6 text-[#1A1A1A] outline-none placeholder:text-[#6B6B5A] focus:border-[#2D4A2D]"
+            />
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setCreateGroupOpen(false)} className="min-h-10 rounded-full border border-[#2D4A2D]/15 px-4 text-sm font-bold text-[#2D4A2D] transition hover:bg-[#EDEAE0]">
+                Cancel
+              </button>
+              <button type="submit" disabled={!groupName.trim()} className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[#2D4A2D] px-4 text-sm font-bold text-[#F5F0E8] transition hover:bg-[#234023] disabled:cursor-default disabled:bg-[#D8D4C8]">
+                <Plus size={15} />
+                Create
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
       {viewingProfile ? <UserProfileModal user={viewingProfile} onClose={() => setSelectedProfileKey(null)} /> : null}
       {!user ? <span className="sr-only">Chat preview mode</span> : null}
     </>
