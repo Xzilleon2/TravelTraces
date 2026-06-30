@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, MapPin, Star, X, BookOpen, Pin, Users, Camera, Clock, ChevronLeft, ChevronRight, ExternalLink, Compass, Mountain, Waves, Building2, TreePine, Droplets, Anchor, Gem, Landmark } from "lucide-react";
+import { Search, MapPin, Star, ArrowLeft, BookOpen, Pin, Users, Camera, Clock, ChevronLeft, ChevronRight, ExternalLink, Compass, Mountain, Waves, Building2, TreePine, Droplets, Anchor, Gem, Landmark, Utensils } from "lucide-react";
 import { GatedPage } from "../components/GatedPage";
 import { UserProfileModal } from "../components/UserProfileModal";
 import { GAMIFIED_USERS, GamifiedUser, getLevelFromXp } from "../components/gamification";
@@ -244,7 +244,7 @@ const DESTINATIONS = [
   },
 ];
 
-const terrains = ["All", "Beaches", "Mountains", "Highlands", "Urban", "Waterfalls", "Lakes & Rivers", "Forests", "Caves", "Heritage Sites"];
+const travelCategories = ["All", "Hiking", "Food Place", "Hidden Gems", "Beaches", "Forest", "Culture", "More"];
 
 const TERRAIN_ICON: Record<string, React.ElementType> = {
   All: Compass,
@@ -259,6 +259,17 @@ const TERRAIN_ICON: Record<string, React.ElementType> = {
   "Heritage Sites": Landmark,
 };
 
+const CATEGORY_ICON: Record<string, React.ElementType> = {
+  All: Compass,
+  Hiking: Mountain,
+  "Food Place": Utensils,
+  "Hidden Gems": Gem,
+  Beaches: Waves,
+  Forest: TreePine,
+  Culture: Landmark,
+  More: Compass,
+};
+
 function destinationText(destination: typeof DESTINATIONS[number]) {
   return `${destination.name} ${destination.region} ${destination.province} ${destination.terrain} ${destination.tags.join(" ")} ${destination.highlights.join(" ")} ${destination.desc} ${destination.longDesc}`.toLowerCase();
 }
@@ -266,42 +277,74 @@ function destinationText(destination: typeof DESTINATIONS[number]) {
 function destinationMatchesCategory(destination: typeof DESTINATIONS[number], category: string) {
   if (category === "All") return true;
   const text = destinationText(destination);
-  if (category === "Beaches") return destination.terrain === "Islands" || /beach|island|lagoon|snorkel|diving|surf/.test(text);
-  if (category === "Mountains") return destination.terrain === "Mountains" || /mountain|trek|terrace|volcano|trail/.test(text);
-  if (category === "Highlands") return destination.terrain === "Highlands" || /highland|hills|ridge|batanes/.test(text);
-  if (category === "Urban") return destination.terrain === "Urban" || /city|urban|vigan|architecture/.test(text);
-  if (category === "Waterfalls") return /waterfall|falls/.test(text);
-  if (category === "Lakes & Rivers") return /lake|river|lagoon|springs|bay/.test(text);
-  if (category === "Forests") return /forest|nature|wildlife|tarsier|mangrove/.test(text);
-  if (category === "Caves") return /cave|caves|cove|hidden/.test(text);
-  if (category === "Heritage Sites") return /heritage|unesco|culture|historic|stone houses|colonial/.test(text);
-  return destination.terrain === category;
+  if (category === "Hiking") return destination.terrain === "Mountains" || destination.terrain === "Highlands" || /mountain|trek|terrace|volcano|trail|hills|ridge/.test(text);
+  if (category === "Food Place") return /food|cuisine|longganisa|bagnet|kare-kare|restaurant|market|meal|culinary/.test(text);
+  if (category === "Hidden Gems") return /hidden|secret|cove|quiet|unspoiled|underrated|lesser-known/.test(text);
+  if (category === "Beaches") return destination.terrain === "Islands" || /beach|island|lagoon|snorkel|diving|surf|bay/.test(text);
+  if (category === "Forest") return /forest|nature|wildlife|tarsier|mangrove|springs|waterfall|falls/.test(text);
+  if (category === "Culture") return destination.terrain === "Urban" || /heritage|unesco|culture|historic|stone houses|colonial|architecture|weaving|vigan|ivatan/.test(text);
+  return !["Hiking", "Food Place", "Hidden Gems", "Beaches", "Forest", "Culture"].some((known) => destinationMatchesCategory(destination, known));
 }
 
-/* ─── Destination Detail Modal ──────────────────────────────── */
+function destinationCategory(destination: typeof DESTINATIONS[number]) {
+  if (destinationMatchesCategory(destination, "Food Place")) return "Food Place";
+  if (destinationMatchesCategory(destination, "Culture")) return "Culture";
+  if (destinationMatchesCategory(destination, "Hiking")) return "Hiking";
+  if (destinationMatchesCategory(destination, "Forest")) return "Forest";
+  if (destinationMatchesCategory(destination, "Hidden Gems")) return "Hidden Gems";
+  if (destinationMatchesCategory(destination, "Beaches")) return "Beaches";
+  return "More";
+}
 
-function DestinationModal({ dest, onClose }: { dest: typeof DESTINATIONS[0]; onClose: () => void }) {
+/* ─── Destination Guide View ──────────────────────────────── */
+
+function DestinationGuideView({ dest, onBack }: { dest: typeof DESTINATIONS[0]; onBack: () => void }) {
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [viewingProfile, setViewingProfile] = useState<GamifiedUser | null>(null);
 
   const allImages = [dest.img, ...dest.gallery];
+  const category = destinationCategory(dest);
+  const CategoryIcon = CATEGORY_ICON[category] ?? Compass;
 
   return (
-    <div
-      style={{ position: "fixed", inset: 0, zIndex: 100, backgroundColor: "rgba(20,30,20,0.75)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div style={{ backgroundColor: "#F5F0E8", borderRadius: "0.75rem", width: "100%", maxWidth: 920, maxHeight: "92vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 32px 80px rgba(0,0,0,0.35)" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#F5F0E8", padding: "2rem clamp(1rem, 4vw, 2rem) 5rem" }}>
+      <div style={{ maxWidth: 1120, margin: "0 auto" }}>
+        <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", background: "transparent", border: "none", color: "#2D4A2D", fontFamily: "var(--font-ui)", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer", padding: "0.25rem 0", marginBottom: "1.5rem" }}>
+          <ArrowLeft size={17} />
+          Back to Explore
+        </button>
+
+        <header style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", alignItems: "end", gap: "1.5rem", marginBottom: "1.5rem" }} className="dest-guide-header">
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.65rem", flexWrap: "wrap", marginBottom: "0.9rem" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", backgroundColor: "#C4713A", color: "#F5F0E8", fontFamily: "var(--font-label)", fontSize: "0.7rem", fontWeight: 800, padding: "0.32rem 0.7rem", borderRadius: "0.25rem", letterSpacing: "0.09em", textTransform: "uppercase" }}>
+                <CategoryIcon size={13} />
+                {category}
+              </span>
+              <span style={{ fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7A9E6F" }}>Visit guide</span>
+            </div>
+            <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.4rem, 7vw, 5.25rem)", fontWeight: 600, color: "#2D4A2D", lineHeight: 0.95, margin: 0, maxWidth: 760 }}>{dest.name}</h1>
+            <p style={{ fontFamily: "var(--font-body)", fontSize: "clamp(1rem, 2vw, 1.25rem)", color: "#3A3A2A", lineHeight: 1.65, margin: "1rem 0 0", maxWidth: 760 }}>{dest.desc}</p>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(96px, 1fr))", gap: "0.65rem", minWidth: 230 }} className="dest-guide-stats">
+            {[
+              { label: "Rating", value: dest.rating.toFixed(1) },
+              { label: "Reviews", value: dest.reviews.toLocaleString() },
+              { label: "Best", value: dest.bestMonths },
+              { label: "Level", value: dest.difficulty },
+            ].map((item) => (
+              <div key={item.label} style={{ backgroundColor: "#EDEAE0", border: "1px solid rgba(45,74,45,0.1)", borderRadius: "0.45rem", padding: "0.8rem" }}>
+                <div style={{ fontFamily: "var(--font-label)", fontSize: "0.62rem", letterSpacing: "0.09em", textTransform: "uppercase", color: "#6B6B5A" }}>{item.label}</div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem", fontWeight: 600, color: "#1A1A1A", marginTop: "0.2rem" }}>{item.value}</div>
+              </div>
+            ))}
+          </div>
+        </header>
 
         {/* Hero photo carousel */}
-        <div style={{ position: "relative", flexShrink: 0 }}>
-          <img src={allImages[galleryIndex]} alt={dest.name} style={{ width: "100%", height: 300, objectFit: "cover", display: "block" }} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.08) 0%, rgba(20,30,20,0.72) 100%)" }} />
-
-          {/* Close */}
-          <button onClick={onClose} style={{ position: "absolute", top: "1rem", right: "1rem", background: "rgba(26,26,26,0.55)", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#F5F0E8", backdropFilter: "blur(4px)" }}>
-            <X size={17} />
-          </button>
+        <div style={{ position: "relative", marginBottom: "2rem", overflow: "hidden", borderRadius: "0.5rem", backgroundColor: "#EDEAE0" }}>
+          <img src={allImages[galleryIndex]} alt={dest.name} style={{ width: "100%", height: "clamp(320px, 56vw, 620px)", objectFit: "cover", display: "block" }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.04) 45%, rgba(20,30,20,0.62) 100%)" }} />
 
           {/* Gallery nav */}
           {allImages.length > 1 && (
@@ -312,7 +355,7 @@ function DestinationModal({ dest, onClose }: { dest: typeof DESTINATIONS[0]; onC
               <button onClick={() => setGalleryIndex((i) => (i + 1) % allImages.length)} style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", background: "rgba(26,26,26,0.5)", border: "none", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#F5F0E8" }}>
                 <ChevronRight size={17} />
               </button>
-              <div style={{ position: "absolute", bottom: "5rem", left: "50%", transform: "translateX(-50%)", display: "flex", gap: "0.4rem" }}>
+              <div style={{ position: "absolute", bottom: "1rem", left: "50%", transform: "translateX(-50%)", display: "flex", gap: "0.4rem" }}>
                 {allImages.map((_, i) => (
                   <button key={i} onClick={() => setGalleryIndex(i)} style={{ width: i === galleryIndex ? 20 : 7, height: 7, borderRadius: "4px", border: "none", cursor: "pointer", backgroundColor: i === galleryIndex ? "#F5F0E8" : "rgba(245,240,232,0.45)", transition: "all 0.2s", padding: 0 }} />
                 ))}
@@ -321,13 +364,12 @@ function DestinationModal({ dest, onClose }: { dest: typeof DESTINATIONS[0]; onC
           )}
 
           {/* Overlay title info */}
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "1.5rem" }}>
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "1.5rem 1.5rem 2.25rem" }}>
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
                   <span style={{ backgroundColor: dest.color, color: "#F5F0E8", fontFamily: "var(--font-label)", fontSize: "0.68rem", fontWeight: 700, padding: "0.2rem 0.60rem", borderRadius: "0.2rem", letterSpacing: "0.08em", textTransform: "uppercase" }}>{dest.terrain}</span>
                 </div>
-                <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.75rem, 4vw, 2.5rem)", fontWeight: 600, color: "#F5F0E8", margin: 0, lineHeight: 1.15 }}>{dest.name}</h2>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.35rem" }}>
                   <MapPin size={13} color="rgba(245,240,232,0.75)" />
                   <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.875rem", color: "rgba(245,240,232,0.85)" }}>{dest.province}, Philippines</span>
@@ -344,11 +386,11 @@ function DestinationModal({ dest, onClose }: { dest: typeof DESTINATIONS[0]; onC
         </div>
 
         {/* Content */}
-        <div style={{ overflow: "auto", flex: 1 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 300px" }} className="dest-modal-grid">
+        <div>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 320px", gap: "2rem", alignItems: "start" }} className="dest-guide-grid">
 
             {/* Left: main content */}
-            <div style={{ padding: "2rem", borderRight: "1px solid rgba(45,74,45,0.1)" }}>
+            <div>
 
               {/* Quick stats */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.75rem", marginBottom: "2rem" }}>
@@ -368,9 +410,10 @@ function DestinationModal({ dest, onClose }: { dest: typeof DESTINATIONS[0]; onC
 
               {/* About */}
               <div style={{ marginBottom: "2rem" }}>
-                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 600, color: "#2D4A2D", marginBottom: "1rem" }}>About</h3>
+                <p style={{ fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#C4713A", marginBottom: "0.6rem" }}>Why visit</p>
+                <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.8rem, 3vw, 2.5rem)", fontWeight: 600, color: "#2D4A2D", margin: "0 0 1rem", lineHeight: 1.1 }}>A destination worth planning around</h2>
                 {dest.longDesc.split("\n\n").map((p, i) => (
-                  <p key={i} style={{ fontFamily: "var(--font-body)", fontSize: "0.975rem", color: "#3A3A2A", lineHeight: 1.8, marginBottom: "1rem" }}>{p}</p>
+                  <p key={i} style={{ fontFamily: "var(--font-body)", fontSize: "1.03rem", color: "#3A3A2A", lineHeight: 1.85, marginBottom: "1rem" }}>{p}</p>
                 ))}
               </div>
 
@@ -429,10 +472,10 @@ function DestinationModal({ dest, onClose }: { dest: typeof DESTINATIONS[0]; onC
             </div>
 
             {/* Right sidebar */}
-            <div style={{ padding: "2rem 1.5rem", display: "flex", flexDirection: "column", gap: "1.75rem" }}>
+            <aside style={{ position: "sticky", top: "1rem", display: "flex", flexDirection: "column", gap: "1.25rem" }} className="dest-guide-sidebar">
 
               {/* Trip info */}
-              <div>
+              <div style={{ backgroundColor: "#EDEAE0", border: "1px solid rgba(45,74,45,0.1)", borderRadius: "0.5rem", padding: "1.25rem" }}>
                 <p style={{ fontFamily: "var(--font-label)", fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#6B6B5A", marginBottom: "0.75rem" }}>Trip Info</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
                   {[
@@ -441,7 +484,7 @@ function DestinationModal({ dest, onClose }: { dest: typeof DESTINATIONS[0]; onC
                     { icon: MapPin, label: "Province", value: dest.province },
                     { icon: Star, label: "Rating", value: `${dest.rating} / 5.0` },
                   ].map((item) => (
-                    <div key={item.label} style={{ display: "flex", alignItems: "center", gap: "0.625rem", padding: "0.625rem 0.75rem", backgroundColor: "#EDEAE0", borderRadius: "0.375rem" }}>
+                    <div key={item.label} style={{ display: "flex", alignItems: "center", gap: "0.625rem", padding: "0.625rem 0.75rem", backgroundColor: "#F5F0E8", borderRadius: "0.375rem" }}>
                       <item.icon size={14} color={dest.color} style={{ flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontFamily: "var(--font-label)", fontSize: "0.6rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#9A9A8A" }}>{item.label}</div>
@@ -453,7 +496,7 @@ function DestinationModal({ dest, onClose }: { dest: typeof DESTINATIONS[0]; onC
               </div>
 
               {/* Tags */}
-              <div>
+              <div style={{ backgroundColor: "#EDEAE0", border: "1px solid rgba(45,74,45,0.1)", borderRadius: "0.5rem", padding: "1.25rem" }}>
                 <p style={{ fontFamily: "var(--font-label)", fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#6B6B5A", marginBottom: "0.625rem" }}>Activities</p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
                   {dest.tags.map((t) => (
@@ -463,7 +506,7 @@ function DestinationModal({ dest, onClose }: { dest: typeof DESTINATIONS[0]; onC
               </div>
 
               {/* Explorers who've been here */}
-              <div>
+              <div style={{ backgroundColor: "#EDEAE0", border: "1px solid rgba(45,74,45,0.1)", borderRadius: "0.5rem", padding: "1.25rem" }}>
                 <p style={{ fontFamily: "var(--font-label)", fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#6B6B5A", marginBottom: "0.75rem" }}>
                   TravelTraces Explorers Here <span style={{ color: dest.color }}>({dest.explorers.toLocaleString()})</span>
                 </p>
@@ -490,7 +533,7 @@ function DestinationModal({ dest, onClose }: { dest: typeof DESTINATIONS[0]; onC
                     if (!gu) return null;
                     const lv = getLevelFromXp(gu.xp);
                     return (
-                      <button key={key} onClick={() => setViewingProfile(gu)} style={{ display: "flex", alignItems: "center", gap: "0.625rem", padding: "0.625rem 0.75rem", backgroundColor: "#EDEAE0", borderRadius: "0.5rem", border: "none", cursor: "pointer", textAlign: "left", transition: "background 0.12s" }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#D8D4C8")} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#EDEAE0")}>
+                      <button key={key} onClick={() => setViewingProfile(gu)} style={{ display: "flex", alignItems: "center", gap: "0.625rem", padding: "0.625rem 0.75rem", backgroundColor: "#F5F0E8", borderRadius: "0.5rem", border: "none", cursor: "pointer", textAlign: "left", transition: "background 0.12s" }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#D8D4C8")} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#F5F0E8")}>
                         <div style={{ position: "relative", flexShrink: 0 }}>
                           <img src={gu.avatar} alt={gu.name} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", border: `2px solid ${lv.color}` }} />
                           <div style={{ position: "absolute", bottom: -4, left: "50%", transform: "translateX(-50%)", backgroundColor: lv.color, color: "#F5F0E8", fontFamily: "var(--font-label)", fontSize: "0.45rem", fontWeight: 800, padding: "0.06rem 0.28rem", borderRadius: "2rem", whiteSpace: "nowrap" }}>LV{lv.level}</div>
@@ -508,14 +551,23 @@ function DestinationModal({ dest, onClose }: { dest: typeof DESTINATIONS[0]; onC
                   })}
                 </div>
               </div>
-            </div>
+            </aside>
           </div>
         </div>
       </div>
 
       {viewingProfile && <UserProfileModal user={viewingProfile} onClose={() => setViewingProfile(null)} />}
 
-      <style>{`.dest-modal-grid { @media (max-width: 640px) { grid-template-columns: 1fr !important; } }`}</style>
+      <style>{`
+        @media (max-width: 900px) {
+          .dest-guide-header { grid-template-columns: 1fr !important; }
+          .dest-guide-grid { grid-template-columns: 1fr !important; }
+          .dest-guide-sidebar { position: static !important; }
+        }
+        @media (max-width: 640px) {
+          .dest-guide-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; min-width: 0 !important; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -524,7 +576,8 @@ function DestinationModal({ dest, onClose }: { dest: typeof DESTINATIONS[0]; onC
 
 function DestinationCard({ d, onClick }: { d: typeof DESTINATIONS[0]; onClick: () => void; key?: any }) {
   const [hovered, setHovered] = useState(false);
-  const TerrainIcon = TERRAIN_ICON[d.terrain] ?? Compass;
+  const category = destinationCategory(d);
+  const CategoryIcon = CATEGORY_ICON[category] ?? Compass;
   const contributors = d.contributors.map((k) => GAMIFIED_USERS[k]).filter(Boolean);
 
   return (
@@ -532,12 +585,12 @@ function DestinationCard({ d, onClick }: { d: typeof DESTINATIONS[0]; onClick: (
       onClick={onClick}
       style={{
         backgroundColor: "#EDEAE0",
-        borderRadius: "0.5rem",
+        borderRadius: "0.25rem",
         overflow: "hidden",
         cursor: "pointer",
         transition: "transform 0.2s, box-shadow 0.2s",
-        transform: hovered ? "translateY(-4px)" : "none",
-        boxShadow: hovered ? "0 12px 36px rgba(0,0,0,0.13)" : "0 2px 8px rgba(0,0,0,0.04)",
+        transform: hovered ? "translateY(-2px)" : "none",
+        boxShadow: hovered ? "0 8px 24px rgba(0,0,0,0.1)" : "none",
         display: "flex", flexDirection: "column",
       }}
       onMouseEnter={() => setHovered(true)}
@@ -546,14 +599,14 @@ function DestinationCard({ d, onClick }: { d: typeof DESTINATIONS[0]; onClick: (
       <div style={{ position: "relative", overflow: "hidden" }}>
         <img
           src={d.img} alt={d.name}
-          style={{ width: "100%", height: 230, objectFit: "cover", display: "block", transition: "transform 0.45s", transform: hovered ? "scale(1.05)" : "scale(1)" }}
+          style={{ width: "100%", height: 200, objectFit: "cover", display: "block", transition: "transform 0.45s", transform: hovered ? "scale(1.04)" : "scale(1)" }}
         />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(20,30,20,0.65) 100%)" }} />
 
-        {/* Terrain badge */}
-        <div style={{ position: "absolute", top: "0.75rem", left: "0.75rem", display: "flex", alignItems: "center", gap: "0.3rem", backgroundColor: d.color, color: "#F5F0E8", padding: "0.25rem 0.625rem", borderRadius: "2rem", fontSize: "0.68rem", fontFamily: "var(--font-label)", letterSpacing: "0.07em", textTransform: "uppercase" }}>
-          <TerrainIcon size={11} />
-          {d.terrain}
+        {/* Category badge */}
+        <div style={{ position: "absolute", top: "0.75rem", left: "0.75rem", display: "flex", alignItems: "center", gap: "0.3rem", backgroundColor: "#C4713A", color: "#F5F0E8", padding: "0.25rem 0.625rem", borderRadius: "0.2rem", fontSize: "0.68rem", fontFamily: "var(--font-label)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          <CategoryIcon size={11} />
+          {category}
         </div>
 
         {/* Rating */}
@@ -573,9 +626,11 @@ function DestinationCard({ d, onClick }: { d: typeof DESTINATIONS[0]; onClick: (
       <div style={{ padding: "1.25rem 1.25rem 1rem", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ marginBottom: "0.5rem" }}>
           <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem", fontWeight: 600, color: "#2D4A2D", lineHeight: 1.2, marginBottom: "0.2rem" }}>{d.name}</h3>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexWrap: "wrap" }}>
             <MapPin size={12} color="#7A9E6F" />
             <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.78rem", color: "#6B6B5A" }}>{d.region}</span>
+            <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.72rem", color: "#9A9A8A" }}>·</span>
+            <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.78rem", color: "#6B6B5A" }}>{d.terrain}</span>
           </div>
         </div>
 
@@ -602,53 +657,48 @@ function DestinationCard({ d, onClick }: { d: typeof DESTINATIONS[0]; onClick: (
 
 function ExploreContent() {
   const [search, setSearch] = useState("");
-  const [terrain, setTerrain] = useState("All");
+  const [category, setCategory] = useState("All");
   const [selected, setSelected] = useState<typeof DESTINATIONS[0] | null>(null);
 
   const filtered = DESTINATIONS.filter((d) => {
     const matchSearch = d.name.toLowerCase().includes(search.toLowerCase()) || d.region.toLowerCase().includes(search.toLowerCase()) || d.province.toLowerCase().includes(search.toLowerCase());
-    const matchTerrain = destinationMatchesCategory(d, terrain);
-    return matchSearch && matchTerrain;
+    const matchCategory = destinationMatchesCategory(d, category);
+    return matchSearch && matchCategory;
   });
 
+  if (selected) {
+    return <DestinationGuideView dest={selected} onBack={() => setSelected(null)} />;
+  }
+
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#F5F0E8" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#F5F0E8", padding: "3rem 1.5rem" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ marginBottom: "2.5rem" }}>
+          <p style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#7A9E6F", marginBottom: "0.5rem" }}>Destination browser</p>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 600, color: "#2D4A2D", marginBottom: "0.5rem" }}>Explore</h1>
+          <p style={{ fontFamily: "var(--font-body)", color: "#6B6B5A", fontSize: "1rem" }}>Browse beaches, hikes, food places, forests, hidden gems, and culture-rich destinations from the TravelTraces community.</p>
+        </div>
 
-      {/* Hero band */}
-      <div style={{ backgroundColor: "#2D4A2D", padding: "3rem 1.5rem 2.5rem" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-          <p style={{ fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#7A9E6F", marginBottom: "0.5rem" }}>Destination browser</p>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 600, color: "#F5F0E8", marginBottom: "0.5rem" }}>Explore the Philippines</h1>
-          <p style={{ fontFamily: "var(--font-body)", color: "rgba(245,240,232,0.75)", fontSize: "1rem", marginBottom: "1.75rem" }}>Click any destination to read full documentation, highlights, and stories from every explorer who's been there.</p>
-
-          {/* Search */}
-          <div style={{ position: "relative", maxWidth: 500 }}>
-            <Search size={16} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "rgba(245,240,232,0.5)", pointerEvents: "none" }} />
+        <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+          <div style={{ position: "relative", flex: "1 1 260px" }}>
+            <Search size={16} style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "#6B6B5A" }} />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search destinations, regions, provinces…"
-              style={{ width: "100%", padding: "0.85rem 1rem 0.85rem 2.75rem", backgroundColor: "rgba(245,240,232,0.1)", border: "1.5px solid rgba(245,240,232,0.2)", borderRadius: "0.375rem", fontSize: "0.95rem", color: "#F5F0E8", fontFamily: "var(--font-ui)", outline: "none", boxSizing: "border-box", transition: "border-color 0.15s" }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(245,240,232,0.45)")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(245,240,232,0.2)")}
+              placeholder="Search destinations, regions, provinces..."
+              style={{ width: "100%", padding: "0.75rem 1rem 0.75rem 2.5rem", backgroundColor: "#EDEAE0", border: "1px solid rgba(45,74,45,0.15)", borderRadius: "0.25rem", fontSize: "0.9rem", color: "#1A1A1A", fontFamily: "var(--font-ui)", outline: "none", boxSizing: "border-box" }}
             />
           </div>
-        </div>
-      </div>
-
-      {/* Filters + grid */}
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "1.5rem 1.5rem 3rem" }}>
-        <div style={{ marginBottom: "1.75rem" }}>
-          <div className="no-scrollbar" style={{ display: "flex", gap: "0.5rem", overflowX: "auto", paddingBottom: "1rem", WebkitOverflowScrolling: "touch", whiteSpace: "nowrap" }}>
-            {terrains.map((t) => {
-              const Icon = TERRAIN_ICON[t] ?? Compass;
-              const isActive = terrain === t;
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            {travelCategories.map((t) => {
+              const Icon = CATEGORY_ICON[t] ?? Compass;
+              const isActive = category === t;
               const isAll = t === "All";
               return (
                 <button
                   key={t}
                   type="button"
-                  onClick={() => setTerrain(t)}
+                  onClick={() => setCategory(t)}
                   className="category-pill"
                   style={{
                     display: "inline-flex",
@@ -657,9 +707,9 @@ function ExploreContent() {
                     minHeight: 44,
                     borderRadius: 999,
                     border: "1px solid",
-                    borderColor: isActive ? "#12212E" : "rgba(48,112,130,0.5)",
-                    backgroundColor: isActive ? "#12212E" : "transparent",
-                    color: isActive ? "#ECE7DC" : "#307082",
+                    borderColor: isActive ? "#2D4A2D" : "rgba(45,74,45,0.2)",
+                    backgroundColor: isActive ? "#2D4A2D" : "transparent",
+                    color: isActive ? "#F5F0E8" : "#2D4A2D",
                     padding: isAll ? "8px 24px" : "8px 16px",
                     fontFamily: "var(--font-ui)",
                     fontSize: 13,
@@ -670,16 +720,19 @@ function ExploreContent() {
                   }}
                   aria-pressed={isActive}
                 >
-                  {!isAll && <Icon size={14} color={isActive ? "#ECE7DC" : "#6CA3A2"} style={{ flexShrink: 0 }} />}
+                  {!isAll && <Icon size={14} color={isActive ? "#F5F0E8" : "#7A9E6F"} style={{ flexShrink: 0 }} />}
                   <span>{t}</span>
                 </button>
               );
             })}
           </div>
+        </div>
+
+        <div style={{ marginBottom: "1.75rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", marginTop: "0.5rem" }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#EA9940", display: "inline-block" }} />
-            <span style={{ fontSize: 15, fontWeight: 700, color: "#EA9940", fontFamily: "var(--font-ui)" }}>{filtered.length}</span>
-            <span style={{ fontSize: 13, fontWeight: 500, color: "#307082", fontFamily: "var(--font-ui)" }}>destinations found</span>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#C4713A", display: "inline-block" }} />
+            <span style={{ fontSize: 15, fontWeight: 700, color: "#C4713A", fontFamily: "var(--font-ui)" }}>{filtered.length}</span>
+            <span style={{ fontSize: 13, fontWeight: 500, color: "#6B6B5A", fontFamily: "var(--font-ui)" }}>destinations found</span>
           </div>
         </div>
 
@@ -690,16 +743,16 @@ function ExploreContent() {
         </div>
       </div>
 
-      {selected && <DestinationModal dest={selected} onClose={() => setSelected(null)} />}
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .category-pill:hover { background-color: rgba(108,163,162,0.12); border-color: #307082; color: #12212E; }
-        .category-pill[aria-pressed="true"]:hover { background-color: #12212E; border-color: #12212E; color: #ECE7DC; }
+        .category-pill:hover { background-color: rgba(45,74,45,0.08); border-color: #2D4A2D; color: #2D4A2D; }
+        .category-pill[aria-pressed="true"]:hover { background-color: #2D4A2D; border-color: #2D4A2D; color: #F5F0E8; }
       `}</style>
     </div>
   );
 }
+
 
 export default function ExplorePage() {
   return (

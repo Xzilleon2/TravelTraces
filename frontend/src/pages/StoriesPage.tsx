@@ -86,7 +86,7 @@ const STORIES = [
     likes: 418,
     saves: 203,
     img: "https://images.unsplash.com/photo-1632307918787-8cb52566dd35?w=800&h=500&fit=crop&auto=format",
-    category: "Adventure",
+    category: "Beaches",
     excerpt: "The coves are stunning, yes — but nobody tells you about the hour-long boat queue at Nacpan, the food stalls that close by 9pm, or the fact that Tour A and Tour B hit the same spots. Here's the trip I wish someone had written for me.",
     body: `It was supposed to be a straightforward two-night trip. Pack light, catch the morning flight to Puerto Princesa, take the van to El Nido, collapse into a hammock, repeat. Instead, I found myself at 6am standing at the port watching three other tour boats load passengers in exactly the same order as mine.\n\nThe lagoons are genuinely spectacular. Big Lagoon hit me with that specific vertigo you get when reality seems too saturated to be real — the limestone walls rising thirty metres overhead, the kayak cutting soundlessly through water so clear you can see your paddle shadow on the bottom. That moment is real, and no amount of tourist traffic can fully ruin it.\n\nBut here's what nobody wrote: Shimizu Island, the snorkelling stop on Tour A, has been so thoroughly visited that the coral closest to the shore is largely dead. The fish are still there — the giant parrotfish and the clownfish that every kid photographs through a snorkel mask — but the structure they depend on is bleaching. I watched a French tourist standing in the middle of a coral garden to get a selfie.\n\nThe food in El Nido town itself is better than people say. Skip the Instagram restaurants on Calle Hama and walk fifteen minutes to the covered market on Real Street. A local woman named Nena makes kare-kare with tamilok — the woodworm mollusc that the Palawenos eat raw with vinegar — and it is the single most surprising meal I've had in the Philippines.\n\nMy advice: book Tour C and Tour D instead of A and B. The boats are smaller, the stops are quieter, and you'll likely be with eight people instead of thirty-two.`,
   },
@@ -116,7 +116,7 @@ const STORIES = [
     likes: 521,
     saves: 287,
     img: "https://images.unsplash.com/photo-1609412058473-c199497c3c5d?w=800&h=500&fit=crop&auto=format",
-    category: "Deep Travel",
+    category: "Hiking",
     excerpt: "I came to Banaue for a weekend. I stayed three weeks. The rice terraces are a UNESCO site, yes, but what kept me was the community — the muyong irrigation system, the mumbaki priests, the uyauy feast. This is the Philippines at its oldest.",
     body: `The terrace system took two thousand years to build. That is not a figure I could hold in my head when I first arrived — it is too large to be meaningful. After three weeks, it started to matter.\n\nThe Ifugao do not plant rice once a year. They plant it when the conditions are right: when the muyong water level in the private forest ponds reaches a certain point, when the woodpecker calls in the way that signals the season, when the mumbaki has performed the right rituals. This is not superstition layered over agriculture. It is a system of environmental monitoring refined over a hundred generations.\n\nI stayed with a family in Batad, the amphitheatre terrace cluster that requires a forty-minute walk from the nearest road. The matriarch, Lolita, showed me how to thin rice seedlings at dawn while the mist was still in the valley. Her hands moved thirty times faster than mine.`,
   },
@@ -131,7 +131,7 @@ const STORIES = [
     likes: 893,
     saves: 412,
     img: "https://images.unsplash.com/photo-1672933354004-3cbd9874f099?w=800&h=500&fit=crop&auto=format",
-    category: "Reflection",
+    category: "Beaches",
     excerpt: "Typhoon Odette hit Siargao in December 2021 and flattened it. Three years later, I returned to the island where I'd spent six months before the storm. What I found was not what I expected.",
     body: `The coconut palms along the road from the airport were the first thing I noticed. Three years after Odette, most of them have grown back to maybe a third of their pre-storm height — thin, sparse, the kind of young that looks fragile. The island is re-leafing itself.\n\nGeneral Luna, the surf town, is largely rebuilt. The boards-and-bamboo aesthetic has been replaced with something more permanent — concrete posts, corrugated iron, a few proper buildings. Some of the restaurants I knew are gone. A dozen new ones have appeared. The Cloud 9 break itself is unchanged: still left-hander, still barreling, still full of surfers at first light.\n\nWhat surprised me was the community's attitude. I'd expected grief, or at least a kind of subdued quality. Instead I found something more like determination made ordinary — people who had rebuilt once and knew they could do it again. The surfers talked about the wave the way they always had, as if the storm was just a particularly bad set season.\n\nThe island's recovery is real but uneven. The luxury resort north of town is fully operational. Some of the smaller guesthouses on the eastern coast are still closed, their owners still in the process of navigating insurance claims and building permits.`,
   },
@@ -146,7 +146,7 @@ const STORIES = [
     likes: 734,
     saves: 367,
     img: "https://images.unsplash.com/photo-1711060169357-ed923c9f2156?w=800&h=500&fit=crop&auto=format",
-    category: "Food",
+    category: "Food Place",
     excerpt: "Pampanga is where Philippine cuisine lives at its most inventive. Sisig was born here. So was the tocino that the entire country eats for breakfast. Three days, twelve meals, and one very full notebook.",
     body: `Capampangan food is defined by fermentation, by the contrast between the very sour and the very rich, and by a willingness to use parts of the animal that the rest of the country politely avoids. This is not adventurism for its own sake. It is an old cuisine with centuries of logic behind it.\n\nSisig at Aling Lucing's — the original, in Angeles — is served on a sizzling metal plate, still crisping when it arrives, fatty and sour with calamansi. The version that became a global Filipino food trend started here in a market stall and has been adapted perhaps ten thousand times since. The original is still the best version I've eaten.\n\nKare-kare from a Kapampangan kitchen is a different thing from the Manila restaurant version. The peanut sauce is thicker, the oxtail cooked until it gives at a touch, and the bagoong alamang that comes alongside it is made in-house — fermented, purple, funky, and essential.`,
   },
@@ -167,7 +167,7 @@ const STORIES = [
   },
 ];
 
-const categories = ["All", "Adventure", "Culture", "Deep Travel", "Reflection", "Food", "Hidden Gems"];
+const categories = ["All", "Hiking", "Food Place", "Hidden Gems", "Beaches", "Forest", "Culture", "More"];
 
 function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext }: {
   story: typeof STORIES[0];

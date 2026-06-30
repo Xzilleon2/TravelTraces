@@ -75,11 +75,11 @@ function formatScope(scope?: string) {
 
 function StatCard({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: ReactNode }) {
   return (
-    <div className="rounded-xl border border-[#2D4A2D]/10 bg-white/85 p-4 shadow-[0_14px_35px_rgba(18,33,46,0.07)]">
-      <div className="mb-3 grid h-10 w-10 place-items-center rounded-lg bg-[#E7F3F1] text-[#307082]">
+    <div className="rounded-lg border border-[#2D4A2D]/10 bg-white/85 p-4 shadow-[0_14px_35px_rgba(45,74,45,0.08)]">
+      <div className="mb-3 grid h-10 w-10 place-items-center rounded-lg bg-[#EDEAE0] text-[#7A9E6F]">
         <Icon size={19} />
       </div>
-      <div className="font-[var(--font-display)] text-3xl font-semibold text-[#12212E]">{value}</div>
+      <div className="font-[var(--font-display)] text-3xl font-semibold text-[#2D4A2D]">{value}</div>
       <div className="mt-1 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] text-[#6B6B5A]">{label}</div>
     </div>
   );
@@ -87,8 +87,8 @@ function StatCard({ icon: Icon, label, value }: { icon: LucideIcon; label: strin
 
 function EmptyState({ icon: Icon, title, action }: { icon: LucideIcon; title: string; action?: ReactNode }) {
   return (
-    <div className="rounded-xl border border-dashed border-[#2D4A2D]/20 bg-[#F8F4EC] p-6 text-center text-[#6B6B5A]">
-      <Icon className="mx-auto mb-3 text-[#6CA3A2]" size={26} />
+    <div className="rounded-lg border border-dashed border-[#2D4A2D]/20 bg-[#F8F4EC] p-6 text-center text-[#6B6B5A]">
+      <Icon className="mx-auto mb-3 text-[#7A9E6F]" size={26} />
       <p className="m-0 font-[var(--font-ui)] text-sm">{title}</p>
       {action ? <div className="mt-4 flex justify-center">{action}</div> : null}
     </div>
@@ -97,11 +97,11 @@ function EmptyState({ icon: Icon, title, action }: { icon: LucideIcon; title: st
 
 function SectionCard({ title, icon: Icon, children, action }: { title: string; icon: LucideIcon; children: ReactNode; action?: ReactNode }) {
   return (
-    <section className="rounded-xl border border-[#2D4A2D]/10 bg-[#EDEAE0] p-5 shadow-[0_18px_40px_rgba(18,33,46,0.06)]">
+    <section className="rounded-lg border border-[#2D4A2D]/10 bg-[#EDEAE0] p-5 shadow-[0_18px_40px_rgba(45,74,45,0.08)]">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
-          <Icon size={19} className="shrink-0 text-[#EA9940]" />
-          <h2 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#12212E]">{title}</h2>
+          <Icon size={19} className="shrink-0 text-[#C4713A]" />
+          <h2 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2D4A2D]">{title}</h2>
         </div>
         {action}
       </div>
@@ -233,8 +233,8 @@ function ProfileContent() {
   };
 
   return (
-    <section className="min-h-screen bg-[#F5F0E8] font-[var(--font-ui)] text-[#12212E]">
-      <div className="bg-[#12212E] px-4 py-8 text-[#F5F0E8] sm:px-6 sm:py-10">
+    <section className="min-h-screen bg-[#F5F0E8] font-[var(--font-ui)] text-[#2D4A2D]">
+      <div className="border-b border-[#2D4A2D]/10 bg-[#2D4A2D] px-4 py-8 text-[#F5F0E8] sm:px-6 sm:py-10">
         <div className="mx-auto flex max-w-6xl flex-col gap-6 md:flex-row md:items-end">
           <div className="relative w-fit shrink-0">
             <img
@@ -242,14 +242,14 @@ function ProfileContent() {
               alt={`${user.name} profile photo`}
               className="h-28 w-28 rounded-full border-4 border-[#ECE7DC]/35 object-cover shadow-[0_18px_45px_rgba(0,0,0,0.22)]"
             />
-            <span className="absolute bottom-1 right-1 grid h-9 w-9 place-items-center rounded-full border-2 border-[#12212E] bg-[#EA9940] text-white">
+            <span className="absolute bottom-1 right-1 grid h-9 w-9 place-items-center rounded-full border-2 border-[#2D4A2D] bg-[#C4713A] text-[#F5F0E8]">
               <Camera size={17} />
             </span>
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="m-0 font-[var(--font-display)] text-[clamp(2rem,6vw,3.5rem)] font-semibold leading-tight">{user.name}</h1>
-              <span className="rounded-full bg-[#6CA3A2]/20 px-3 py-1 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] text-[#B8E0DD]">
+              <span className="rounded-full bg-[#7A9E6F]/25 px-3 py-1 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] text-[#F5F0E8]">
                 {user.plan}
               </span>
             </div>
@@ -273,7 +273,7 @@ function ProfileContent() {
             <button
               type="button"
               onClick={handleLogout}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#EA9940] px-4 text-sm font-bold uppercase tracking-[0.06em] text-white transition hover:bg-[#d5832f]"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#C4713A] px-4 text-sm font-bold uppercase tracking-[0.06em] text-[#F5F0E8] transition hover:bg-[#a95d2c]"
             >
               <LogOut size={16} /> Logout
             </button>
@@ -282,14 +282,14 @@ function ProfileContent() {
       </div>
 
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        <div className="no-scrollbar mb-6 flex gap-2 overflow-x-auto rounded-2xl border border-[#2D4A2D]/10 bg-white/70 p-2 shadow-[0_12px_30px_rgba(18,33,46,0.07)]">
+        <div className="no-scrollbar mb-6 flex gap-2 overflow-x-auto rounded-lg border border-[#2D4A2D]/10 bg-white/70 p-2 shadow-[0_12px_30px_rgba(45,74,45,0.08)]">
           {tabs.map((tab) => (
             <button
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
               className={`min-h-11 shrink-0 rounded-xl px-4 text-xs font-bold uppercase tracking-[0.06em] transition ${
-                activeTab === tab ? "bg-[#12212E] text-white" : "text-[#2D4A2D] hover:bg-[#E7F3F1]"
+                activeTab === tab ? "bg-[#2D4A2D] text-[#F5F0E8]" : "text-[#2D4A2D] hover:bg-[#EDEAE0]"
               }`}
             >
               {tab}
@@ -297,7 +297,7 @@ function ProfileContent() {
           ))}
         </div>
 
-        {status ? <div className="mb-5 rounded-xl border border-[#EA9940]/25 bg-[#EA9940]/10 p-4 text-sm text-[#8a4b26]">{status}</div> : null}
+        {status ? <div className="mb-5 rounded-lg border border-[#C4713A]/25 bg-[#C4713A]/10 p-4 text-sm text-[#7A3E1E]">{status}</div> : null}
 
         {activeTab === "Overview" ? (
           <div className="grid gap-6">
@@ -315,11 +315,11 @@ function ProfileContent() {
                     const Icon = activity.icon;
                     return (
                       <div key={activity.id} className="flex gap-3 rounded-lg bg-white/75 p-3">
-                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[#E7F3F1] text-[#307082]">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[#F5F0E8] text-[#7A9E6F]">
                           <Icon size={18} />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="m-0 font-semibold text-[#12212E]">{activity.title}</p>
+                          <p className="m-0 font-semibold text-[#2D4A2D]">{activity.title}</p>
                           <p className="m-0 mt-1 text-sm text-[#6B6B5A]">{activity.detail}</p>
                         </div>
                         <span className="shrink-0 text-xs font-semibold text-[#6B6B5A]">{formatDate(activity.date)}</span>
@@ -346,13 +346,13 @@ function ProfileContent() {
           <SectionCard title="Created Travel Posts" icon={MapPin} action={<SmallLink to="/maps">Open Maps</SmallLink>}>
             <div className="grid gap-4 md:grid-cols-2">
               {data.pins.map((pin) => (
-                <article key={pin.pin_id} className="rounded-xl bg-white/80 p-4">
+                <article key={pin.pin_id} className="rounded-lg bg-white/80 p-4">
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#12212E]">{pin.title || "Untitled travel post"}</h3>
-                      <p className="m-0 mt-1 text-xs font-bold uppercase tracking-[0.06em] text-[#6CA3A2]">{formatScope(pin.scope)} map</p>
+                      <h3 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2D4A2D]">{pin.title || "Untitled travel post"}</h3>
+                      <p className="m-0 mt-1 text-xs font-bold uppercase tracking-[0.06em] text-[#7A9E6F]">{formatScope(pin.scope)} map</p>
                     </div>
-                    <span className="rounded-full bg-[#EA9940]/12 px-3 py-1 text-xs font-bold text-[#9a5b22]">{formatDate(pin.created_at)}</span>
+                    <span className="rounded-full bg-[#C4713A]/12 px-3 py-1 text-xs font-bold text-[#7A3E1E]">{formatDate(pin.created_at)}</span>
                   </div>
                   <p className="line-clamp-3 text-sm leading-6 text-[#6B6B5A]">{pin.note || pin.address || "No notes added."}</p>
                   <div className="mt-4 text-xs text-[#6B6B5A]">{pin.coordinate.lat.toFixed(4)}, {pin.coordinate.lon.toFixed(4)}</div>
@@ -367,9 +367,9 @@ function ProfileContent() {
           <SectionCard title="Saved Tourist Spots" icon={Bookmark} action={<SmallLink to="/saved-places">Manage Saved Places</SmallLink>}>
             <div className="grid gap-4 md:grid-cols-2">
               {data.spots.map((spot) => (
-                <article key={spot.place_id} className="rounded-xl bg-white/80 p-4">
-                  <h3 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#12212E]">{spot.name}</h3>
-                  <p className="m-0 mt-1 text-sm font-semibold text-[#307082]">{spot.category}</p>
+                <article key={spot.place_id} className="rounded-lg bg-white/80 p-4">
+                  <h3 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2D4A2D]">{spot.name}</h3>
+                  <p className="m-0 mt-1 text-sm font-semibold text-[#7A9E6F]">{spot.category}</p>
                   <p className="mt-3 text-sm leading-6 text-[#6B6B5A]">{spot.notes || "No notes yet."}</p>
                   <div className="mt-4 text-xs text-[#6B6B5A]">Saved {formatDate(spot.saved_at)}</div>
                 </article>
@@ -383,9 +383,9 @@ function ProfileContent() {
           <SectionCard title="Created Maps" icon={Map} action={<SmallLink to="/maps">Open Workspace</SmallLink>}>
             <div className="grid gap-4 md:grid-cols-2">
               {data.maps.map((map) => (
-                <article key={map.map_id} className="rounded-xl bg-white/80 p-4">
-                  <h3 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#12212E]">{map.title}</h3>
-                  <p className="m-0 mt-1 text-xs font-bold uppercase tracking-[0.06em] text-[#6CA3A2]">{formatScope(map.scope)} workspace</p>
+                <article key={map.map_id} className="rounded-lg bg-white/80 p-4">
+                  <h3 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2D4A2D]">{map.title}</h3>
+                  <p className="m-0 mt-1 text-xs font-bold uppercase tracking-[0.06em] text-[#7A9E6F]">{formatScope(map.scope)} workspace</p>
                   <p className="mt-3 text-sm leading-6 text-[#6B6B5A]">{map.description || "No description added."}</p>
                   <div className="mt-4 text-xs text-[#6B6B5A]">Updated {formatDate(map.updated_at)}</div>
                 </article>
@@ -399,12 +399,12 @@ function ProfileContent() {
           <SectionCard title="Travel Groups" icon={Users} action={<SmallLink to="/travel-groups">Manage Groups</SmallLink>}>
             <div className="grid gap-4 md:grid-cols-2">
               {data.groups.map((group) => (
-                <article key={group.circle_id} className="rounded-xl bg-white/80 p-4">
-                  <h3 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#12212E]">{group.name}</h3>
+                <article key={group.circle_id} className="rounded-lg bg-white/80 p-4">
+                  <h3 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2D4A2D]">{group.name}</h3>
                   <p className="m-0 mt-1 text-sm text-[#6B6B5A]">{group.members.length} member{group.members.length === 1 ? "" : "s"}</p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {group.members.slice(0, 4).map((member) => (
-                      <span key={member.user_id} className="rounded-full bg-[#E7F3F1] px-3 py-1 text-xs font-semibold text-[#307082]">{member.display_name || member.user_id}</span>
+                      <span key={member.user_id} className="rounded-full bg-[#F5F0E8] px-3 py-1 text-xs font-semibold text-[#7A9E6F]">{member.display_name || member.user_id}</span>
                     ))}
                   </div>
                 </article>
@@ -418,13 +418,13 @@ function ProfileContent() {
           <SectionCard title="Meetups" icon={Calendar} action={<SmallLink to="/events">Browse Events</SmallLink>}>
             <div className="grid gap-4">
               {data.hostedMeetups.map((meetup) => (
-                <article key={meetup.eventId} className="rounded-xl bg-white/80 p-4">
+                <article key={meetup.eventId} className="rounded-lg bg-white/80 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h3 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#12212E]">{meetup.title}</h3>
+                      <h3 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2D4A2D]">{meetup.title}</h3>
                       <p className="m-0 mt-1 text-sm text-[#6B6B5A]">{meetup.destinationTitle} / {meetup.meetingPoint}</p>
                     </div>
-                    <span className="rounded-full bg-[#EA9940]/12 px-3 py-1 text-xs font-bold text-[#9a5b22]">{formatDate(`${meetup.date}T${meetup.time || "00:00"}`)}</span>
+                    <span className="rounded-full bg-[#C4713A]/12 px-3 py-1 text-xs font-bold text-[#7A3E1E]">{formatDate(`${meetup.date}T${meetup.time || "00:00"}`)}</span>
                   </div>
                 </article>
               ))}
@@ -456,7 +456,7 @@ function ProfileContent() {
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-[#12212E] px-4 text-sm font-bold uppercase tracking-[0.06em] text-white transition hover:bg-[#1d3448]"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-[#2D4A2D] px-4 text-sm font-bold uppercase tracking-[0.06em] text-[#F5F0E8] transition hover:bg-[#234023]"
                 >
                   <LogOut size={16} /> Logout
                 </button>
