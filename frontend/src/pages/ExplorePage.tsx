@@ -347,6 +347,121 @@ function DestinationGuideView({ dest, onBack }: { dest: typeof DESTINATIONS[0]; 
   }
 
   return (
+    <div style={{ minHeight: "100vh", backgroundColor: "#FBF7F0", padding: "2rem clamp(1rem, 4vw, 2rem) 5rem" }}>
+      <article style={{ width: "min(100%, 1120px)", margin: "0 auto", backgroundColor: "#FBF7F0" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "center", marginBottom: "2rem", flexWrap: "wrap" }}>
+          <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", border: "1px solid rgba(58,42,34,0.18)", background: "transparent", color: "#3A2A22", borderRadius: "999px", padding: "0.55rem 1rem", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            <ArrowLeft size={15} /> Explore
+          </button>
+          <button onClick={handlePinThis} style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", minHeight: 42, border: "1px solid #3A2A22", borderRadius: "999px", backgroundColor: "#3A2A22", color: "#FBF7F0", padding: "0.55rem 1rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}>
+            <Pin size={14} /> Pin This
+          </button>
+        </div>
+
+        <header style={{ width: "min(100%, 820px)", margin: "0 auto 2rem", textAlign: "left" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.28rem 0.75rem", backgroundColor: "rgba(196,113,58,0.1)", border: "1px solid rgba(196,113,58,0.25)", borderRadius: "999px", fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#C4713A", marginBottom: "1rem" }}>
+            <CategoryIcon size={13} /> {category}
+          </span>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.45rem, 7vw, 5rem)", fontWeight: 600, color: "#1A1A1A", lineHeight: 0.98, letterSpacing: 0, marginBottom: "1rem" }}>{dest.name}</h1>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "clamp(1.05rem, 2vw, 1.35rem)", lineHeight: 1.65, color: "#4A4A3A", margin: "0 0 1.35rem" }}>{dest.desc}</p>
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", borderTop: "1px solid rgba(58,42,34,0.14)", borderBottom: "1px solid rgba(58,42,34,0.14)", padding: "1rem 0", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: "#6B5A50", flexWrap: "wrap" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.85rem", fontFamily: "var(--font-ui)" }}><MapPin size={13} />{dest.province}, Philippines</span>
+              <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.85rem", fontFamily: "var(--font-ui)" }}><Star size={13} />{dest.rating.toFixed(1)} rating</span>
+              <span style={{ fontSize: "0.85rem", fontFamily: "var(--font-ui)" }}>{dest.bestMonths}</span>
+            </div>
+            <div style={{ display: "flex", gap: "0.45rem", flexWrap: "wrap" }}>
+              {dest.tags.slice(0, 3).map((tag) => (
+                <span key={tag} style={{ padding: "0.32rem 0.65rem", backgroundColor: "#EFE7DC", border: "1px solid rgba(58,42,34,0.12)", borderRadius: "999px", fontFamily: "var(--font-label)", fontSize: "0.68rem", color: "#3A2A22" }}>{tag}</span>
+              ))}
+            </div>
+          </div>
+        </header>
+
+        <figure style={{ position: "relative", margin: "0 0 2.5rem" }}>
+          <img src={allImages[galleryIndex]} alt={`${dest.name} photo ${galleryIndex + 1}`} style={{ width: "100%", height: "clamp(300px, 58vw, 620px)", objectFit: "cover", display: "block", borderRadius: "0.35rem" }} />
+          {allImages.length > 1 ? (
+            <>
+              <button aria-label="Previous photo" onClick={() => setGalleryIndex((i) => (i - 1 + allImages.length) % allImages.length)} style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", background: "rgba(58,42,34,0.5)", border: "none", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#FBF7F0" }}>
+                <ChevronLeft size={20} />
+              </button>
+              <button aria-label="Next photo" onClick={() => setGalleryIndex((i) => (i + 1) % allImages.length)} style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", background: "rgba(58,42,34,0.5)", border: "none", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#FBF7F0" }}>
+                <ChevronRight size={20} />
+              </button>
+              <div style={{ position: "absolute", bottom: "1.1rem", right: "1.5rem", display: "flex", alignItems: "center", gap: "0.4rem", background: "rgba(26,26,26,0.45)", borderRadius: "999px", padding: "0.35rem 0.55rem" }}>
+                {allImages.map((_, index) => (
+                  <button key={index} aria-label={`Show photo ${index + 1}`} onClick={() => setGalleryIndex(index)} style={{ width: index === galleryIndex ? 18 : 7, height: 7, borderRadius: "999px", border: "none", backgroundColor: index === galleryIndex ? "#FBF7F0" : "rgba(251,247,240,0.45)", padding: 0, cursor: "pointer" }} />
+                ))}
+              </div>
+            </>
+          ) : null}
+          <figcaption style={{ width: "min(100%, 820px)", margin: "0.75rem auto 0", fontFamily: "var(--font-ui)", fontSize: "0.82rem", color: "#6B6B5A" }}>
+            Photo {galleryIndex + 1} of {allImages.length} from {dest.name}.
+          </figcaption>
+        </figure>
+
+        <div style={{ width: "min(100%, 820px)", margin: "0 auto" }}>
+          <section>
+            <h3 style={{ fontFamily: "var(--font-label)", fontSize: "0.78rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#9E6B5C", marginBottom: "0.9rem" }}>Destination guide</h3>
+            {dest.longDesc.split("\n\n").map((para, i) => (
+              <p key={i} style={{ fontFamily: "var(--font-body)", fontSize: "clamp(1.05rem, 1.7vw, 1.2rem)", lineHeight: 1.85, color: "#1A1A1A", marginBottom: "1.45rem" }}>{para}</p>
+            ))}
+          </section>
+
+          <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: "0.8rem", margin: "2rem 0" }}>
+            {[
+              { icon: Users, value: dest.explorers.toLocaleString(), label: "Explorers" },
+              { icon: Pin, value: dest.pins.toLocaleString(), label: "Pins" },
+              { icon: BookOpen, value: dest.stories.length.toString(), label: "Stories" },
+              { icon: Compass, value: dest.difficulty, label: "Difficulty" },
+            ].map((stat) => (
+              <div key={stat.label} style={{ backgroundColor: "#EFE7DC", border: "1px solid rgba(58,42,34,0.12)", borderRadius: "0.45rem", padding: "1rem" }}>
+                <stat.icon size={17} color="#C4713A" />
+                <div style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 600, color: "#3A2A22", marginTop: "0.5rem" }}>{stat.value}</div>
+                <div style={{ fontFamily: "var(--font-label)", fontSize: "0.64rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#6B6B5A" }}>{stat.label}</div>
+              </div>
+            ))}
+          </section>
+
+          <section style={{ marginBottom: "2rem" }}>
+            <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.35rem", fontWeight: 600, color: "#3A2A22", marginBottom: "1rem" }}>Highlights</h3>
+            <div style={{ borderLeft: "2px solid rgba(196,113,58,0.35)", paddingLeft: "1rem" }}>
+              {dest.highlights.map((highlight, index) => (
+                <p key={highlight} style={{ margin: "0 0 0.9rem", fontFamily: "var(--font-ui)", color: "#4A4A3A", lineHeight: 1.6 }}><strong style={{ color: "#C4713A" }}>{index + 1}.</strong> {highlight}</p>
+              ))}
+            </div>
+          </section>
+
+          <section style={{ backgroundColor: "#EFE7DC", border: "1px solid rgba(58,42,34,0.12)", borderRadius: "0.45rem", padding: "1.25rem", marginBottom: "2rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
+              <BookOpen size={18} color="#3A2A22" />
+              <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.35rem", fontWeight: 600, color: "#3A2A22", margin: 0 }}>Explorer Stories</h3>
+            </div>
+            <div style={{ display: "grid", gap: "0.75rem" }}>
+              {dest.stories.map((storyRef, index) => {
+                const linkedStory = STORIES.find((story) => story.title === storyRef.title);
+                const gu = GAMIFIED_USERS[storyRef.authorKey];
+                return (
+                  <button key={index} type="button" onClick={() => linkedStory && setSelectedStory(linkedStory)} style={{ display: "flex", alignItems: "center", gap: "0.8rem", width: "100%", border: "1px solid rgba(58,42,34,0.1)", backgroundColor: "#FBF7F0", borderRadius: "0.45rem", padding: "0.85rem", textAlign: "left", cursor: linkedStory ? "pointer" : "default" }}>
+                    {gu ? <img src={gu.avatar} alt={gu.name} style={{ width: 42, height: 42, borderRadius: "50%", objectFit: "cover" }} /> : <BookOpen size={20} color="#9E6B5C" />}
+                    <span style={{ minWidth: 0, flex: 1 }}>
+                      <span style={{ display: "block", fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 600, color: "#3A2A22" }}>{storyRef.title}</span>
+                      <span style={{ display: "block", marginTop: "0.2rem", fontFamily: "var(--font-ui)", fontSize: "0.78rem", color: "#6B6B5A" }}>{storyRef.author} / {storyRef.date} / {storyRef.likes} likes</span>
+                    </span>
+                    <ExternalLink size={14} color="#9A9A8A" />
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      </article>
+      {viewingProfile && <UserProfileModal user={viewingProfile} onClose={() => setViewingProfile(null)} />}
+    </div>
+  );
+
+  return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F5F0E8", padding: "2rem clamp(1rem, 4vw, 2rem) 5rem" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto" }}>
         <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", background: "transparent", border: "none", color: "#3A2A22", fontFamily: "var(--font-ui)", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer", padding: "0.25rem 0", marginBottom: "1.5rem" }}>

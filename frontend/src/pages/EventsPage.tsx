@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Calendar, MapPin, Users, Clock, ArrowRight, X, CheckCircle2, Tag, Plus } from "lucide-react";
+import { Calendar, MapPin, Users, Clock, ArrowRight, X, CheckCircle2, Tag, Plus, Search, Compass, Camera, Mountain, Landmark } from "lucide-react";
 import { GatedPage } from "../components/GatedPage";
 import { HostTourMeetupForm, type HostTourPlace } from "../components/HostTourMeetupForm";
 import { UserProfileModal } from "../components/UserProfileModal";
@@ -158,6 +158,13 @@ const EVENTS = [
 ];
 
 const types = ["All", "Adventure", "Photography", "Trekking", "Social", "Cultural"];
+const TYPE_ICON: Record<string, typeof Compass> = {
+  Adventure: Compass,
+  Photography: Camera,
+  Trekking: Mountain,
+  Social: Users,
+  Cultural: Landmark,
+};
 type EventItem = typeof EVENTS[number];
 
 function formatStoredDate(value: string) {
@@ -478,14 +485,143 @@ function EventCard({ e, joined, onToggleJoin, onClick }: {
   );
 }
 
+function EventArticleView({ event, joined, onToggleJoin, onBack, onPrev, onNext, hasPrev, hasNext }: {
+  event: EventItem;
+  joined: boolean;
+  onToggleJoin: () => void;
+  onBack: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  hasPrev: boolean;
+  hasNext: boolean;
+}) {
+  const [viewingProfile, setViewingProfile] = useState<GamifiedUser | null>(null);
+  const organiserKey = ORGANISER_KEY[event.organiser];
+  const spotsLeft = Math.max(event.maxParticipants - event.participants, 0);
+  const pct = Math.min((event.participants / event.maxParticipants) * 100, 100);
+  const displayParticipants = joined
+    ? [...event.joinedParticipants, { name: "You", avatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=48&h=48&fit=crop&auto=format", location: "Your location" }]
+    : event.joinedParticipants;
+
+  return (
+    <div style={{ minHeight: "100vh", backgroundColor: "#FBF7F0", padding: "2rem clamp(1rem, 4vw, 2rem) 5rem" }}>
+      <article style={{ width: "min(100%, 1120px)", margin: "0 auto", backgroundColor: "#FBF7F0" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "center", marginBottom: "2rem", flexWrap: "wrap" }}>
+          <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", border: "1px solid rgba(58,42,34,0.18)", background: "transparent", color: "#3A2A22", borderRadius: "999px", padding: "0.55rem 1rem", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            <ArrowRight size={15} style={{ transform: "rotate(180deg)" }} /> Events
+          </button>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            {hasPrev && <button onClick={onPrev} style={{ border: "1px solid rgba(58,42,34,0.18)", background: "transparent", color: "#3A2A22", borderRadius: "999px", padding: "0.55rem 0.9rem", cursor: "pointer", fontFamily: "var(--font-ui)", fontSize: "0.82rem", fontWeight: 700 }}>Previous</button>}
+            {hasNext && <button onClick={onNext} style={{ border: "1px solid rgba(58,42,34,0.18)", background: "transparent", color: "#3A2A22", borderRadius: "999px", padding: "0.55rem 0.9rem", cursor: "pointer", fontFamily: "var(--font-ui)", fontSize: "0.82rem", fontWeight: 700 }}>Next</button>}
+          </div>
+        </div>
+
+        <header style={{ width: "min(100%, 820px)", margin: "0 auto 2rem", textAlign: "left" }}>
+          <span style={{ display: "inline-flex", padding: "0.28rem 0.75rem", backgroundColor: "rgba(196,113,58,0.1)", border: "1px solid rgba(196,113,58,0.25)", borderRadius: "999px", fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#C4713A", marginBottom: "1rem" }}>{event.type}</span>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.45rem, 7vw, 5rem)", fontWeight: 600, color: "#1A1A1A", lineHeight: 0.98, letterSpacing: 0, marginBottom: "1rem" }}>{event.title}</h1>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "clamp(1.05rem, 2vw, 1.35rem)", lineHeight: 1.65, color: "#4A4A3A", margin: "0 0 1.35rem" }}>{event.desc}</p>
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", borderTop: "1px solid rgba(58,42,34,0.14)", borderBottom: "1px solid rgba(58,42,34,0.14)", padding: "1rem 0", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
+              <button disabled={!organiserKey} onClick={() => organiserKey && setViewingProfile(GAMIFIED_USERS[organiserKey])} style={{ background: "none", border: "none", cursor: organiserKey ? "pointer" : "default", padding: 0 }}>
+                <img src={event.organiserAvatar} alt={event.organiser} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", display: "block" }} />
+              </button>
+              <div>
+                <p style={{ margin: 0, fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: "0.94rem", color: "#1A1A1A" }}>{event.organiser}</p>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: "#6B5A50", flexWrap: "wrap", marginTop: "0.15rem" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.82rem", fontFamily: "var(--font-ui)" }}><Calendar size={12} />{event.date}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.82rem", fontFamily: "var(--font-ui)" }}><Clock size={12} />{event.time}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.82rem", fontFamily: "var(--font-ui)" }}><MapPin size={12} />{event.location}</span>
+                </div>
+              </div>
+            </div>
+            <button onClick={onToggleJoin} style={{ display: "inline-flex", minHeight: 42, alignItems: "center", justifyContent: "center", gap: "0.45rem", borderRadius: "999px", border: "1px solid #3A2A22", backgroundColor: joined ? "#EFE7DC" : "#3A2A22", color: joined ? "#3A2A22" : "#FBF7F0", padding: "0.62rem 1rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}>
+              <CheckCircle2 size={14} /> {joined ? "Joined" : "Join event"}
+            </button>
+          </div>
+        </header>
+
+        <figure style={{ margin: "0 0 2.5rem" }}>
+          <img src={event.img} alt={event.title} style={{ width: "100%", height: "clamp(300px, 58vw, 620px)", objectFit: "cover", display: "block", borderRadius: "0.35rem" }} />
+          <figcaption style={{ width: "min(100%, 820px)", margin: "0.75rem auto 0", fontFamily: "var(--font-ui)", fontSize: "0.82rem", color: "#6B6B5A" }}>{event.location} meetup hosted by {event.organiser}.</figcaption>
+        </figure>
+
+        <div style={{ width: "min(100%, 820px)", margin: "0 auto" }}>
+          <section style={{ marginBottom: "2rem" }}>
+            <h3 style={{ fontFamily: "var(--font-label)", fontSize: "0.78rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#9E6B5C", marginBottom: "0.9rem" }}>Event details</h3>
+            {event.longDesc.split("\n\n").map((para, index) => (
+              <p key={index} style={{ fontFamily: "var(--font-body)", fontSize: "clamp(1.05rem, 1.7vw, 1.2rem)", lineHeight: 1.85, color: "#1A1A1A", marginBottom: "1.45rem" }}>{para}</p>
+            ))}
+          </section>
+
+          <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
+            {[
+              ["Meeting point", event.meetingPoint],
+              ["Fee", event.fee],
+              ["Capacity", `${event.participants} / ${event.maxParticipants} joined`],
+            ].map(([label, value]) => (
+              <div key={label} style={{ backgroundColor: "#EFE7DC", border: "1px solid rgba(58,42,34,0.12)", borderRadius: "0.45rem", padding: "1rem" }}>
+                <p style={{ margin: "0 0 0.4rem", fontFamily: "var(--font-label)", fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#9E6B5C" }}>{label}</p>
+                <p style={{ margin: 0, fontFamily: "var(--font-ui)", color: "#3A2A22", fontWeight: 700 }}>{value}</p>
+              </div>
+            ))}
+          </section>
+
+          <section style={{ marginBottom: "2rem" }}>
+            <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.35rem", fontWeight: 600, color: "#3A2A22", marginBottom: "1rem" }}>Schedule</h3>
+            <div style={{ borderLeft: "2px solid rgba(196,113,58,0.35)", paddingLeft: "1rem" }}>
+              {event.schedule.map((item, index) => (
+                <p key={index} style={{ margin: "0 0 0.9rem", fontFamily: "var(--font-ui)", color: "#4A4A3A", lineHeight: 1.6 }}><strong style={{ color: "#C4713A" }}>{index + 1}.</strong> {item}</p>
+              ))}
+            </div>
+          </section>
+
+          <section style={{ backgroundColor: "#EFE7DC", border: "1px solid rgba(58,42,34,0.12)", borderRadius: "0.45rem", padding: "1.25rem", marginBottom: "2rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "center", flexWrap: "wrap", marginBottom: "0.8rem" }}>
+              <h3 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.35rem", fontWeight: 600, color: "#3A2A22" }}>Participants</h3>
+              <span style={{ fontFamily: "var(--font-label)", fontSize: "0.74rem", letterSpacing: "0.08em", textTransform: "uppercase", color: spotsLeft <= 5 ? "#C4713A" : "#6B6B5A" }}>{spotsLeft} spots left</span>
+            </div>
+            <div style={{ height: 6, backgroundColor: "#D8D4C8", borderRadius: 999, overflow: "hidden", marginBottom: "1rem" }}>
+              <div style={{ height: "100%", width: `${pct}%`, backgroundColor: pct >= 90 ? "#C4713A" : "#9E6B5C" }} />
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
+              {displayParticipants.slice(0, 10).map((person) => (
+                <div key={person.name} style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 180 }}>
+                  <img src={person.avatar} alt={person.name} style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover" }} />
+                  <div>
+                    <p style={{ margin: 0, fontFamily: "var(--font-ui)", fontSize: "0.82rem", fontWeight: 700, color: "#3A2A22" }}>{person.name}</p>
+                    <p style={{ margin: 0, fontFamily: "var(--font-ui)", fontSize: "0.72rem", color: "#6B6B5A" }}>{person.location}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.45rem" }}>
+            {event.tags.map((tag) => <span key={tag} style={{ padding: "0.35rem 0.7rem", backgroundColor: "rgba(196,113,58,0.1)", border: "1px solid rgba(196,113,58,0.22)", borderRadius: "999px", fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.06em", textTransform: "uppercase", color: "#9E6B5C" }}>{tag}</span>)}
+          </div>
+        </div>
+      </article>
+      {viewingProfile && <UserProfileModal user={viewingProfile} onClose={() => setViewingProfile(null)} />}
+    </div>
+  );
+}
+
 function EventsContent() {
   const [activeType, setActiveType] = useState("All");
+  const [search, setSearch] = useState("");
   const [joined, setJoined] = useState<number[]>([]);
   const [hostFormOpen, setHostFormOpen] = useState(false);
   const [events, setEvents] = useState<EventItem[]>(() => [...listHostedTourMeetups().map(hostedRecordToEvent), ...EVENTS]);
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
 
-  const filtered = activeType === "All" ? events : events.filter((e) => e.type === activeType);
+  const filtered = events.filter((event) => {
+    const matchType = activeType === "All" || event.type === activeType;
+    const text = `${event.title} ${event.type} ${event.location} ${event.organiser} ${event.tags.join(" ")}`.toLowerCase();
+    const matchSearch = !search.trim() || text.includes(search.trim().toLowerCase());
+    return matchType && matchSearch;
+  });
+  const activeIndex = selectedEvent ? filtered.findIndex((event) => event.id === selectedEvent.id) : -1;
   const hostTourPlaces = useMemo<HostTourPlace[]>(() => {
     const seen = new Set<string>();
     return events.reduce<HostTourPlace[]>((places, event) => {
@@ -513,6 +649,21 @@ function EventsContent() {
     setSelectedEvent(created);
   };
 
+  if (selectedEvent && activeIndex >= 0) {
+    return (
+      <EventArticleView
+        event={filtered[activeIndex]}
+        joined={joined.includes(selectedEvent.id)}
+        onToggleJoin={() => handleJoin(selectedEvent.id)}
+        onBack={() => setSelectedEvent(null)}
+        onPrev={() => setSelectedEvent(filtered[activeIndex - 1])}
+        onNext={() => setSelectedEvent(filtered[activeIndex + 1])}
+        hasPrev={activeIndex > 0}
+        hasNext={activeIndex < filtered.length - 1}
+      />
+    );
+  }
+
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F5F0E8", padding: "3rem 1.5rem" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
@@ -530,12 +681,59 @@ function EventsContent() {
           </button>
         </div>
 
-        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "2rem", flexWrap: "wrap" }}>
-          {types.map((t) => (
-            <button key={t} onClick={() => setActiveType(t)} style={{ padding: "0.6rem 1rem", borderRadius: "0.25rem", border: "1px solid", borderColor: activeType === t ? "#3A2A22" : "rgba(58,42,34,0.2)", backgroundColor: activeType === t ? "#3A2A22" : "transparent", color: activeType === t ? "#F5F0E8" : "#3A2A22", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.78rem", fontWeight: 500, letterSpacing: "0.05em" }}>
-              {t}
-            </button>
-          ))}
+        <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+          <div style={{ position: "relative", flex: "1 1 260px" }}>
+            <Search size={16} style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "#6B5A50" }} />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search events, places, organisers..."
+              style={{ width: "100%", padding: "0.75rem 1rem 0.75rem 2.5rem", backgroundColor: "#EFE7DC", border: "1px solid rgba(58,42,34,0.15)", borderRadius: "0.25rem", fontSize: "0.9rem", color: "#2C211C", fontFamily: "var(--font-ui)", outline: "none", boxSizing: "border-box" }}
+            />
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            {types.map((t) => {
+              const Icon = TYPE_ICON[t] ?? Compass;
+              const active = activeType === t;
+              const isAll = t === "All";
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setActiveType(t)}
+                  className="category-pill"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    minHeight: 44,
+                    borderRadius: 999,
+                    border: "1px solid",
+                    borderColor: active ? "#3A2A22" : "rgba(58,42,34,0.2)",
+                    backgroundColor: active ? "#3A2A22" : "transparent",
+                    color: active ? "#F5F0E8" : "#3A2A22",
+                    padding: isAll ? "8px 24px" : "8px 16px",
+                    fontFamily: "var(--font-ui)",
+                    fontSize: 13,
+                    fontWeight: active ? 700 : 600,
+                    cursor: "pointer",
+                    transition: "background-color 0.2s, border-color 0.2s, color 0.2s",
+                    whiteSpace: "nowrap",
+                  }}
+                  aria-pressed={active}
+                >
+                  {!isAll && <Icon size={14} color={active ? "#F5F0E8" : "#9E6B5C"} style={{ flexShrink: 0 }} />}
+                  <span>{t}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", margin: "0.5rem 0 1.75rem" }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#C4713A", display: "inline-block" }} />
+          <span style={{ fontSize: 15, fontWeight: 700, color: "#C4713A", fontFamily: "var(--font-ui)" }}>{filtered.length}</span>
+          <span style={{ fontSize: 13, fontWeight: 500, color: "#6B6B5A", fontFamily: "var(--font-ui)" }}>events found</span>
         </div>
 
         {joined.length > 0 && (
@@ -558,15 +756,11 @@ function EventsContent() {
         </div>
       </div>
 
-      {selectedEvent && (
-        <EventDetailModal
-          event={selectedEvent}
-          joined={joined.includes(selectedEvent.id)}
-          onToggleJoin={() => handleJoin(selectedEvent.id)}
-          onClose={() => setSelectedEvent(null)}
-        />
-      )}
       {hostFormOpen && <HostTourMeetupForm places={hostTourPlaces} onClose={() => setHostFormOpen(false)} onCreated={handleHostedTourCreated} />}
+      <style>{`
+        .category-pill:hover { background-color: rgba(58,42,34,0.08); border-color: #3A2A22; color: #3A2A22; }
+        .category-pill[aria-pressed="true"]:hover { background-color: #3A2A22; border-color: #3A2A22; color: #F5F0E8; }
+      `}</style>
     </div>
   );
 }

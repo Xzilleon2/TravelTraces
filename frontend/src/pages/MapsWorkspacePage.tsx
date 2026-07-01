@@ -281,6 +281,15 @@ function locationFromMapClick(event: MapMouseEvent): ApiLocation {
   };
 }
 
+function locationFromLngLat(lat: number, lon: number, label = "Drawn route point"): ApiLocation {
+  return {
+    coordinate: [lat, lon],
+    label,
+    provider: "draw",
+    confidence: 1,
+  };
+}
+
 function workspaceMapCursor(input: { markerPlacementActive: boolean; pickTarget: PickTarget; drawingActive: boolean; boxZoomActive: boolean }) {
   if (input.boxZoomActive) return "zoom-in";
   if (input.markerPlacementActive) return "copy";
@@ -806,9 +815,9 @@ function LocationField({
 
 function ToolbarPanelTitle({ children, meta }: { children: ReactNode; meta?: ReactNode }) {
   return (
-    <div className="mb-3 flex items-center justify-between gap-3">
-      <span className="font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.12em] text-[#9A978C]">{children}</span>
-      {meta ? <span className="text-xs font-semibold text-[#6B6B5A]">{meta}</span> : null}
+    <div className="mb-3 flex items-center justify-between gap-3 rounded-[1rem] border border-[#3A2A22]/10 bg-[#EFE7DC] px-3 py-2 shadow-inner shadow-white/50">
+      <span className="font-[var(--font-label)] text-[0.72rem] font-bold uppercase tracking-[0.16em] text-[#9E6B5C]">{children}</span>
+      {meta ? <span className="rounded-full bg-[#FBF7F0] px-2.5 py-1 text-[0.7rem] font-bold uppercase tracking-[0.05em] text-[#3A2A22]">{meta}</span> : null}
     </div>
   );
 }
@@ -839,16 +848,20 @@ function ToolbarActionRow({
       aria-pressed={selected}
       title={shortcut ? `${label} (${shortcut})` : label}
       onClick={onClick}
-      className={`flex min-h-16 w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C8A9E] focus-visible:ring-offset-2 ${
-        selected ? "bg-[#E7F3F1] text-[#356E72]" : "text-[#1A1A1A] hover:bg-[#F5F0E8]"
+      className={`group flex min-h-[4.75rem] w-full items-center gap-3 rounded-[1.15rem] border px-3 py-2.5 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C4713A]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#FBF7F0] ${
+        selected
+          ? "border-[#C4713A]/35 bg-[#F5E6D8] text-[#3A2A22] shadow-[0_10px_24px_rgba(196,113,58,0.13)]"
+          : "border-[#3A2A22]/8 bg-[#FBF7F0]/72 text-[#1A1A1A] hover:-translate-y-0.5 hover:border-[#C4713A]/25 hover:bg-[#EFE7DC]"
       }`}
     >
-      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${selected ? "bg-white/70" : "bg-[#F5F0E8]"}`}>{icon}</span>
+      <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-[0.9rem] border transition [&>svg]:h-[18px] [&>svg]:w-[18px] [&>img]:h-5 [&>img]:w-5 ${
+        selected ? "border-[#C4713A]/35 bg-[#3A2A22] text-[#FBF7F0]" : "border-[#3A2A22]/8 bg-[#EFE7DC] text-[#9E6B5C] group-hover:bg-[#F5E6D8]"
+      }`}>{icon}</span>
       <span className="min-w-0 flex-1">
-        <span className="block font-[var(--font-label)] text-sm font-bold text-[#1A1A1A]">{label}</span>
-        <span className="mt-1 block text-xs leading-5 text-[#858176]">
+        <span className="block font-[var(--font-label)] text-sm font-bold tracking-[0.01em] text-[#2C211C]">{label}</span>
+        <span className="mt-1 block text-xs leading-5 text-[#6B5A50]">
           {description}
-          {shortcut ? <span className="ml-1 font-[var(--font-label)] font-bold text-[#356E72]">Shortcut: {shortcut}</span> : null}
+          {shortcut ? <span className="ml-1 font-[var(--font-label)] font-bold text-[#9E6B5C]">Shortcut: {shortcut}</span> : null}
         </span>
       </span>
     </button>
@@ -893,6 +906,8 @@ function MapsWorkspaceContent() {
   const [draftStops, setDraftStops] = useState<ApiLocation[]>([]);
   const [route, setRoute] = useState<ApiRoute | null>(null);
   const [routeMode, setRouteMode] = useState<RouteMode>("shortest");
+  const [drawRouteInputMode, setDrawRouteInputMode] = useState<DrawRouteInputMode>("click");
+  const [drawTargetPointCount, setDrawTargetPointCount] = useState(2);
   const [routeColor, setRouteColor] = useState("#3A2A22");
   const [routeWidth, setRouteWidth] = useState(5);
   const [draftMarkerLocation, setDraftMarkerLocation] = useState<ApiLocation | null>(null);
@@ -926,6 +941,8 @@ function MapsWorkspaceContent() {
   const [meetupPlan, setMeetupPlan] = useState<MeetupPlan | null>(null);
   const [localMapStories, setLocalMapStories] = useState<TravelStory[]>(() => readLocalMapStories());
   const [pendingStoryViewPin, setPendingStoryViewPin] = useState<StoryMapHandoff | null>(null);
+  const dragRouteRef = useRef<{ active: boolean; baseStops: ApiLocation[]; points: ApiLocation[] }>({ active: false, baseStops: [], points: [] });
+  const draftStopsRef = useRef<ApiLocation[]>([]);
 
   const scopedGroupIds = useMemo(() => (scope === "group" ? groupIds : []), [scope, groupIds]);
   const activeMode = workspaceModes.find((mode) => mode.key === scope) ?? workspaceModes[0];
@@ -953,6 +970,10 @@ function MapsWorkspaceContent() {
       return [story.title, story.author, story.region, story.category, point?.place ?? ""].some((value) => value.toLowerCase().includes(query));
     }).slice(0, 4);
   }, [markerSearch]);
+
+  useEffect(() => {
+    draftStopsRef.current = draftStops;
+  }, [draftStops]);
 
   const refreshScopedData = useCallback(async () => {
     const mapId = activeMap?.map_id;
@@ -1444,16 +1465,25 @@ function MapsWorkspaceContent() {
         return;
       }
 
-      if (drawingActive) {
+      if (drawingActive && drawRouteInputMode === "click") {
         setDraftStops((current) => {
+          if (current.length >= drawTargetPointCount) {
+            setStatus(`This route already has ${drawTargetPointCount} points. Clear it or increase the point count to keep adding.`);
+            return current;
+          }
           const next = [...current, location];
           if (next.length === 1) {
-            setStatus("Route start set. Click the destination point and TravelTraces will correct the line to the best route.");
+            setStatus(`Point 1 set. Add ${drawTargetPointCount - 1} more point${drawTargetPointCount - 1 === 1 ? "" : "s"} in the order you want to travel.`);
           } else {
             setStatus("Correcting your drawn line to the right route...");
             void buildRouteFromStops(next, false).then((nextRoute) => {
               if (nextRoute) {
-                setStatus(next.length === 2 ? "Route corrected from your first point to your destination." : "Route updated with the new routed stop.");
+                if (next.length >= drawTargetPointCount) {
+                  setDrawingActive(false);
+                  setStatus(`Route completed with ${drawTargetPointCount} points in travel order.`);
+                } else {
+                  setStatus(`Point ${next.length} added. Add ${drawTargetPointCount - next.length} more point${drawTargetPointCount - next.length === 1 ? "" : "s"} to finish this route.`);
+                }
               }
             });
           }
@@ -1461,7 +1491,7 @@ function MapsWorkspaceContent() {
         });
       }
     },
-    [buildRouteFromStops, drawingActive, handleMapMarkerDrop, pickTarget],
+    [buildRouteFromStops, drawRouteInputMode, drawTargetPointCount, drawingActive, handleMapMarkerDrop, pickTarget],
   );
 
   useEffect(() => {
@@ -1470,6 +1500,81 @@ function MapsWorkspaceContent() {
       void reverseFromMapClick(event).then(handlePickedLocation);
     };
   }, [boxZoomActive, handlePickedLocation]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !drawingActive || drawRouteInputMode !== "drag") {
+      dragRouteRef.current = { active: false, baseStops: [], points: [] };
+      return;
+    }
+
+    const pointFromEvent = (event: MapMouseEvent) => locationFromLngLat(event.lngLat.lat, event.lngLat.lng, `${event.lngLat.lat.toFixed(5)}, ${event.lngLat.lng.toFixed(5)}`);
+    const farEnough = (last: ApiLocation, next: ApiLocation) => {
+      const latDiff = last.coordinate[0] - next.coordinate[0];
+      const lonDiff = last.coordinate[1] - next.coordinate[1];
+      return Math.sqrt(latDiff * latDiff + lonDiff * lonDiff) > 0.0012;
+    };
+    const startsNearLastPoint = (event: MapMouseEvent, lastPoint: ApiLocation) => {
+      const projected = map.project([lastPoint.coordinate[1], lastPoint.coordinate[0]]);
+      const xDiff = projected.x - event.point.x;
+      const yDiff = projected.y - event.point.y;
+      return Math.sqrt(xDiff * xDiff + yDiff * yDiff) <= 48;
+    };
+
+    const handleMouseDown = (event: MapMouseEvent) => {
+      event.preventDefault();
+      const firstPoint = pointFromEvent(event);
+      const existingStops = draftStopsRef.current;
+      const baseStops = existingStops.length ? existingStops : [firstPoint];
+      const segmentStart = baseStops[baseStops.length - 1];
+      if (existingStops.length && !startsNearLastPoint(event, segmentStart)) {
+        dragRouteRef.current = { active: false, baseStops: [], points: [] };
+        setStatus(`Start the next drag from point ${existingStops.length}. Routes must follow the order: ${existingStops.length} to ${existingStops.length + 1}.`);
+        return;
+      }
+      dragRouteRef.current = { active: true, baseStops, points: [segmentStart] };
+      setDraftStops(baseStops);
+      setStatus(existingStops.length ? `Point ${existingStops.length} is the segment start. Drag to place point ${existingStops.length + 1}.` : "Point 1 set. Drag to the next location and release to place point 2.");
+    };
+
+    const handleMouseMove = (event: MapMouseEvent) => {
+      if (!dragRouteRef.current.active) return;
+      const nextPoint = pointFromEvent(event);
+      const points = dragRouteRef.current.points;
+      const lastPoint = points[points.length - 1];
+      if (lastPoint && !farEnough(lastPoint, nextPoint)) return;
+      dragRouteRef.current.points = [points[0], nextPoint];
+      setDraftStops([...dragRouteRef.current.baseStops, nextPoint]);
+    };
+
+    const handleMouseUp = () => {
+      if (!dragRouteRef.current.active) return;
+      const { baseStops, points } = dragRouteRef.current;
+      const segmentStart = baseStops[baseStops.length - 1];
+      const segmentEnd = points[points.length - 1];
+      dragRouteRef.current = { active: false, baseStops: [], points: [] };
+      if (!segmentEnd || !segmentStart || !farEnough(segmentStart, segmentEnd)) {
+        setDraftStops(baseStops);
+        setStatus("Drag a longer segment so TravelTraces can place the next point.");
+        return;
+      }
+      const nextStops = [...baseStops, segmentEnd];
+      setDraftStops(nextStops);
+      setStatus(`Point ${nextStops.length} placed. Correcting only the ordered route ${nextStops.length - 1} to ${nextStops.length}.`);
+      void buildRouteFromStops(nextStops, false).then((nextRoute) => {
+        if (nextRoute) setStatus(`Route updated in order: ${nextStops.map((_, index) => index + 1).join(" to ")}. Start the next drag from point ${nextStops.length}.`);
+      });
+    };
+
+    map.on("mousedown", handleMouseDown);
+    map.on("mousemove", handleMouseMove);
+    map.on("mouseup", handleMouseUp);
+    return () => {
+      map.off("mousedown", handleMouseDown);
+      map.off("mousemove", handleMouseMove);
+      map.off("mouseup", handleMouseUp);
+    };
+  }, [buildRouteFromStops, drawRouteInputMode, drawingActive, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1645,11 +1750,11 @@ function MapsWorkspaceContent() {
     setBoxZoomDrag(null);
     setDrawingActive((value) => {
       const next = !value;
-      setStatus(next ? "Draw Route active. Click the route start, then click the destination. The line will snap to the right route." : "Draw Route stopped.");
+      setStatus(next ? (drawRouteInputMode === "click" ? `Draw Route active. Click ${drawTargetPointCount} points in travel order.` : "Draw Route active. Drag from point 1 to point 2, then continue from the last point for the next segment.") : "Draw Route stopped.");
       return next;
     });
     setPickTarget(null);
-  }, []);
+  }, [drawRouteInputMode, drawTargetPointCount]);
 
   const handleClearDraw = useCallback(() => {
     setDraftStops([]);
@@ -2131,6 +2236,40 @@ function MapsWorkspaceContent() {
 
   const drawRouteControls = (
     <div className="grid gap-4">
+      <WorkspaceToggleGroup
+        value={drawRouteInputMode}
+        options={[
+          { value: "click", label: "Click points" },
+          { value: "drag", label: "Drag line" },
+        ]}
+        onChange={(value) => {
+          setDrawRouteInputMode(value);
+          setDraftStops([]);
+          setRoute(null);
+          setStatus(value === "click" ? "Click mode selected. Choose how many points, press Draw, then click each location in travel order." : "Drag mode selected. Press Draw, drag point 1 to point 2, then continue from point 2 to point 3.");
+        }}
+      />
+      {drawRouteInputMode === "click" ? (
+        <label className="grid gap-2">
+          <span className={fieldLabel}>Number of Points: {drawTargetPointCount}</span>
+          <input
+            type="range"
+            min={2}
+            max={10}
+            value={drawTargetPointCount}
+            onChange={(event) => {
+              const nextCount = Number(event.target.value);
+              setDrawTargetPointCount(nextCount);
+              if (draftStops.length > nextCount) {
+                const nextStops = draftStops.slice(0, nextCount);
+                setDraftStops(nextStops);
+                void buildRouteFromStops(nextStops, false);
+              }
+            }}
+            className="w-full"
+          />
+        </label>
+      ) : null}
       <div className={toggleGrid}>
         <WorkspaceButton
           variant={drawingActive ? "accent" : "neutral"}
@@ -2160,7 +2299,7 @@ function MapsWorkspaceContent() {
         <input type="range" min={3} max={12} value={routeWidth} onChange={(event) => setRouteWidth(Number(event.target.value))} className="w-full" />
       </label>
       <div className="rounded-lg bg-[#F5F0E8] p-3 text-sm leading-6 text-[#6B6B5A]">
-        {draftStops.length} drawn points. Each segment is routed through OSRM so the line follows street geometry.
+        {draftStops.length} drawn point{draftStops.length === 1 ? "" : "s"}. {drawRouteInputMode === "click" ? `Click ${drawTargetPointCount} points in order. The route connects 1 to 2, 2 to 3, and so on without skipping points.` : "Drag one segment at a time. Each new drag must start from the latest point, so point 1 only connects to point 2, point 2 to point 3, and so on."}
       </div>
     </div>
   );
@@ -2411,7 +2550,7 @@ function MapsWorkspaceContent() {
   const mapToolsPanel = (
     <div className="max-h-[72vh] overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
       <ToolbarPanelTitle meta={baseLayer}>Map Tools</ToolbarPanelTitle>
-      <div className="grid gap-1">
+      <div className="grid gap-2">
         <ToolbarActionRow
           icon={<ToolbarAssetIcon src={panIcon} alt="" />}
           label="Pan"
@@ -2463,9 +2602,9 @@ function MapsWorkspaceContent() {
   );
 
   const travelToolsPanel = (
-    <div className="max-h-[72vh] overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
+    <div className="max-h-[min(54dvh,25rem)] overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
       <ToolbarPanelTitle meta={`${visiblePins.length} pins`}>Travel Tools</ToolbarPanelTitle>
-      <div className="grid gap-1">
+      <div className="grid gap-2">
         {travelToolRows.map((tool) => (
           <ToolbarActionRow
             key={tool.key}
@@ -2488,7 +2627,7 @@ function MapsWorkspaceContent() {
   const mapModePanel = (
     <div className="max-h-[72vh] overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
       <ToolbarPanelTitle meta={`${visiblePins.length} pins`}>Map Mode</ToolbarPanelTitle>
-      <div className="grid gap-1">
+      <div className="grid gap-2">
         {workspaceModes.map((mode) => {
           const Icon = mode.icon;
           return (
@@ -2564,16 +2703,16 @@ function MapsWorkspaceContent() {
           ) : null}
 
           {activeSidePanelContent ? (
-            <aside className="absolute inset-x-3 bottom-28 top-20 z-30 overflow-y-auto rounded-xl border border-[#3A2A22]/12 bg-white p-3 text-[#1A1A1A] shadow-[0_20px_45px_rgba(27,37,38,0.18)] sm:inset-x-auto sm:bottom-auto sm:right-4 sm:top-4 sm:max-h-[calc(100%-7rem)] sm:w-[min(24rem,calc(100%-2rem))] sm:p-4">
+            <aside className="absolute inset-x-3 bottom-28 top-20 z-30 overflow-y-auto rounded-[1.45rem] border border-[#3A2A22]/14 bg-[#FBF7F0]/95 p-3 text-[#1A1A1A] shadow-[0_24px_70px_rgba(58,42,34,0.2)] ring-1 ring-white/60 backdrop-blur-xl sm:inset-x-auto sm:bottom-auto sm:right-4 sm:top-4 sm:max-h-[calc(100%-7rem)] sm:w-[min(24rem,calc(100%-2rem))] sm:p-4">
               <div className="mb-3 flex items-center justify-between gap-3 sm:mb-4">
                 <div>
-                  <p className="font-[var(--font-label)] text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#9A978C]">Tool Panel</p>
+                  <p className="font-[var(--font-label)] text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#9E6B5C]">Tool Panel</p>
                   <h2 className="m-0 font-[var(--font-display)] text-lg font-semibold text-[#3A2A22] sm:text-xl">{activeSidePanelTitle}</h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => setActiveSidePanel(null)}
-                  className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[#3A2A22]/12 text-[#3A2A22] transition hover:bg-[#F5F0E8]"
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-[0.9rem] border border-[#3A2A22]/12 bg-[#EFE7DC] text-[#3A2A22] transition hover:border-[#C4713A]/30 hover:bg-[#F5E6D8]"
                   aria-label="Close tool panel"
                   title="Close tool panel"
                 >
