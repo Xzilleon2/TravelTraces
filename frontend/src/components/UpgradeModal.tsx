@@ -25,7 +25,7 @@ const REASON_COPY = {
 };
 
 const UPGRADE_PLANS = [
-  { id: "explorer", name: "Explorer", price: "₱149/mo", color: "#2D4A2D", highlight: "Unlimited pins, stories & 500 photos" },
+  { id: "explorer", name: "Explorer", price: "₱149/mo", color: "#3A2A22", highlight: "Unlimited pins, stories & 500 photos" },
   { id: "pathfinder", name: "Pathfinder", price: "₱349/mo", color: "#C4713A", highlight: "Unlimited everything + ad-free + priority" },
 ];
 
@@ -40,7 +40,7 @@ export function UpgradeModal({ onClose, reason }: Props) {
     >
       <div style={{ backgroundColor: "#F5F0E8", borderRadius: "0.5rem", width: "100%", maxWidth: 480, boxShadow: "0 24px 60px rgba(0,0,0,0.22)", overflow: "hidden" }}>
         {/* Header */}
-        <div style={{ backgroundColor: "#2D4A2D", padding: "1.75rem 2rem", position: "relative" }}>
+        <div style={{ backgroundColor: "#3A2A22", padding: "1.75rem 2rem", position: "relative" }}>
           <button onClick={onClose} style={{ position: "absolute", top: "1rem", right: "1rem", background: "rgba(245,240,232,0.1)", border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#F5F0E8" }}>
             <X size={16} />
           </button>
@@ -65,7 +65,7 @@ export function UpgradeModal({ onClose, reason }: Props) {
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
                     <span style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", fontWeight: 600, color: plan.color }}>{plan.name}</span>
-                    <span style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", fontWeight: 700, color: "#2D4A2D" }}>{plan.price}</span>
+                    <span style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", fontWeight: 700, color: "#3A2A22" }}>{plan.price}</span>
                   </div>
                   <p style={{ fontFamily: "var(--font-ui)", fontSize: "0.8rem", color: "#4A4A3A" }}>{plan.highlight}</p>
                 </div>
@@ -75,7 +75,7 @@ export function UpgradeModal({ onClose, reason }: Props) {
 
           <button
             onClick={() => { onClose(); navigate("/pricing"); }}
-            style={{ width: "100%", padding: "0.875rem", backgroundColor: "#2D4A2D", color: "#F5F0E8", border: "none", borderRadius: "0.25rem", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.85rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", marginBottom: "0.75rem" }}
+            style={{ width: "100%", padding: "0.875rem", backgroundColor: "#3A2A22", color: "#F5F0E8", border: "none", borderRadius: "0.25rem", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.85rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", marginBottom: "0.75rem" }}
           >
             See all plans <ArrowRight size={14} />
           </button>

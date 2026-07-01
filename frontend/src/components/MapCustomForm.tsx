@@ -180,7 +180,7 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
           onSubmit={handleSubmit}
           style={{
             padding: "1.5rem",
-            borderRight: "1px solid rgba(45,74,45,0.1)",
+            borderRight: "1px solid rgba(58,42,34,0.1)",
             overflowY: "auto",
             maxHeight: "95vh",
             display: "flex",
@@ -191,7 +191,7 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
         >
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
-              <span style={{ fontFamily: "var(--font-label)", fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#7A9E6F", fontWeight: 700 }}>
+              <span style={{ fontFamily: "var(--font-label)", fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#9E6B5C", fontWeight: 700 }}>
                 Interactive Story Sandbox
               </span>
               <button
@@ -202,7 +202,7 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                 <X size={18} />
               </button>
             </div>
-            <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 600, color: "#2D4A2D", margin: 0 }}>
+            <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 600, color: "#3A2A22", margin: 0 }}>
               Pin Details ({Math.round(x)}%, {Math.round(y)}%)
             </h3>
             <p style={{ fontFamily: "var(--font-ui)", fontSize: "0.72rem", color: "#6B6B5A", margin: "0.1rem 0 0" }}>
@@ -225,7 +225,7 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                 width: "100%",
                 padding: "0.5rem 0.75rem",
                 backgroundColor: "#EDEAE0",
-                border: "1px solid rgba(45,74,45,0.15)",
+                border: "1px solid rgba(58,42,34,0.15)",
                 borderRadius: "0.25rem",
                 fontSize: "0.85rem",
                 color: "#1A1A1A",
@@ -249,7 +249,7 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                   width: "100%",
                   padding: "0.5rem 0.75rem",
                   backgroundColor: "#EDEAE0",
-                  border: "1px solid rgba(45,74,45,0.15)",
+                  border: "1px solid rgba(58,42,34,0.15)",
                   borderRadius: "0.25rem",
                   fontSize: "0.85rem",
                   color: "#1A1A1A",
@@ -277,10 +277,10 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                   onClick={() => setType("visited")}
                   style={{
                     flex: 1,
-                    backgroundColor: type === "visited" ? "#2D4A2D" : "transparent",
-                    color: type === "visited" ? "#F5F0E8" : "#2D4A2D",
+                    backgroundColor: type === "visited" ? "#3A2A22" : "transparent",
+                    color: type === "visited" ? "#F5F0E8" : "#3A2A22",
                     border: "1px solid",
-                    borderColor: type === "visited" ? "#2D4A2D" : "rgba(45,74,45,0.2)",
+                    borderColor: type === "visited" ? "#3A2A22" : "rgba(58,42,34,0.2)",
                     borderRadius: "0.25rem",
                     cursor: "pointer",
                     fontSize: "0.72rem",
@@ -315,7 +315,7 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
           </div>
 
           {/* PICTURE SELECTION MODULE */}
-          <div style={{ border: "1px solid rgba(45,74,45,0.12)", borderRadius: "0.25rem", backgroundColor: "#EDEAE0", padding: "0.75rem" }}>
+          <div style={{ border: "1px solid rgba(58,42,34,0.12)", borderRadius: "0.25rem", backgroundColor: "#EDEAE0", padding: "0.75rem" }}>
             <span style={{ display: "block", marginBottom: "0.35rem", fontFamily: "var(--font-label)", fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "#6B6B5A" }}>
               🖼️ Story Hero Image (Pick, Upload, or Link)
             </span>
@@ -336,9 +336,9 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                     borderRadius: "0.15rem",
                     cursor: "pointer",
                     border: "1px solid",
-                    borderColor: activeImageTab === tab ? "#2D4A2D" : "rgba(45,74,45,0.15)",
-                    backgroundColor: activeImageTab === tab ? "#2D4A2D" : "transparent",
-                    color: activeImageTab === tab ? "#F5F0E8" : "#2D4A2D"
+                    borderColor: activeImageTab === tab ? "#3A2A22" : "rgba(58,42,34,0.15)",
+                    backgroundColor: activeImageTab === tab ? "#3A2A22" : "transparent",
+                    color: activeImageTab === tab ? "#F5F0E8" : "#3A2A22"
                   }}
                 >
                   {tab === "preset" ? "Scenery Presets" : tab === "upload" ? "Upload Photo" : "Web URL"}
@@ -382,7 +382,7 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
                 style={{
-                  border: `1.5px dashed ${dragActive ? "#C4713A" : "rgba(45,74,45,0.25)"}`,
+                  border: `1.5px dashed ${dragActive ? "#C4713A" : "rgba(58,42,34,0.25)"}`,
                   borderRadius: "0.25rem",
                   padding: "0.75rem",
                   textAlign: "center",
@@ -417,7 +417,7 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                     flex: 1,
                     padding: "0.4rem 0.6rem",
                     backgroundColor: "#F5F0E8",
-                    border: "1px solid rgba(45,74,45,0.15)",
+                    border: "1px solid rgba(58,42,34,0.15)",
                     borderRadius: "0.15rem",
                     fontSize: "0.78rem",
                     fontFamily: "var(--font-ui)",
@@ -433,7 +433,7 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                   }}
                   style={{
                     padding: "0.4rem 0.75rem",
-                    backgroundColor: "#2D4A2D",
+                    backgroundColor: "#3A2A22",
                     color: "#F5F0E8",
                     border: "none",
                     borderRadius: "0.15rem",
@@ -467,7 +467,7 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                 padding: "0.3rem",
                 backgroundColor: "#E5E1D4",
                 borderRadius: "0.25rem 0.25rem 0 0",
-                border: "1px solid rgba(45,74,45,0.15)",
+                border: "1px solid rgba(58,42,34,0.15)",
                 borderBottom: "none",
                 flexWrap: "wrap",
               }}
@@ -483,12 +483,12 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                   cursor: "pointer",
                   border: "none",
                   backgroundColor: "transparent",
-                  color: "#2D4A2D",
+                  color: "#3A2A22",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
-                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "rgba(45,74,45,0.15)")}
+                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "rgba(58,42,34,0.15)")}
                 onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
               >
                 <Bold size={13} style={{ fontWeight: "bold" }} />
@@ -505,12 +505,12 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                   cursor: "pointer",
                   border: "none",
                   backgroundColor: "transparent",
-                  color: "#2D4A2D",
+                  color: "#3A2A22",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
-                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "rgba(45,74,45,0.15)")}
+                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "rgba(58,42,34,0.15)")}
                 onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
               >
                 <Italic size={13} />
@@ -527,18 +527,18 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                   cursor: "pointer",
                   border: "none",
                   backgroundColor: "transparent",
-                  color: "#2D4A2D",
+                  color: "#3A2A22",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
-                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "rgba(45,74,45,0.15)")}
+                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "rgba(58,42,34,0.15)")}
                 onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
               >
                 <Quote size={13} />
               </button>
 
-              <div style={{ width: 1, height: 16, backgroundColor: "rgba(45,74,45,0.15)", margin: "0 0.15rem" }} />
+              <div style={{ width: 1, height: 16, backgroundColor: "rgba(58,42,34,0.15)", margin: "0 0.15rem" }} />
 
               {/* Justify / Align Selection Left */}
               <button
@@ -551,12 +551,12 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                   cursor: "pointer",
                   border: "none",
                   backgroundColor: "transparent",
-                  color: "#2D4A2D",
+                  color: "#3A2A22",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
-                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "rgba(45,74,45,0.15)")}
+                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "rgba(58,42,34,0.15)")}
                 onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
               >
                 <AlignLeft size={13} />
@@ -573,12 +573,12 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                   cursor: "pointer",
                   border: "none",
                   backgroundColor: "transparent",
-                  color: "#2D4A2D",
+                  color: "#3A2A22",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
-                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "rgba(45,74,45,0.15)")}
+                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "rgba(58,42,34,0.15)")}
                 onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
               >
                 <AlignCenter size={13} />
@@ -595,18 +595,18 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                   cursor: "pointer",
                   border: "none",
                   backgroundColor: "transparent",
-                  color: "#2D4A2D",
+                  color: "#3A2A22",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
-                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "rgba(45,74,45,0.15)")}
+                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "rgba(58,42,34,0.15)")}
                 onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
               >
                 <AlignRight size={13} />
               </button>
 
-              <div style={{ width: 1, height: 16, backgroundColor: "rgba(45,74,45,0.15)", margin: "0 0.15rem" }} />
+              <div style={{ width: 1, height: 16, backgroundColor: "rgba(58,42,34,0.15)", margin: "0 0.15rem" }} />
 
               {/* List bulleting selection */}
               <button
@@ -619,12 +619,12 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                   cursor: "pointer",
                   border: "none",
                   backgroundColor: "transparent",
-                  color: "#2D4A2D",
+                  color: "#3A2A22",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
-                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "rgba(45,74,45,0.15)")}
+                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "rgba(58,42,34,0.15)")}
                 onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
               >
                 <List size={13} />
@@ -645,7 +645,7 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                   overflowY: "auto",
                   padding: "0.75rem",
                   backgroundColor: "#EDEAE0",
-                  border: "1px solid rgba(45,74,45,0.15)",
+                  border: "1px solid rgba(58,42,34,0.15)",
                   borderRadius: "0 0 0.25rem 0.25rem",
                   fontSize: "0.85rem",
                   color: "#1A1A1A",
@@ -685,7 +685,7 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                 padding: "0.5rem",
                 backgroundColor: "transparent",
                 color: "#6B6B5A",
-                border: "1px solid rgba(45,74,45,0.2)",
+                border: "1px solid rgba(58,42,34,0.2)",
                 borderRadius: "0.25rem",
                 cursor: "pointer",
                 fontFamily: "var(--font-label)",
@@ -703,7 +703,7 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
               style={{
                 flex: 2,
                 padding: "0.5rem",
-                backgroundColor: title.trim() ? "#2D4A2D" : "#D8D4C8",
+                backgroundColor: title.trim() ? "#3A2A22" : "#D8D4C8",
                 color: "#F5F0E8",
                 border: "none",
                 borderRadius: "0.25rem",
@@ -739,7 +739,7 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
             <p style={{ margin: 0, fontFamily: "var(--font-label)", fontSize: "0.625rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#6B6B5A", fontWeight: 700 }}>
               Live Map Story Card Preview
             </p>
-            <h4 style={{ fontFamily: "var(--font-display)", fontSize: "0.95rem", fontWeight: 600, color: "#2D4A2D", marginTop: "0.15rem", marginBottom: 0 }}>
+            <h4 style={{ fontFamily: "var(--font-display)", fontSize: "0.95rem", fontWeight: 600, color: "#3A2A22", marginTop: "0.15rem", marginBottom: 0 }}>
               Beholds custom selections immediately
             </h4>
           </div>
@@ -749,8 +749,8 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
               backgroundColor: "#F5F0E8",
               borderRadius: "0.25rem",
               overflow: "hidden",
-              boxShadow: "0 10px 30px rgba(45,74,45,0.08)",
-              border: "1px solid rgba(45,74,45,0.06)",
+              boxShadow: "0 10px 30px rgba(58,42,34,0.08)",
+              border: "1px solid rgba(58,42,34,0.06)",
               display: "flex",
               flexDirection: "column",
               minHeight: "340px",
@@ -761,7 +761,7 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
               style={{
                 height: "130px",
                 position: "relative",
-                backgroundColor: "#2D4A2D",
+                backgroundColor: "#3A2A22",
                 color: "#F5F0E8",
               }}
             >
@@ -846,7 +846,7 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                   display: "flex",
                   alignItems: "center",
                   gap: "0.4rem",
-                  borderTop: "1px solid rgba(45,74,45,0.08)",
+                  borderTop: "1px solid rgba(58,42,34,0.08)",
                   paddingTop: "0.6rem",
                   marginTop: "0.6rem",
                 }}
@@ -856,7 +856,7 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                     width: 20,
                     height: 20,
                     borderRadius: "50%",
-                    backgroundColor: "#2D4A2D",
+                    backgroundColor: "#3A2A22",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",

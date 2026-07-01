@@ -88,11 +88,11 @@ export function MusicBox({ variant = "floating" }: { variant?: "floating" | "men
       onClick={() => void toggle()}
       className={
         variant === "menu"
-          ? "flex w-full items-center gap-2 border-t border-[#2D4A2D]/10 px-4 py-3 text-left text-sm text-[#1A1A1A] transition hover:bg-[#F5F0E8]"
+          ? "flex w-full items-center gap-2 border-t border-[#3A2A22]/10 px-4 py-3 text-left text-sm text-[#1A1A1A] transition hover:bg-[#F5F0E8]"
           : `group flex min-h-11 items-center gap-2 rounded-full border px-3 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] shadow-[0_12px_30px_rgba(27,37,38,0.18)] backdrop-blur transition ${
               playing
                 ? "border-[#C4713A]/45 bg-[#C4713A] text-[#F5F0E8]"
-                : "border-[#2D4A2D]/15 bg-[#F5F0E8]/92 text-[#2D4A2D] hover:bg-[#EDEAE0]"
+                : "border-[#3A2A22]/15 bg-[#F5F0E8]/92 text-[#3A2A22] hover:bg-[#EDEAE0]"
             }`
       }
       aria-pressed={playing}

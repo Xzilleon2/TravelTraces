@@ -96,6 +96,8 @@ export function primaryPhotoUrl(pin: ApiPin): string | null {
 export type MarkerSaveInput = {
   title: string;
   description: string;
+  category?: string;
+  placeName?: string;
   lat: number;
   lon: number;
   scope: MapScope;
@@ -109,6 +111,11 @@ export type MarkerSaveInput = {
 
 export function markerSavePayload(input: MarkerSaveInput) {
   const attachments = input.photos.map((item) => item.attachment);
+  const media = {
+    ...(attachments[0] ?? {}),
+    category: input.category ?? "More",
+    place_name: input.placeName ?? input.address ?? "",
+  };
   const source = input.photos.some((item) => item.source === "exif" || item.source === "gps")
     ? input.photos.find((item) => item.source === "exif" || item.source === "gps")!.source
     : input.source;
@@ -124,7 +131,7 @@ export function markerSavePayload(input: MarkerSaveInput) {
     mapId: input.mapId,
     address: input.address ?? "",
     source,
-    media: attachments[0] ?? null,
+    media,
     photos: attachments,
   };
 }

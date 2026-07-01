@@ -156,11 +156,11 @@ export function CompanionFinder({ userLocation, onSelectionChange }: CompanionFi
   };
 
   return (
-    <div id="companion-finder-panel" style={{ padding: "1.25rem", backgroundColor: "#EDEAE0", borderRadius: "0.25rem", border: "1px solid rgba(45,74,45,0.12)" }}>
+    <div id="companion-finder-panel" style={{ padding: "1.25rem", backgroundColor: "#EDEAE0", borderRadius: "0.25rem", border: "1px solid rgba(58,42,34,0.12)" }}>
       {/* Title */}
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-        <Users size={18} color="#2D4A2D" />
-        <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem", fontWeight: 600, color: "#2D4A2D", margin: 0 }}>
+        <Users size={18} color="#3A2A22" />
+        <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem", fontWeight: 600, color: "#3A2A22", margin: 0 }}>
           Find your midpoint
         </h3>
       </div>
@@ -192,7 +192,7 @@ export function CompanionFinder({ userLocation, onSelectionChange }: CompanionFi
                   width: "100%",
                   padding: "0.55rem 0.75rem",
                   backgroundColor: "#F5F0E8",
-                  border: "1px solid rgba(45,74,45,0.15)",
+                  border: "1px solid rgba(58,42,34,0.15)",
                   borderRadius: "0.25rem",
                   fontSize: "0.85rem",
                   color: "#1A1A1A",
@@ -223,7 +223,7 @@ export function CompanionFinder({ userLocation, onSelectionChange }: CompanionFi
                   width: "100%",
                   padding: "0.55rem 0.75rem",
                   backgroundColor: "#F5F0E8",
-                  border: "1px solid rgba(45,74,45,0.15)",
+                  border: "1px solid rgba(58,42,34,0.15)",
                   borderRadius: "0.25rem",
                   fontSize: "0.85rem",
                   color: "#1A1A1A",
@@ -249,7 +249,7 @@ export function CompanionFinder({ userLocation, onSelectionChange }: CompanionFi
             style={{
               width: "100%",
               padding: "0.625rem",
-              backgroundColor: "#2D4A2D",
+              backgroundColor: "#3A2A22",
               color: "#F5F0E8",
               border: "none",
               borderRadius: "0.25rem",
@@ -263,7 +263,7 @@ export function CompanionFinder({ userLocation, onSelectionChange }: CompanionFi
               marginTop: "0.25rem"
             }}
             onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#243B24")}
-            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#2D4A2D")}
+            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#3A2A22")}
           >
             Find midpoints
           </button>
@@ -272,8 +272,8 @@ export function CompanionFinder({ userLocation, onSelectionChange }: CompanionFi
         /* Result output state display panel card */
         <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem", marginTop: ".25rem" }}>
 
-          <div style={{ backgroundColor: "#F5F0E8", border: "1px solid rgba(45,74,45,0.1)", borderRadius: "0.25rem", padding: "0.75rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(45,74,45,0.06)", paddingBottom: "0.5rem", marginBottom: "0.5rem" }}>
+          <div style={{ backgroundColor: "#F5F0E8", border: "1px solid rgba(58,42,34,0.1)", borderRadius: "0.25rem", padding: "0.75rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(58,42,34,0.06)", paddingBottom: "0.5rem", marginBottom: "0.5rem" }}>
               <span style={{ fontSize: "0.68rem", fontFamily: "var(--font-label)", letterSpacing: "0.05em", textTransform: "uppercase", color: "#6B6B5A", fontWeight: 700 }}>Resolved Hubs</span>
               <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#C4713A", fontFamily: "var(--font-display)" }}>{activeMidpoint.distance} km</span>
             </div>
@@ -296,16 +296,16 @@ export function CompanionFinder({ userLocation, onSelectionChange }: CompanionFi
               backgroundColor: "#E2DEC9",
               borderRadius: "0.25rem",
               padding: "0.85rem",
-              border: "1px solid rgba(45,74,45,0.15)",
+              border: "1px solid rgba(58,42,34,0.15)",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", marginBottom: "0.35rem" }}>
-              <Compass size={14} color="#7A9E6F" />
-              <span style={{ fontFamily: "var(--font-label)", fontSize: "0.68rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#7A9E6F", fontWeight: 700 }}>
+              <Compass size={14} color="#9E6B5C" />
+              <span style={{ fontFamily: "var(--font-label)", fontSize: "0.68rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E6B5C", fontWeight: 700 }}>
                 Suggested Midpoint Destination
               </span>
             </div>
-            <h4 style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", fontWeight: 700, color: "#2D4A2D", margin: "0 0 0.15rem 0" }}>
+            <h4 style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", fontWeight: 700, color: "#3A2A22", margin: "0 0 0.15rem 0" }}>
               {activeMidpoint.suggestedHub.name}
             </h4>
             <p style={{ fontFamily: "var(--font-ui)", fontSize: "0.72rem", color: "#6B6B5A", margin: "0 0 0.5rem 0", fontWeight: 500 }}>
@@ -323,8 +323,8 @@ export function CompanionFinder({ userLocation, onSelectionChange }: CompanionFi
               width: "100%",
               padding: "0.5rem",
               backgroundColor: "transparent",
-              color: "#2D4A2D",
-              border: "1px solid #2D4A2D",
+              color: "#3A2A22",
+              border: "1px solid #3A2A22",
               borderRadius: "0.25rem",
               fontSize: "0.75rem",
               fontFamily: "var(--font-label)",

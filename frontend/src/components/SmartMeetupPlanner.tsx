@@ -228,11 +228,11 @@ function ParticipantLocationField({
           value={participant.locationText}
           onChange={(event) => onChange(event.target.value)}
           placeholder="Search address or place"
-          className="min-h-10 w-full rounded border border-[#2D4A2D]/15 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-[#2D4A2D]"
+          className="min-h-10 w-full rounded border border-[#3A2A22]/15 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-[#3A2A22]"
         />
       </div>
       {(busy || results.length > 0) && (
-        <div className="mt-2 max-h-32 overflow-y-auto rounded border border-[#2D4A2D]/10 bg-[#F5F0E8]">
+        <div className="mt-2 max-h-32 overflow-y-auto rounded border border-[#3A2A22]/10 bg-[#F5F0E8]">
           {busy && <div className="px-3 py-2 text-xs text-[#6B6B5A]">Searching...</div>}
           {!busy &&
             results.slice(0, 4).map((item) => (
@@ -240,7 +240,7 @@ function ParticipantLocationField({
                 key={`${participant.localId}-${item.label}-${item.coordinate.join(",")}`}
                 type="button"
                 onClick={() => onSelect(item)}
-                className="block w-full border-b border-[#2D4A2D]/8 px-3 py-2 text-left text-xs text-[#1A1A1A] last:border-b-0 hover:bg-[#EDEAE0]"
+                className="block w-full border-b border-[#3A2A22]/8 px-3 py-2 text-left text-xs text-[#1A1A1A] last:border-b-0 hover:bg-[#EDEAE0]"
               >
                 <span className="block font-semibold">{item.label}</span>
                 <span className="mt-0.5 block text-[#6B6B5A]">{item.provider}</span>
@@ -363,11 +363,11 @@ export function SmartMeetupPlanner({
   };
 
   return (
-    <div className="rounded border border-[#2D4A2D]/15 bg-[#EDEAE0] p-4">
+    <div className="rounded border border-[#3A2A22]/15 bg-[#EDEAE0] p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <Sparkles size={18} className="shrink-0 text-[#C4713A]" />
-          <h2 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2D4A2D]">Smart Meetup Planner</h2>
+          <h2 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#3A2A22]">Smart Meetup Planner</h2>
         </div>
         <span className="rounded bg-[#F5F0E8] px-2 py-1 font-[var(--font-label)] text-[0.65rem] font-semibold uppercase tracking-[0.06em] text-[#6B6B5A]">
           {activeParticipants.length} people
@@ -378,7 +378,7 @@ export function SmartMeetupPlanner({
         <button
           type="button"
           onClick={() => startConnectionPicker("friend")}
-          className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded border border-[#2D4A2D]/20 bg-[#F5F0E8] px-2 font-[var(--font-label)] text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-[#2D4A2D]"
+          className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded border border-[#3A2A22]/20 bg-[#F5F0E8] px-2 font-[var(--font-label)] text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-[#3A2A22]"
         >
           <UserPlus size={13} />
           Add Friend
@@ -386,7 +386,7 @@ export function SmartMeetupPlanner({
         <button
           type="button"
           onClick={() => startConnectionPicker("follower")}
-          className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded border border-[#2D4A2D]/20 bg-[#F5F0E8] px-2 font-[var(--font-label)] text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-[#2D4A2D]"
+          className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded border border-[#3A2A22]/20 bg-[#F5F0E8] px-2 font-[var(--font-label)] text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-[#3A2A22]"
         >
           <Users size={13} />
           Add Follower
@@ -395,7 +395,7 @@ export function SmartMeetupPlanner({
           type="button"
           onClick={addManualParticipant}
           disabled={participants.length >= 12}
-          className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded border border-[#2D4A2D]/20 bg-[#F5F0E8] px-2 font-[var(--font-label)] text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-[#2D4A2D] disabled:opacity-50"
+          className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded border border-[#3A2A22]/20 bg-[#F5F0E8] px-2 font-[var(--font-label)] text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-[#3A2A22] disabled:opacity-50"
         >
           <MapPin size={13} />
           Manual
@@ -403,7 +403,7 @@ export function SmartMeetupPlanner({
       </div>
 
       {pickerMode && (
-        <div className="mt-3 rounded border border-[#2D4A2D]/15 bg-[#F5F0E8] p-3">
+        <div className="mt-3 rounded border border-[#3A2A22]/15 bg-[#F5F0E8] p-3">
           <label className="grid gap-2">
             <span className="font-[var(--font-label)] text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[#6B6B5A]">
               {pickerMode === "friend" ? "Select Friend" : "Select Participant"}
@@ -411,7 +411,7 @@ export function SmartMeetupPlanner({
             <select
               value={selectedConnectionId}
               onChange={(event) => setSelectedConnectionId(event.target.value)}
-              className="min-h-10 rounded border border-[#2D4A2D]/15 bg-white px-3 text-sm text-[#1A1A1A] outline-none"
+              className="min-h-10 rounded border border-[#3A2A22]/15 bg-white px-3 text-sm text-[#1A1A1A] outline-none"
             >
               {connectionOptions.map((profile) => (
                 <option key={profile.id} value={profile.id}>
@@ -425,14 +425,14 @@ export function SmartMeetupPlanner({
               type="button"
               onClick={addSelectedConnection}
               disabled={!selectedConnectionId}
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded bg-[#2D4A2D] px-3 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.06em] text-[#F5F0E8] disabled:opacity-50"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded bg-[#3A2A22] px-3 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.06em] text-[#F5F0E8] disabled:opacity-50"
             >
               Add Participant
             </button>
             <button
               type="button"
               onClick={() => setPickerMode(null)}
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded border border-[#2D4A2D]/20 bg-white px-3 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.06em] text-[#2D4A2D]"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded border border-[#3A2A22]/20 bg-white px-3 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.06em] text-[#3A2A22]"
             >
               Cancel
             </button>
@@ -442,12 +442,12 @@ export function SmartMeetupPlanner({
 
       <div className="mt-4 space-y-3">
         {participants.map((participant, index) => (
-          <div key={participant.localId} className="rounded border border-[#2D4A2D]/10 bg-[#F5F0E8] p-3">
+          <div key={participant.localId} className="rounded border border-[#3A2A22]/10 bg-[#F5F0E8] p-3">
             <div className="mb-2 flex items-center gap-2">
               {participant.profilePhoto ? (
                 <img src={participant.profilePhoto} alt="" className="h-8 w-8 rounded-full object-cover" />
               ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#2D4A2D] font-[var(--font-label)] text-xs font-bold text-[#F5F0E8]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#3A2A22] font-[var(--font-label)] text-xs font-bold text-[#F5F0E8]">
                   {String.fromCharCode(65 + index)}
                 </div>
               )}
@@ -455,7 +455,7 @@ export function SmartMeetupPlanner({
                 <input
                   value={participant.displayName}
                   onChange={(event) => updateParticipant(participant.localId, { displayName: event.target.value })}
-                  className="h-7 w-full rounded border border-transparent bg-transparent px-1 text-sm font-semibold text-[#1A1A1A] outline-none focus:border-[#2D4A2D]/20 focus:bg-white"
+                  className="h-7 w-full rounded border border-transparent bg-transparent px-1 text-sm font-semibold text-[#1A1A1A] outline-none focus:border-[#3A2A22]/20 focus:bg-white"
                 />
                 <span className="block px-1 font-[var(--font-label)] text-[0.62rem] font-semibold uppercase tracking-[0.08em] text-[#6B6B5A]">
                   {participant.source}
@@ -465,7 +465,7 @@ export function SmartMeetupPlanner({
                 type="button"
                 onClick={() => removeParticipant(participant.localId)}
                 disabled={participants.length <= 2}
-                className="flex h-8 w-8 items-center justify-center rounded border border-[#2D4A2D]/15 text-[#6B6B5A] disabled:opacity-35"
+                className="flex h-8 w-8 items-center justify-center rounded border border-[#3A2A22]/15 text-[#6B6B5A] disabled:opacity-35"
                 aria-label={`Remove ${participant.displayName}`}
                 title={`Remove ${participant.displayName}`}
               >
@@ -501,7 +501,7 @@ export function SmartMeetupPlanner({
           type="button"
           disabled={busy}
           onClick={() => void runSuggest(false)}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-[#2D4A2D] px-3 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#F5F0E8] disabled:opacity-60"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-[#3A2A22] px-3 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#F5F0E8] disabled:opacity-60"
         >
           <MapPin size={15} />
           Generate Meetup
@@ -510,7 +510,7 @@ export function SmartMeetupPlanner({
           type="button"
           disabled={busy || !plan}
           onClick={() => void handleAnother()}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded border border-[#2D4A2D]/20 bg-[#F5F0E8] px-3 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#2D4A2D] disabled:opacity-60"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded border border-[#3A2A22]/20 bg-[#F5F0E8] px-3 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#3A2A22] disabled:opacity-60"
         >
           <RefreshCw size={15} />
           Generate Another
@@ -522,7 +522,7 @@ export function SmartMeetupPlanner({
       {plan && (
         <div className="mt-4 space-y-2">
           <div className="rounded bg-[#F5F0E8] p-3 text-xs text-[#6B6B5A]">
-            <span className="block font-[var(--font-label)] font-semibold uppercase tracking-[0.06em] text-[#2D4A2D]">
+            <span className="block font-[var(--font-label)] font-semibold uppercase tracking-[0.06em] text-[#3A2A22]">
               {plan.fair_region.properties.strategy.replaceAll("_", " ")}
             </span>
             <span className="mt-1 block">
@@ -534,14 +534,14 @@ export function SmartMeetupPlanner({
               key={`${item.rank}-${item.name}-${item.coordinate.join(",")}`}
               type="button"
               onClick={() => onSelectVenue?.(item)}
-              className="w-full rounded border border-[#2D4A2D]/10 bg-[#F5F0E8] p-3 text-left transition hover:border-[#2D4A2D]/35"
+              className="w-full rounded border border-[#3A2A22]/10 bg-[#F5F0E8] p-3 text-left transition hover:border-[#3A2A22]/35"
             >
               <span className="flex items-center gap-2 font-semibold text-[#1A1A1A]">
                 <Coffee size={15} className="text-[#C4713A]" />
                 {item.rank}. {item.name}
               </span>
               <span className="mt-1 block text-xs text-[#6B6B5A]">{item.label}</span>
-              <span className="mt-2 grid grid-cols-2 gap-2 text-xs text-[#2D4A2D]">
+              <span className="mt-2 grid grid-cols-2 gap-2 text-xs text-[#3A2A22]">
                 <span>Score {Math.round(item.fairness_score)}</span>
                 <span>Max {formatDuration(item.score_components.max_duration_s)}</span>
                 <span>Total {formatDuration(item.score_components.total_duration_s)}</span>

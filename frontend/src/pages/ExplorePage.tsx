@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router";
 import { Search, MapPin, Star, ArrowLeft, BookOpen, Pin, Users, Camera, Clock, ChevronLeft, ChevronRight, ExternalLink, Compass, Mountain, Waves, Building2, TreePine, Droplets, Anchor, Gem, Landmark, Utensils } from "lucide-react";
 import { GatedPage } from "../components/GatedPage";
 import { UserProfileModal } from "../components/UserProfileModal";
 import { GAMIFIED_USERS, GamifiedUser, getLevelFromXp } from "../components/gamification";
+import { STORIES, StoryArticleView, type TravelStory } from "./StoriesPage";
 
 /* ─── Data ─────────────────────────────────────────────────── */
 
@@ -35,7 +37,7 @@ const DESTINATIONS = [
       { title: "The Secret Coves of Northern Palawan", author: "Ana Villanueva", authorKey: "ana", likes: 231, date: "2 Apr 2025" },
       { title: "Hundred Islands to El Nido: A Solo Journey", author: "Sofia Reyes", authorKey: "sofia", likes: 189, date: "15 Mar 2025" },
     ],
-    color: "#2D4A2D",
+    color: "#3A2A22",
   },
   {
     id: 2,
@@ -123,7 +125,7 @@ const DESTINATIONS = [
       { title: "Cloud 9 at Dawn: A Surfer's Journal", author: "Carlo Reyes", authorKey: "carlo", likes: 312, date: "1 Mar 2025" },
       { title: "Island Hopping Siargao: The Full Loop", author: "Ana Villanueva", authorKey: "ana", likes: 247, date: "12 Feb 2025" },
     ],
-    color: "#7A9E6F",
+    color: "#9E6B5C",
   },
   {
     id: 5,
@@ -240,7 +242,7 @@ const DESTINATIONS = [
       { title: "Camiguin: The Island Born from Fire", author: "Leila Marcos", authorKey: "leila", likes: 378, date: "22 Mar 2025" },
       { title: "Swimming Over the Sunken Cemetery", author: "Sofia Reyes", authorKey: "sofia", likes: 291, date: "8 Feb 2025" },
     ],
-    color: "#7A9E6F",
+    color: "#9E6B5C",
   },
 ];
 
@@ -299,17 +301,55 @@ function destinationCategory(destination: typeof DESTINATIONS[number]) {
 /* ─── Destination Guide View ──────────────────────────────── */
 
 function DestinationGuideView({ dest, onBack }: { dest: typeof DESTINATIONS[0]; onBack: () => void }) {
+  const navigate = useNavigate();
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [viewingProfile, setViewingProfile] = useState<GamifiedUser | null>(null);
+  const [selectedStory, setSelectedStory] = useState<TravelStory | null>(null);
 
   const allImages = [dest.img, ...dest.gallery];
   const category = destinationCategory(dest);
   const CategoryIcon = CATEGORY_ICON[category] ?? Compass;
+  const linkedStories = dest.stories
+    .map((storyRef) => STORIES.find((story) => story.title === storyRef.title))
+    .filter((story): story is TravelStory => Boolean(story));
+  const activeStoryIndex = selectedStory ? linkedStories.findIndex((story) => story.id === selectedStory.id) : -1;
+
+  const handlePinThis = () => {
+    window.localStorage.setItem(
+      "traveltraces.pendingExplorePin",
+      JSON.stringify({
+        name: dest.name,
+        province: dest.province,
+        category,
+        description: dest.desc,
+      }),
+    );
+    navigate("/maps");
+  };
+
+  if (selectedStory && activeStoryIndex >= 0) {
+    return (
+      <StoryArticleView
+        story={linkedStories[activeStoryIndex]}
+        onBack={() => setSelectedStory(null)}
+        onPrev={() => {
+          const previousStory = linkedStories[activeStoryIndex - 1];
+          if (previousStory) setSelectedStory(previousStory);
+        }}
+        onNext={() => {
+          const nextStory = linkedStories[activeStoryIndex + 1];
+          if (nextStory) setSelectedStory(nextStory);
+        }}
+        hasPrev={activeStoryIndex > 0}
+        hasNext={activeStoryIndex < linkedStories.length - 1}
+      />
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F5F0E8", padding: "2rem clamp(1rem, 4vw, 2rem) 5rem" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto" }}>
-        <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", background: "transparent", border: "none", color: "#2D4A2D", fontFamily: "var(--font-ui)", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer", padding: "0.25rem 0", marginBottom: "1.5rem" }}>
+        <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", background: "transparent", border: "none", color: "#3A2A22", fontFamily: "var(--font-ui)", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer", padding: "0.25rem 0", marginBottom: "1.5rem" }}>
           <ArrowLeft size={17} />
           Back to Explore
         </button>
@@ -321,10 +361,13 @@ function DestinationGuideView({ dest, onBack }: { dest: typeof DESTINATIONS[0]; 
                 <CategoryIcon size={13} />
                 {category}
               </span>
-              <span style={{ fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7A9E6F" }}>Visit guide</span>
+              <span style={{ fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#9E6B5C" }}>Visit guide</span>
             </div>
-            <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.4rem, 7vw, 5.25rem)", fontWeight: 600, color: "#2D4A2D", lineHeight: 0.95, margin: 0, maxWidth: 760 }}>{dest.name}</h1>
+            <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.4rem, 7vw, 5.25rem)", fontWeight: 600, color: "#3A2A22", lineHeight: 0.95, margin: 0, maxWidth: 760 }}>{dest.name}</h1>
             <p style={{ fontFamily: "var(--font-body)", fontSize: "clamp(1rem, 2vw, 1.25rem)", color: "#3A3A2A", lineHeight: 1.65, margin: "1rem 0 0", maxWidth: 760 }}>{dest.desc}</p>
+            <button onClick={handlePinThis} style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", marginTop: "1.1rem", minHeight: 42, border: "1px solid #3A2A22", borderRadius: "999px", backgroundColor: "#3A2A22", color: "#FBF7F0", padding: "0.55rem 1rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}>
+              <Pin size={14} /> Pin This
+            </button>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(96px, 1fr))", gap: "0.65rem", minWidth: 230 }} className="dest-guide-stats">
             {[
@@ -333,7 +376,7 @@ function DestinationGuideView({ dest, onBack }: { dest: typeof DESTINATIONS[0]; 
               { label: "Best", value: dest.bestMonths },
               { label: "Level", value: dest.difficulty },
             ].map((item) => (
-              <div key={item.label} style={{ backgroundColor: "#EDEAE0", border: "1px solid rgba(45,74,45,0.1)", borderRadius: "0.45rem", padding: "0.8rem" }}>
+              <div key={item.label} style={{ backgroundColor: "#EDEAE0", border: "1px solid rgba(58,42,34,0.1)", borderRadius: "0.45rem", padding: "0.8rem" }}>
                 <div style={{ fontFamily: "var(--font-label)", fontSize: "0.62rem", letterSpacing: "0.09em", textTransform: "uppercase", color: "#6B6B5A" }}>{item.label}</div>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem", fontWeight: 600, color: "#1A1A1A", marginTop: "0.2rem" }}>{item.value}</div>
               </div>
@@ -344,7 +387,7 @@ function DestinationGuideView({ dest, onBack }: { dest: typeof DESTINATIONS[0]; 
         {/* Hero photo carousel */}
         <div style={{ position: "relative", marginBottom: "2rem", overflow: "hidden", borderRadius: "0.5rem", backgroundColor: "#EDEAE0" }}>
           <img src={allImages[galleryIndex]} alt={dest.name} style={{ width: "100%", height: "clamp(320px, 56vw, 620px)", objectFit: "cover", display: "block" }} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.04) 45%, rgba(20,30,20,0.62) 100%)" }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.04) 45%, rgba(44,33,28,0.62) 100%)" }} />
 
           {/* Gallery nav */}
           {allImages.length > 1 && (
@@ -411,7 +454,7 @@ function DestinationGuideView({ dest, onBack }: { dest: typeof DESTINATIONS[0]; 
               {/* About */}
               <div style={{ marginBottom: "2rem" }}>
                 <p style={{ fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#C4713A", marginBottom: "0.6rem" }}>Why visit</p>
-                <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.8rem, 3vw, 2.5rem)", fontWeight: 600, color: "#2D4A2D", margin: "0 0 1rem", lineHeight: 1.1 }}>A destination worth planning around</h2>
+                <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.8rem, 3vw, 2.5rem)", fontWeight: 600, color: "#3A2A22", margin: "0 0 1rem", lineHeight: 1.1 }}>A destination worth planning around</h2>
                 {dest.longDesc.split("\n\n").map((p, i) => (
                   <p key={i} style={{ fontFamily: "var(--font-body)", fontSize: "1.03rem", color: "#3A3A2A", lineHeight: 1.85, marginBottom: "1rem" }}>{p}</p>
                 ))}
@@ -419,7 +462,7 @@ function DestinationGuideView({ dest, onBack }: { dest: typeof DESTINATIONS[0]; 
 
               {/* Highlights */}
               <div style={{ marginBottom: "2rem" }}>
-                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 600, color: "#2D4A2D", marginBottom: "0.875rem" }}>Must-see Highlights</h3>
+                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 600, color: "#3A2A22", marginBottom: "0.875rem" }}>Must-see Highlights</h3>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                   {dest.highlights.map((h, i) => (
                     <div key={h} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.625rem 0.875rem", backgroundColor: "#EDEAE0", borderRadius: "0.375rem", borderLeft: `3px solid ${dest.color}` }}>
@@ -433,19 +476,29 @@ function DestinationGuideView({ dest, onBack }: { dest: typeof DESTINATIONS[0]; 
               {/* Stories from explorers */}
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
-                  <BookOpen size={16} color="#2D4A2D" />
-                  <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 600, color: "#2D4A2D", margin: 0 }}>Explorer Stories</h3>
+                  <BookOpen size={16} color="#3A2A22" />
+                  <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 600, color: "#3A2A22", margin: 0 }}>Explorer Stories</h3>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                   {dest.stories.map((s, i) => {
                     const gu = GAMIFIED_USERS[s.authorKey];
                     const lv = gu ? getLevelFromXp(gu.xp) : null;
+                    const linkedStory = STORIES.find((story) => story.title === s.title);
                     return (
-                      <div key={i} style={{ display: "flex", gap: "0.875rem", padding: "1rem", backgroundColor: "#EDEAE0", borderRadius: "0.5rem", alignItems: "flex-start" }}>
-                        <button onClick={() => gu && setViewingProfile(gu)} style={{ background: "none", border: "none", cursor: gu ? "pointer" : "default", padding: 0, flexShrink: 0 }}>
+                      <div
+                        key={i}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => linkedStory && setSelectedStory(linkedStory)}
+                        onKeyDown={(event) => {
+                          if ((event.key === "Enter" || event.key === " ") && linkedStory) setSelectedStory(linkedStory);
+                        }}
+                        style={{ display: "flex", gap: "0.875rem", padding: "1rem", backgroundColor: "#EDEAE0", borderRadius: "0.5rem", alignItems: "flex-start", cursor: linkedStory ? "pointer" : "default" }}
+                      >
+                        <button onClick={(event) => { event.stopPropagation(); gu && setViewingProfile(gu); }} style={{ background: "none", border: "none", cursor: gu ? "pointer" : "default", padding: 0, flexShrink: 0 }}>
                           {gu ? (
                             <div style={{ position: "relative" }}>
-                              <img src={gu.avatar} alt={gu.name} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", border: `2px solid ${lv?.color ?? "#7A9E6F"}` }} />
+                              <img src={gu.avatar} alt={gu.name} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", border: `2px solid ${lv?.color ?? "#9E6B5C"}` }} />
                               {lv && <div style={{ position: "absolute", bottom: -4, left: "50%", transform: "translateX(-50%)", backgroundColor: lv.color, color: "#F5F0E8", fontFamily: "var(--font-label)", fontSize: "0.45rem", fontWeight: 800, padding: "0.08rem 0.28rem", borderRadius: "2rem", whiteSpace: "nowrap" }}>LV{lv.level}</div>}
                             </div>
                           ) : (
@@ -455,9 +508,9 @@ function DestinationGuideView({ dest, onBack }: { dest: typeof DESTINATIONS[0]; 
                           )}
                         </button>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontFamily: "var(--font-display)", fontSize: "0.975rem", fontWeight: 600, color: "#2D4A2D", lineHeight: 1.3, margin: "0 0 0.4rem" }}>{s.title}</p>
+                          <p style={{ fontFamily: "var(--font-display)", fontSize: "0.975rem", fontWeight: 600, color: "#3A2A22", lineHeight: 1.3, margin: "0 0 0.4rem" }}>{s.title}</p>
                           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                            <button onClick={() => gu && setViewingProfile(gu)} style={{ background: "none", border: "none", cursor: gu ? "pointer" : "default", padding: 0, fontFamily: "var(--font-ui)", fontSize: "0.78rem", fontWeight: 600, color: "#3A3A2A" }}>{s.author}</button>
+                            <button onClick={(event) => { event.stopPropagation(); gu && setViewingProfile(gu); }} style={{ background: "none", border: "none", cursor: gu ? "pointer" : "default", padding: 0, fontFamily: "var(--font-ui)", fontSize: "0.78rem", fontWeight: 600, color: "#3A3A2A" }}>{s.author}</button>
                             <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.72rem", color: "#6B6B5A" }}>·</span>
                             <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.72rem", color: "#6B6B5A" }}>{s.date}</span>
                             <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.72rem", color: "#6B6B5A" }}>· ♥ {s.likes}</span>
@@ -475,7 +528,7 @@ function DestinationGuideView({ dest, onBack }: { dest: typeof DESTINATIONS[0]; 
             <aside style={{ position: "sticky", top: "1rem", display: "flex", flexDirection: "column", gap: "1.25rem" }} className="dest-guide-sidebar">
 
               {/* Trip info */}
-              <div style={{ backgroundColor: "#EDEAE0", border: "1px solid rgba(45,74,45,0.1)", borderRadius: "0.5rem", padding: "1.25rem" }}>
+              <div style={{ backgroundColor: "#EDEAE0", border: "1px solid rgba(58,42,34,0.1)", borderRadius: "0.5rem", padding: "1.25rem" }}>
                 <p style={{ fontFamily: "var(--font-label)", fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#6B6B5A", marginBottom: "0.75rem" }}>Trip Info</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
                   {[
@@ -496,7 +549,7 @@ function DestinationGuideView({ dest, onBack }: { dest: typeof DESTINATIONS[0]; 
               </div>
 
               {/* Tags */}
-              <div style={{ backgroundColor: "#EDEAE0", border: "1px solid rgba(45,74,45,0.1)", borderRadius: "0.5rem", padding: "1.25rem" }}>
+              <div style={{ backgroundColor: "#EDEAE0", border: "1px solid rgba(58,42,34,0.1)", borderRadius: "0.5rem", padding: "1.25rem" }}>
                 <p style={{ fontFamily: "var(--font-label)", fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#6B6B5A", marginBottom: "0.625rem" }}>Activities</p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
                   {dest.tags.map((t) => (
@@ -506,7 +559,7 @@ function DestinationGuideView({ dest, onBack }: { dest: typeof DESTINATIONS[0]; 
               </div>
 
               {/* Explorers who've been here */}
-              <div style={{ backgroundColor: "#EDEAE0", border: "1px solid rgba(45,74,45,0.1)", borderRadius: "0.5rem", padding: "1.25rem" }}>
+              <div style={{ backgroundColor: "#EDEAE0", border: "1px solid rgba(58,42,34,0.1)", borderRadius: "0.5rem", padding: "1.25rem" }}>
                 <p style={{ fontFamily: "var(--font-label)", fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#6B6B5A", marginBottom: "0.75rem" }}>
                   TravelTraces Explorers Here <span style={{ color: dest.color }}>({dest.explorers.toLocaleString()})</span>
                 </p>
@@ -601,7 +654,7 @@ function DestinationCard({ d, onClick }: { d: typeof DESTINATIONS[0]; onClick: (
           src={d.img} alt={d.name}
           style={{ width: "100%", height: 200, objectFit: "cover", display: "block", transition: "transform 0.45s", transform: hovered ? "scale(1.04)" : "scale(1)" }}
         />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(20,30,20,0.65) 100%)" }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(44,33,28,0.65) 100%)" }} />
 
         {/* Category badge */}
         <div style={{ position: "absolute", top: "0.75rem", left: "0.75rem", display: "flex", alignItems: "center", gap: "0.3rem", backgroundColor: "#C4713A", color: "#F5F0E8", padding: "0.25rem 0.625rem", borderRadius: "0.2rem", fontSize: "0.68rem", fontFamily: "var(--font-label)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
@@ -625,9 +678,9 @@ function DestinationCard({ d, onClick }: { d: typeof DESTINATIONS[0]; onClick: (
 
       <div style={{ padding: "1.25rem 1.25rem 1rem", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ marginBottom: "0.5rem" }}>
-          <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem", fontWeight: 600, color: "#2D4A2D", lineHeight: 1.2, marginBottom: "0.2rem" }}>{d.name}</h3>
+          <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem", fontWeight: 600, color: "#3A2A22", lineHeight: 1.2, marginBottom: "0.2rem" }}>{d.name}</h3>
           <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexWrap: "wrap" }}>
-            <MapPin size={12} color="#7A9E6F" />
+            <MapPin size={12} color="#9E6B5C" />
             <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.78rem", color: "#6B6B5A" }}>{d.region}</span>
             <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.72rem", color: "#9A9A8A" }}>·</span>
             <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.78rem", color: "#6B6B5A" }}>{d.terrain}</span>
@@ -707,9 +760,9 @@ function ExploreContent() {
                     minHeight: 44,
                     borderRadius: 999,
                     border: "1px solid",
-                    borderColor: isActive ? "#2D4A2D" : "rgba(45,74,45,0.2)",
-                    backgroundColor: isActive ? "#2D4A2D" : "transparent",
-                    color: isActive ? "#F5F0E8" : "#2D4A2D",
+                    borderColor: isActive ? "#3A2A22" : "rgba(58,42,34,0.2)",
+                    backgroundColor: isActive ? "#3A2A22" : "transparent",
+                    color: isActive ? "#F5F0E8" : "#3A2A22",
                     padding: isAll ? "8px 24px" : "8px 16px",
                     fontFamily: "var(--font-ui)",
                     fontSize: 13,
@@ -720,7 +773,7 @@ function ExploreContent() {
                   }}
                   aria-pressed={isActive}
                 >
-                  {!isAll && <Icon size={14} color={isActive ? "#F5F0E8" : "#7A9E6F"} style={{ flexShrink: 0 }} />}
+                  {!isAll && <Icon size={14} color={isActive ? "#F5F0E8" : "#9E6B5C"} style={{ flexShrink: 0 }} />}
                   <span>{t}</span>
                 </button>
               );
@@ -746,8 +799,8 @@ function ExploreContent() {
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .category-pill:hover { background-color: rgba(45,74,45,0.08); border-color: #2D4A2D; color: #2D4A2D; }
-        .category-pill[aria-pressed="true"]:hover { background-color: #2D4A2D; border-color: #2D4A2D; color: #F5F0E8; }
+        .category-pill:hover { background-color: rgba(58,42,34,0.08); border-color: #3A2A22; color: #3A2A22; }
+        .category-pill[aria-pressed="true"]:hover { background-color: #3A2A22; border-color: #3A2A22; color: #F5F0E8; }
       `}</style>
     </div>
   );

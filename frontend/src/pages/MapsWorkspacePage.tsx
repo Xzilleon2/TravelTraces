@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router";
 import type { Feature, FeatureCollection, Geometry, LineString, Point } from "geojson";
 import maplibregl, { type GeoJSONSource, type Map as MapLibreMap, type MapMouseEvent } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -10,7 +11,9 @@ import {
   Lock,
   MapPin,
   MousePointer2,
+  BookOpen,
   Route,
+  Search,
   Share2,
   Timer,
   Users,
@@ -53,6 +56,7 @@ import {
 import { publishWorkspaceEvent, subscribeWorkspaceEvents } from "../utils/workspaceSync";
 import { markerSavePayload, primaryPhotoUrl, type PendingMarkerPhoto } from "../utils/photoPinHelpers";
 import { SEA_BOUNDS } from "../utils/seaBounds";
+import { STORIES, STORY_MAP_POINTS, STORY_PHOTOS } from "./StoriesPage";
 import drawRouteIcon from "../assets/icons/draw-route.png";
 import meetupIcon from "../assets/icons/meetup.png";
 import panIcon from "../assets/icons/pan.png";
@@ -133,6 +137,46 @@ const friendList = [
   },
 ];
 
+function storyToMapPin(story: (typeof STORIES)[number]): ApiPin | null {
+  const point = STORY_MAP_POINTS[story.id];
+  if (!point) return null;
+  const photos = (STORY_PHOTOS[story.id] ?? [story.img]).map((url, index) => ({
+    filename: `story-${story.id}-${index + 1}.jpg`,
+    mime_type: "image/jpeg",
+    size_bytes: 0,
+    preview_url: url,
+    thumbnail_url: url,
+    source: "upload",
+  }));
+
+  return {
+    pin_id: `story-${story.id}`,
+    post_id: `story-${story.id}`,
+    title: story.title,
+    note: story.excerpt,
+    coordinate: point.coordinate,
+    address: `${point.place}, Philippines`,
+    scope: "public",
+    creator_id: story.author,
+    group_ids: DEFAULT_GROUP_IDS,
+    source: "manual",
+    media: {
+      storyId: story.id,
+      filename: `story-${story.id}.jpg`,
+      mime_type: "image/jpeg",
+      size_bytes: 0,
+      preview_url: story.img,
+      thumbnail_url: story.img,
+    },
+    photos,
+    map_id: null,
+    created_at: new Date(story.date).toISOString(),
+    updated_at: new Date(story.date).toISOString(),
+  };
+}
+
+const COMMUNITY_STORY_PINS = STORIES.map(storyToMapPin).filter((pin): pin is ApiPin => Boolean(pin));
+
 const emptyLineCollection: FeatureCollection<LineString> = { type: "FeatureCollection", features: [] };
 const emptyPointCollection: FeatureCollection<Point> = { type: "FeatureCollection", features: [] };
 const emptyGeometryCollection: FeatureCollection<Geometry> = { type: "FeatureCollection", features: [] };
@@ -185,8 +229,8 @@ async function reverseFromMapClick(event: MapMouseEvent): Promise<ApiLocation> {
 function pinColor(pin: ApiPin) {
   if (pin.source === "exif" || pin.source === "gps") return "#5C8A9E";
   if (pin.scope === "public") return "#C4713A";
-  if (pin.scope === "group") return "#7A9E6F";
-  return "#2D4A2D";
+  if (pin.scope === "group") return "#9E6B5C";
+  return "#3A2A22";
 }
 
 function routeToGeoJson(route: ApiRoute | null): FeatureCollection<LineString> {
@@ -216,7 +260,7 @@ function pointsToGeoJson(input: {
     features.push({
       type: "Feature",
       geometry: { type: "Point", coordinates: [input.fromLocation.coordinate[1], input.fromLocation.coordinate[0]] },
-      properties: { title: "From", kind: "from", color: "#2D4A2D" },
+      properties: { title: "From", kind: "from", color: "#3A2A22" },
     });
   }
   if (input.toLocation) {
@@ -364,7 +408,7 @@ function ensureWorkspaceLayers(map: MapLibreMap) {
       type: "line",
       source: ROUTE_SOURCE_ID,
       layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-color": "#2D4A2D", "line-opacity": 0.92, "line-width": 5 },
+      paint: { "line-color": "#3A2A22", "line-opacity": 0.92, "line-width": 5 },
     });
   }
   if (!map.getLayer("workspace-meetup-area-outline")) {
@@ -549,7 +593,7 @@ function LocationField({
         <label htmlFor={id} className={fieldLabel}>
           {label}
         </label>
-        {selected && <span className="font-[var(--font-label)] text-xs uppercase tracking-[0.04em] text-[#7A9E6F]">Pinned</span>}
+        {selected && <span className="font-[var(--font-label)] text-xs uppercase tracking-[0.04em] text-[#9E6B5C]">Pinned</span>}
       </div>
       <div className="flex gap-3">
         <input
@@ -577,7 +621,7 @@ function LocationField({
               key={`${id}-${item.label}-${item.coordinate.join(",")}`}
               type="button"
               onClick={() => onSelect(item)}
-              className="rounded-lg border border-[#2D4A2D]/10 bg-[#F5F0E8] px-3 py-2 text-left text-sm transition hover:border-[#2D4A2D]/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D4A2D] focus-visible:ring-offset-2"
+              className="rounded-lg border border-[#3A2A22]/10 bg-[#F5F0E8] px-3 py-2 text-left text-sm transition hover:border-[#3A2A22]/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3A2A22] focus-visible:ring-offset-2"
             >
               <span className="block font-semibold text-[#1A1A1A]">{item.label}</span>
               <span className="mt-1 block text-xs text-[#6B6B5A]">
@@ -651,6 +695,7 @@ export default function MapsWorkspacePage() {
 
 function MapsWorkspaceContent() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const viewerId = user!.id;
   const groupIds = user?.groupIds ?? DEFAULT_GROUP_IDS;
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -668,6 +713,8 @@ function MapsWorkspaceContent() {
   const [toLocation, setToLocation] = useState<ApiLocation | null>(null);
   const fromSuggestions = useLocationSuggestions(fromText);
   const toSuggestions = useLocationSuggestions(toText);
+  const [markerSearch, setMarkerSearch] = useState("");
+  const markerSuggestions = useLocationSuggestions(markerSearch, 6);
 
   const [pickTarget, setPickTarget] = useState<PickTarget>(null);
   const [drawingActive, setDrawingActive] = useState(false);
@@ -676,8 +723,9 @@ function MapsWorkspaceContent() {
   const [draftStops, setDraftStops] = useState<ApiLocation[]>([]);
   const [route, setRoute] = useState<ApiRoute | null>(null);
   const [routeMode, setRouteMode] = useState<RouteMode>("shortest");
-  const [routeColor, setRouteColor] = useState("#2D4A2D");
+  const [routeColor, setRouteColor] = useState("#3A2A22");
   const [routeWidth, setRouteWidth] = useState(5);
+  const [draftMarkerLocation, setDraftMarkerLocation] = useState<ApiLocation | null>(null);
   const [markerModalLocation, setMarkerModalLocation] = useState<ApiLocation | null>(null);
   const [selectedPin, setSelectedPin] = useState<ApiPin | null>(null);
   const [activeMap, setActiveMap] = useState<UserMap | null>(null);
@@ -709,20 +757,29 @@ function MapsWorkspaceContent() {
 
   const scopedGroupIds = useMemo(() => (scope === "group" ? groupIds : []), [scope, groupIds]);
   const activeMode = workspaceModes.find((mode) => mode.key === scope) ?? workspaceModes[0];
-  const visiblePins = useMemo(() => pins.filter((pin) => pin.scope === scope), [pins, scope]);
+  const mapPins = useMemo(() => [...COMMUNITY_STORY_PINS, ...pins], [pins]);
+  const visiblePins = useMemo(() => mapPins.filter((pin) => pin.scope === scope), [mapPins, scope]);
   const markerPlacementActive = pickTarget === "marker";
   const workspaceFriends = user?.friends?.length ? user.friends : friendList;
   const workspaceFollowers = user?.followers ?? [];
 
   const routeData = useMemo(() => routeToGeoJson(route), [route]);
   const pointData = useMemo(() => pointsToGeoJson({ fromLocation, toLocation, draftStops }), [draftStops, fromLocation, toLocation]);
-  const pinData = useMemo(() => pinsToGeoJson(pins, scope), [pins, scope]);
+  const pinData = useMemo(() => pinsToGeoJson(mapPins, scope), [mapPins, scope]);
   const touristSpotData = useMemo(() => touristSpotsToGeoJson(touristSpots), [touristSpots]);
   const meetupAreaData = useMemo(() => meetupAreaToGeoJson(meetupPlan), [meetupPlan]);
   const activeTravelGroup = useMemo(
     () => travelGroups.find((group) => group.circle_id === activeTravelGroupId) ?? travelGroups[0] ?? null,
     [activeTravelGroupId, travelGroups],
   );
+  const markerStorySuggestions = useMemo(() => {
+    const query = markerSearch.trim().toLowerCase();
+    if (query.length < 2) return [];
+    return STORIES.filter((story) => {
+      const point = STORY_MAP_POINTS[story.id];
+      return [story.title, story.author, story.region, story.category, point?.place ?? ""].some((value) => value.toLowerCase().includes(query));
+    }).slice(0, 4);
+  }, [markerSearch]);
 
   const refreshScopedData = useCallback(async () => {
     const mapId = activeMap?.map_id;
@@ -851,6 +908,50 @@ function MapsWorkspaceContent() {
   }, []);
 
   useEffect(() => {
+    const pendingStoryPin = window.localStorage.getItem("traveltraces.pendingStoryPin");
+    if (pendingStoryPin) {
+      window.localStorage.removeItem("traveltraces.pendingStoryPin");
+      try {
+        const parsed = JSON.parse(pendingStoryPin) as { title?: string; place?: string; coordinate?: { lat: number; lon: number } };
+        if (parsed.coordinate) {
+          setScope("public");
+          setDraftMarkerLocation({
+            coordinate: [parsed.coordinate.lat, parsed.coordinate.lon],
+            label: parsed.place ?? parsed.title ?? "Story location",
+            provider: "story",
+            confidence: 1,
+          });
+          setMarkerModalLocation(null);
+          setPickTarget(null);
+          setDrawingActive(false);
+          setBoxZoomActive(false);
+          setBoxZoomDrag(null);
+          setActiveTravelTool("markers");
+          setActiveSidePanel("markers");
+          setActiveToolbarMenu(null);
+          setStatus(`Ready to pin your own story from ${parsed.place ?? parsed.title ?? "this location"}.`);
+          return;
+        }
+      } catch {
+        setStatus("Story location is ready to pin. Search the place or drop a marker on the map.");
+      }
+    }
+
+    const pendingPin = window.localStorage.getItem("traveltraces.pendingExplorePin");
+    if (!pendingPin) return;
+    window.localStorage.removeItem("traveltraces.pendingExplorePin");
+    try {
+      const parsed = JSON.parse(pendingPin) as { name?: string; province?: string };
+      setScope("public");
+      setActiveTravelTool("markers");
+      setActiveSidePanel("markers");
+      setStatus(`${parsed.name ?? "This Explore destination"} is ready to pin. Drop a marker or open a related story pin in the public map.`);
+    } catch {
+      setStatus("Explore destination is ready to pin. Drop a marker or open a related story pin in the public map.");
+    }
+  }, []);
+
+  useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
     const canvas = map.getCanvas();
@@ -866,6 +967,42 @@ function MapsWorkspaceContent() {
     map.touchZoomRotate.enableRotation();
     setPlacementPreview(null);
   }, [boxZoomActive, drawingActive, mapReady, markerPlacementActive, pickTarget]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !markerModalLocation) return;
+    map.flyTo({ center: [markerModalLocation.coordinate[1], markerModalLocation.coordinate[0]], zoom: 12, duration: 900 });
+  }, [mapReady, markerModalLocation]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !draftMarkerLocation) return;
+
+    const marker = new maplibregl.Marker({ color: "#C4713A", draggable: true })
+      .setLngLat([draftMarkerLocation.coordinate[1], draftMarkerLocation.coordinate[0]])
+      .addTo(map);
+
+    marker.on("dragend", () => {
+      const point = marker.getLngLat();
+      const applyDraggedLocation = (location: ApiLocation) => {
+        setDraftMarkerLocation(location);
+        setMarkerModalLocation((current) => (current ? location : current));
+      };
+      void reverseLocation(point.lat, point.lng)
+        .then(applyDraggedLocation)
+        .catch(() =>
+          applyDraggedLocation({
+            coordinate: [point.lat, point.lng],
+            label: `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`,
+            provider: "manual",
+            confidence: 1,
+          }),
+        );
+    });
+
+    map.flyTo({ center: [draftMarkerLocation.coordinate[1], draftMarkerLocation.coordinate[0]], zoom: Math.max(map.getZoom(), 12), duration: 700 });
+    return () => marker.remove();
+  }, [draftMarkerLocation, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -980,12 +1117,28 @@ function MapsWorkspaceContent() {
   };
 
   const handleMapMarkerDrop = useCallback((location: ApiLocation) => {
-    setMarkerModalLocation(location);
+    setDraftMarkerLocation(location);
+    setMarkerModalLocation(null);
     setPickTarget(null);
+    setStatus(`Draft pin placed at ${location.label}. Drag it for accuracy, then write your story.`);
+  }, []);
+
+  const openMarkerAtLocation = useCallback((location: ApiLocation, message?: string) => {
+    setDraftMarkerLocation(location);
+    setMarkerModalLocation(null);
+    setPickTarget(null);
+    setDrawingActive(false);
+    setBoxZoomActive(false);
+    setBoxZoomDrag(null);
+    setActiveTravelTool("markers");
+    setActiveSidePanel("markers");
+    setActiveToolbarMenu(null);
+    setStatus(message ?? `Draft pin placed at ${location.label}. Drag it for accuracy, then write your story.`);
+    mapRef.current?.flyTo({ center: [location.coordinate[1], location.coordinate[0]], zoom: 12, duration: 900 });
   }, []);
 
   const saveMarkerFromModal = useCallback(
-    async (input: { title: string; description: string; photos: PendingMarkerPhoto[]; source: ApiPin["source"] }) => {
+    async (input: { placeName: string; title: string; description: string; category: string; scope: MapScope; photos: PendingMarkerPhoto[]; source: ApiPin["source"] }) => {
       if (!markerModalLocation) return;
       setBusy(true);
       setStatus(null);
@@ -993,12 +1146,14 @@ function MapsWorkspaceContent() {
         const payload = markerSavePayload({
           title: input.title,
           description: input.description,
+          category: input.category,
+          placeName: input.placeName,
           lat: markerModalLocation.coordinate[0],
           lon: markerModalLocation.coordinate[1],
-          address: markerModalLocation.label,
-          scope,
+          address: input.placeName,
+          scope: input.scope,
           creatorId: viewerId,
-          groupIds: scopedGroupIds,
+          groupIds: input.scope === "group" ? groupIds : [],
           mapId: activeMap?.map_id,
           photos: input.photos,
           source: input.source,
@@ -1006,13 +1161,15 @@ function MapsWorkspaceContent() {
         const pin = await createPin(payload);
         addOrReplacePin(pin);
         setMarkerModalLocation(null);
+        setDraftMarkerLocation(null);
+        setScope(input.scope);
       } catch (error) {
         setStatus(error instanceof Error ? error.message : "Marker could not be saved.");
       } finally {
         setBusy(false);
       }
     },
-    [activeMap?.map_id, addOrReplacePin, markerModalLocation, scope, scopedGroupIds, viewerId],
+    [activeMap?.map_id, addOrReplacePin, groupIds, markerModalLocation, viewerId],
   );
 
   const handlePickedLocation = useCallback(
@@ -1132,7 +1289,7 @@ function MapsWorkspaceContent() {
       const feature = event.features?.[0];
       const pinId = feature?.properties?.pin_id;
       if (!pinId) return;
-      const pin = pins.find((item) => item.pin_id === pinId);
+      const pin = mapPins.find((item) => item.pin_id === pinId);
       if (pin) setSelectedPin(pin);
     };
     layers.forEach((layer) => {
@@ -1149,7 +1306,7 @@ function MapsWorkspaceContent() {
         map.off("click", layer, onPinClick);
       });
     };
-  }, [boxZoomActive, drawingActive, mapReady, markerPlacementActive, pickTarget, pins, styleRevision]);
+  }, [boxZoomActive, drawingActive, mapPins, mapReady, markerPlacementActive, pickTarget, styleRevision]);
 
   const handleMeetupVenueSelect = useCallback((suggestion: MeetupSuggestion) => {
     const map = mapRef.current;
@@ -1615,7 +1772,7 @@ function MapsWorkspaceContent() {
         context.lineWidth = scale;
         context.fillRect(x, y, panelWidth, 170 * scale);
         context.strokeRect(x, y, panelWidth, 170 * scale);
-        context.fillStyle = "#2D4A2D";
+        context.fillStyle = "#3A2A22";
         context.font = `${18 * scale}px Georgia`;
         context.fillText(legend.title || "Map Export", x + padding, y + 28 * scale);
         context.fillStyle = "#1A1A1A";
@@ -1689,11 +1846,11 @@ function MapsWorkspaceContent() {
         <dl className="grid grid-cols-2 gap-3 text-sm">
           <div className="rounded-lg bg-[#F5F0E8] p-3">
             <dt className="text-xs font-bold uppercase tracking-[0.04em] text-[#6B6B5A]">Distance</dt>
-            <dd className="m-0 mt-1 font-semibold text-[#2D4A2D]">{formatDistance(route.distance_m)}</dd>
+            <dd className="m-0 mt-1 font-semibold text-[#3A2A22]">{formatDistance(route.distance_m)}</dd>
           </div>
           <div className="rounded-lg bg-[#F5F0E8] p-3">
             <dt className="text-xs font-bold uppercase tracking-[0.04em] text-[#6B6B5A]">Travel Time</dt>
-            <dd className="m-0 mt-1 font-semibold text-[#2D4A2D]">{formatDuration(route.duration_s)}</dd>
+            <dd className="m-0 mt-1 font-semibold text-[#3A2A22]">{formatDuration(route.duration_s)}</dd>
           </div>
         </dl>
       ) : null}
@@ -1723,7 +1880,7 @@ function MapsWorkspaceContent() {
           type="color"
           value={routeColor}
           onChange={(event) => setRouteColor(event.target.value)}
-          className="h-12 w-full cursor-pointer rounded-lg border border-[#2D4A2D]/15 bg-[#F5F0E8] p-1"
+          className="h-12 w-full cursor-pointer rounded-lg border border-[#3A2A22]/15 bg-[#F5F0E8] p-1"
         />
       </label>
       <label className="grid gap-2">
@@ -1770,7 +1927,7 @@ function MapsWorkspaceContent() {
         Check In
       </WorkspaceButton>
       <div className="rounded-lg bg-[#F5F0E8] p-3 text-xs leading-5 text-[#6B6B5A]">
-        <span className="mb-1 block font-bold text-[#2D4A2D]">
+        <span className="mb-1 block font-bold text-[#3A2A22]">
           {sharingEnabled ? `Sharing with ${activeTravelGroup?.name ?? "selected travel group"}` : "Location sharing is off"}
         </span>
         {travelLocations.filter((item) => item.sharing_enabled && item.coordinate).length} travelers currently visible. Disabled sharing hides coordinates immediately.
@@ -1780,21 +1937,21 @@ function MapsWorkspaceContent() {
 
   const savedSpotControls = (
     <div className="grid gap-3">
-      <div className="rounded-lg bg-[#F5F0E8] p-3 text-sm text-[#2D4A2D]">
+      <div className="rounded-lg bg-[#F5F0E8] p-3 text-sm text-[#3A2A22]">
         <span className="font-bold">{touristSpots.length}</span> saved tourist spots
       </div>
       <div className="flex max-h-72 flex-col gap-3 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
         {touristSpots.slice(0, 8).map((spot) => (
-          <div key={spot.place_id} className="rounded-lg border border-[#2D4A2D]/10 bg-[#F5F0E8] p-3 text-sm">
+          <div key={spot.place_id} className="rounded-lg border border-[#3A2A22]/10 bg-[#F5F0E8] p-3 text-sm">
             <button type="button" onClick={() => handleFlyToTouristSpot(spot)} className="w-full text-left font-semibold text-[#1A1A1A]">
               {spot.name}
             </button>
             <div className="mt-1 text-xs text-[#6B6B5A]">{spot.category}</div>
             <div className="mt-3 grid grid-cols-3 gap-2">
-              <button type="button" onClick={() => handleUseSpotAsFrom(spot)} className="min-h-9 rounded border border-[#2D4A2D]/15 text-xs font-semibold uppercase text-[#2D4A2D]">
+              <button type="button" onClick={() => handleUseSpotAsFrom(spot)} className="min-h-9 rounded border border-[#3A2A22]/15 text-xs font-semibold uppercase text-[#3A2A22]">
                 From
               </button>
-              <button type="button" onClick={() => handleUseSpotAsTo(spot)} className="min-h-9 rounded border border-[#2D4A2D]/15 text-xs font-semibold uppercase text-[#2D4A2D]">
+              <button type="button" onClick={() => handleUseSpotAsTo(spot)} className="min-h-9 rounded border border-[#3A2A22]/15 text-xs font-semibold uppercase text-[#3A2A22]">
                 To
               </button>
               <button type="button" onClick={() => handleCreatePostFromSpot(spot)} className="min-h-9 rounded bg-[#C4713A] text-xs font-semibold uppercase text-[#F5F0E8]">
@@ -1820,13 +1977,89 @@ function MapsWorkspaceContent() {
       >
         {markerPlacementActive ? "Placing Marker" : "Drop Marker"}
       </WorkspaceButton>
+      {draftMarkerLocation ? (
+        <div className="rounded-lg border border-[#C4713A]/25 bg-[#C4713A]/10 p-3 text-sm">
+          <p className="m-0 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] text-[#C4713A]">Draft pin</p>
+          <p className="m-0 mt-2 font-semibold text-[#3A2A22]">{draftMarkerLocation.label}</p>
+          <p className="m-0 mt-1 text-xs leading-5 text-[#6B6B5A]">Drag the pin on the map to make the location more accurate before writing the post.</p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setMarkerModalLocation(draftMarkerLocation)}
+              className="min-h-10 rounded bg-[#3A2A22] px-3 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.06em] text-[#F5F0E8]"
+            >
+              Write Story
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDraftMarkerLocation(null);
+                setMarkerModalLocation(null);
+              }}
+              className="min-h-10 rounded border border-[#3A2A22]/15 px-3 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.06em] text-[#3A2A22]"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      ) : null}
+      <div className="rounded-lg border border-[#3A2A22]/10 bg-[#F5F0E8] p-3">
+        <label className="mb-2 block font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] text-[#3A2A22]">
+          Search a place to pin
+        </label>
+        <div className="relative">
+          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#9E6B5C]" />
+          <input
+            value={markerSearch}
+            onChange={(event) => setMarkerSearch(event.target.value)}
+            className="min-h-11 w-full rounded-lg border border-[#3A2A22]/15 bg-white pl-9 pr-3 text-sm text-[#1A1A1A] outline-none transition focus:border-[#9E6B5C] focus:ring-2 focus:ring-[#9E6B5C]/20"
+            placeholder="Search a beach, cafe, trail, city..."
+          />
+        </div>
+        {markerSearch.trim().length >= 2 ? (
+          <div className="mt-3 grid gap-2">
+            {markerSuggestions.busy ? <div className="rounded bg-white px-3 py-2 text-xs text-[#6B6B5A]">Searching places...</div> : null}
+            {markerSuggestions.results.slice(0, 4).map((item) => (
+              <button
+                key={`${item.label}-${item.coordinate.join(",")}`}
+                type="button"
+                onClick={() => {
+                  setMarkerSearch(item.label);
+                  openMarkerAtLocation(item, `Draft pin placed at ${item.label}. Drag it for accuracy, then write your story.`);
+                }}
+                className="rounded-lg border border-[#3A2A22]/10 bg-white px-3 py-2 text-left text-xs transition hover:border-[#9E6B5C]/50"
+              >
+                <span className="flex items-center gap-2 font-semibold text-[#1A1A1A]"><MapPin size={13} />{item.label}</span>
+                <span className="mt-1 block text-[#6B6B5A]">{item.provider} / {Math.round(item.confidence * 100)}% match</span>
+              </button>
+            ))}
+            {markerStorySuggestions.map((story) => {
+              const point = STORY_MAP_POINTS[story.id];
+              return (
+                <button
+                  key={story.id}
+                  type="button"
+                  onClick={() => navigate(`/stories?story=${story.id}`)}
+                  className="rounded-lg border border-[#C4713A]/20 bg-[#C4713A]/10 px-3 py-2 text-left text-xs transition hover:border-[#C4713A]/50"
+                >
+                  <span className="flex items-center gap-2 font-semibold text-[#3A2A22]"><BookOpen size={13} />{story.title}</span>
+                  <span className="mt-1 block text-[#6B6B5A]">{point?.place ?? story.region} / open full story</span>
+                </button>
+              );
+            })}
+            {!markerSuggestions.busy && !markerSuggestions.results.length && !markerStorySuggestions.length ? (
+              <div className="rounded bg-white px-3 py-2 text-xs text-[#6B6B5A]">No matching places or stories yet.</div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
       <div className="flex max-h-56 flex-col gap-3 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
         {visiblePins.slice(0, 6).map((pin) => (
           <button
             key={pin.pin_id}
             type="button"
             onClick={() => setSelectedPin(pin)}
-            className="rounded-lg border border-[#2D4A2D]/10 bg-[#F5F0E8] p-3 text-left text-sm transition hover:border-[#2D4A2D]/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D4A2D] focus-visible:ring-offset-2"
+            className="rounded-lg border border-[#3A2A22]/10 bg-[#F5F0E8] p-3 text-left text-sm transition hover:border-[#3A2A22]/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3A2A22] focus-visible:ring-offset-2"
           >
             <span className="block font-semibold text-[#1A1A1A]">{pin.title}</span>
             <span className="mt-1 block text-xs text-[#6B6B5A]">{pin.note || "No notes yet"}</span>
@@ -2003,7 +2236,7 @@ function MapsWorkspaceContent() {
         })}
       </div>
       <div className="mt-4 rounded-xl bg-[#F5F0E8] p-3 text-sm leading-6 text-[#6B6B5A]">
-        <span className="block font-bold text-[#2D4A2D]">{activeMode.title}</span>
+        <span className="block font-bold text-[#3A2A22]">{activeMode.title}</span>
         {activeMode.description}
       </div>
     </div>
@@ -2059,16 +2292,16 @@ function MapsWorkspaceContent() {
           ) : null}
 
           {activeSidePanelContent ? (
-            <aside className="absolute inset-x-3 bottom-28 top-20 z-30 overflow-y-auto rounded-xl border border-[#2D4A2D]/12 bg-white p-3 text-[#1A1A1A] shadow-[0_20px_45px_rgba(27,37,38,0.18)] sm:inset-x-auto sm:bottom-auto sm:right-4 sm:top-4 sm:max-h-[calc(100%-7rem)] sm:w-[min(24rem,calc(100%-2rem))] sm:p-4">
+            <aside className="absolute inset-x-3 bottom-28 top-20 z-30 overflow-y-auto rounded-xl border border-[#3A2A22]/12 bg-white p-3 text-[#1A1A1A] shadow-[0_20px_45px_rgba(27,37,38,0.18)] sm:inset-x-auto sm:bottom-auto sm:right-4 sm:top-4 sm:max-h-[calc(100%-7rem)] sm:w-[min(24rem,calc(100%-2rem))] sm:p-4">
               <div className="mb-3 flex items-center justify-between gap-3 sm:mb-4">
                 <div>
                   <p className="font-[var(--font-label)] text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#9A978C]">Tool Panel</p>
-                  <h2 className="m-0 font-[var(--font-display)] text-lg font-semibold text-[#2D4A2D] sm:text-xl">{activeSidePanelTitle}</h2>
+                  <h2 className="m-0 font-[var(--font-display)] text-lg font-semibold text-[#3A2A22] sm:text-xl">{activeSidePanelTitle}</h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => setActiveSidePanel(null)}
-                  className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[#2D4A2D]/12 text-[#2D4A2D] transition hover:bg-[#F5F0E8]"
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[#3A2A22]/12 text-[#3A2A22] transition hover:bg-[#F5F0E8]"
                   aria-label="Close tool panel"
                   title="Close tool panel"
                 >
@@ -2079,7 +2312,7 @@ function MapsWorkspaceContent() {
             </aside>
           ) : null}
 
-          <div className="absolute left-3 right-3 top-3 z-10 rounded-lg border border-[#2D4A2D]/15 bg-[#F5F0E8]/95 p-3 text-xs text-[#2D4A2D] shadow-lg backdrop-blur sm:left-4 sm:right-auto sm:top-4 sm:max-w-[min(26rem,calc(100%-2rem))] sm:p-4 sm:text-sm">
+          <div className="absolute left-3 right-3 top-3 z-10 rounded-lg border border-[#3A2A22]/15 bg-[#F5F0E8]/95 p-3 text-xs text-[#3A2A22] shadow-lg backdrop-blur sm:left-4 sm:right-auto sm:top-4 sm:max-w-[min(26rem,calc(100%-2rem))] sm:p-4 sm:text-sm">
             {markerPlacementActive ? (
               <div className="grid gap-1">
                 <span className="font-[var(--font-label)] text-sm font-semibold uppercase tracking-[0.04em]">
@@ -2107,6 +2340,7 @@ function MapsWorkspaceContent() {
         open={Boolean(markerModalLocation)}
         location={markerModalLocation}
         scope={scope}
+        onScopeChange={setScope}
         busy={busy}
         onClose={handleCloseMarkerModal}
         onSave={saveMarkerFromModal}

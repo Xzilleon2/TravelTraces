@@ -34,7 +34,7 @@ function TileIcon({ layer }: { layer: LayerTile["key"] }) {
     );
   }
   return (
-    <span className="grid h-11 w-11 place-items-center rounded-lg bg-[#edf3e6] text-[#2D4A2D] sm:h-14 sm:w-14">
+    <span className="grid h-11 w-11 place-items-center rounded-lg bg-[#EFE7DC] text-[#3A2A22] sm:h-14 sm:w-14">
       <Mountain size={27} />
     </span>
   );

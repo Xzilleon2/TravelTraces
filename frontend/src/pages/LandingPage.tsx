@@ -188,7 +188,7 @@ export default function LandingPage() {
         .sample-hero { position: relative; min-height: calc(100vh - 64px); overflow: hidden; display: grid; place-items: center; text-align: center; padding: 4rem 1.5rem; }
         .sample-hero > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; animation: slowZoom 18s ease-out both; }
         .hero-warmth { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(72,42,20,0.34), rgba(44,33,28,0.62)); }
-        .sample-lines { position: absolute; inset: 7%; border: 1px solid rgba(251,247,240,0.18); background-image: linear-gradient(90deg, rgba(251,247,240,0.13) 1px, transparent 1px), linear-gradient(rgba(251,247,240,0.1) 1px, transparent 1px); background-size: 24.8% 100%, 100% 50%; }
+        .sample-lines { position: absolute; inset: 7%; border: 1px solid rgba(251,247,240,0.18); }
         .sample-hero-copy { position: relative; z-index: 1; width: min(100%, 760px); color: #FBF7F0; animation: heroRise 0.9s ease both; }
         .sample-hero-copy p, .section-kicker { font-family: var(--font-label); font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; }
         .sample-hero-copy h1, .sample-hero-copy h2, .support-section h2, .stories-section h2, .experience-panel h2, .pricing-section h2, .contact-card h2 { font-family: var(--font-display); font-weight: 500; letter-spacing: 0; }
@@ -197,7 +197,7 @@ export default function LandingPage() {
         .sample-hero-copy span { display: block; font-family: var(--font-body); font-size: 1.05rem; line-height: 1.65; color: rgba(251,247,240,0.86); margin: 0 auto 1.8rem; max-width: 620px; }
         .sample-hero-copy button, .section-row button, .pricing-section button, .contact-card button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; border-radius: 999px; border: 1px solid currentColor; background: #FBF7F0; color: #3A2A22; padding: 0.72rem 1.35rem; font-family: var(--font-label); font-size: 0.73rem; letter-spacing: 0.11em; text-transform: uppercase; cursor: pointer; }
         .support-section, .stories-section, .pricing-section { position: relative; padding: 6.5rem 1.5rem; max-width: 1200px; margin: 0 auto; }
-        .map-lines { position: absolute; inset: 0 1.5rem auto; height: 440px; opacity: 0.45; pointer-events: none; background-image: linear-gradient(90deg, rgba(58,42,34,0.1) 1px, transparent 1px), linear-gradient(rgba(58,42,34,0.08) 1px, transparent 1px), radial-gradient(circle at 12% 30%, transparent 9px, rgba(58,42,34,0.12) 10px, transparent 11px); background-size: 25% 100%, 100% 52%, 180px 140px; }
+        .map-lines { position: absolute; inset: 0 1.5rem auto; height: 440px; opacity: 0.2; pointer-events: none; border-top: 1px solid rgba(58,42,34,0.12); }
         .section-kicker { color: #9E6B5C; margin: 0 0 0.75rem; }
         .support-section > h2, .stories-section h2, .pricing-section > h2 { position: relative; z-index: 1; font-size: clamp(2.6rem, 6vw, 5rem); line-height: 0.95; text-transform: uppercase; color: #2C211C; margin: 0 0 2.25rem; }
         .support-timeline { position: relative; z-index: 1; padding: 1rem 0 0; }

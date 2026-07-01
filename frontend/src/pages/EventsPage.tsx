@@ -45,7 +45,7 @@ const EVENTS = [
     longDesc: "Join us for three incredible days exploring the UNESCO-listed Bacuit Archipelago. We'll be doing Tours C and D (the less crowded routes), stopping at hidden lagoons, limestone cliffs, white sand beaches, and snorkelling spots that the big tour groups miss.\n\nDays 1–2 are spent island-hopping with a private boat. Day 3 is free exploration — kayaking through mangroves, visiting the Nacpan twin beaches, or simply relaxing at the beachfront. All skill levels welcome.",
     tags: ["Island hopping", "Snorkelling", "Photography"],
     fee: "Free to join (self-funded accommodation)",
-    color: "#2D4A2D",
+    color: "#3A2A22",
     schedule: ["Day 1: Arrive El Nido, group dinner at Las Cabañas", "Day 2: Tour C — hidden lagoons and Helicopter Island", "Day 3: Tour D — Cadlao Lagoon + Nacpan Beach"],
     meetingPoint: "El Nido Port Main Gate",
     joinedParticipants: PARTICIPANT_POOL.slice(0, 8),
@@ -108,7 +108,7 @@ const EVENTS = [
     longDesc: "The TravelTraces Siargao social is a laid-back morning meetup at the legendary Cloud 9 break, followed by a community brunch at a local warung in General Luna.\n\nThe surf session is fully optional — beginners can watch from the famous boardwalk while the surfers paddle out. Board rentals and lessons from local instructors are available at extra cost. Brunch is the main event: good food, good people, and sharing travel stories from the community.",
     tags: ["Surfing", "Social", "Beginners welcome"],
     fee: "Free (board rental not included)",
-    color: "#7A9E6F",
+    color: "#9E6B5C",
     schedule: ["6:00 AM: Meet at Cloud 9 boardwalk", "6:30–9:00 AM: Surf session / boardwalk watching", "9:30 AM: Community brunch at Kermit Siargao"],
     meetingPoint: "Cloud 9 Boardwalk Entrance",
     joinedParticipants: PARTICIPANT_POOL.slice(0, 10),
@@ -150,7 +150,7 @@ const EVENTS = [
     longDesc: "A two-day overnight camping adventure at Hundred Islands National Park — one of the most underrated parks in the Philippines. We'll take a private boat from Lucap Wharf and set up camp on Quezon Island for two days of kayaking, snorkelling, cliff jumping, and some of the best stargazing you'll find in Luzon.\n\nCamping gear is provided. The group is capped at 40 to keep it intimate. Bring your own food or join the group grocery run the evening before departure.",
     tags: ["Camping", "Kayaking", "Snorkelling"],
     fee: "₱800 (camping permit + boat)",
-    color: "#2D4A2D",
+    color: "#3A2A22",
     schedule: ["Day 1: Lucap Wharf departure, island setup, kayaking and snorkelling", "Evening: Campfire, stargazing", "Day 2: Morning swim, island exploration, return by noon"],
     meetingPoint: "Lucap Wharf Main Terminal, Alaminos",
     joinedParticipants: PARTICIPANT_POOL.slice(0, 7),
@@ -238,7 +238,7 @@ function EventDetailModal({ event, joined, onToggleJoin, onClose }: {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: "0" }} className="event-detail-grid">
 
             {/* Left column */}
-            <div style={{ padding: "1.75rem 2rem", borderRight: "1px solid rgba(45,74,45,0.1)" }}>
+            <div style={{ padding: "1.75rem 2rem", borderRight: "1px solid rgba(58,42,34,0.1)" }}>
               {/* Meta row */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.625rem", marginBottom: "1.5rem" }}>
                 {[
@@ -248,7 +248,7 @@ function EventDetailModal({ event, joined, onToggleJoin, onClose }: {
                   [Tag, event.fee],
                 ].map(([Icon, text], i) => (
                   <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
-                    <Icon size={14} color="#7A9E6F" style={{ marginTop: 2, flexShrink: 0 }} />
+                    <Icon size={14} color="#9E6B5C" style={{ marginTop: 2, flexShrink: 0 }} />
                     <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.82rem", color: "#3A3A2A", lineHeight: 1.4 }}>{String(text)}</span>
                   </div>
                 ))}
@@ -256,7 +256,7 @@ function EventDetailModal({ event, joined, onToggleJoin, onClose }: {
 
               {/* Description */}
               <div style={{ marginBottom: "1.5rem" }}>
-                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.15rem", fontWeight: 600, color: "#2D4A2D", marginBottom: "0.75rem" }}>About this event</h3>
+                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.15rem", fontWeight: 600, color: "#3A2A22", marginBottom: "0.75rem" }}>About this event</h3>
                 {event.longDesc.split("\n\n").map((p, i) => (
                   <p key={i} style={{ fontFamily: "var(--font-body)", fontSize: "0.95rem", color: "#3A3A2A", lineHeight: 1.75, marginBottom: "0.875rem" }}>{p}</p>
                 ))}
@@ -264,12 +264,12 @@ function EventDetailModal({ event, joined, onToggleJoin, onClose }: {
 
               {/* Schedule */}
               <div style={{ marginBottom: "1.5rem" }}>
-                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.15rem", fontWeight: 600, color: "#2D4A2D", marginBottom: "0.875rem" }}>Schedule</h3>
+                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.15rem", fontWeight: 600, color: "#3A2A22", marginBottom: "0.875rem" }}>Schedule</h3>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
                   {event.schedule.map((item, i) => (
                     <div key={i} style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start" }}>
-                      <div style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: "rgba(45,74,45,0.1)", border: "2px solid #7A9E6F", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
-                        <span style={{ fontFamily: "var(--font-label)", fontSize: "0.6rem", fontWeight: 700, color: "#2D4A2D" }}>{i + 1}</span>
+                      <div style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: "rgba(58,42,34,0.1)", border: "2px solid #9E6B5C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+                        <span style={{ fontFamily: "var(--font-label)", fontSize: "0.6rem", fontWeight: 700, color: "#3A2A22" }}>{i + 1}</span>
                       </div>
                       <p style={{ fontFamily: "var(--font-ui)", fontSize: "0.85rem", color: "#3A3A2A", lineHeight: 1.55, margin: 0 }}>{item}</p>
                     </div>
@@ -278,11 +278,11 @@ function EventDetailModal({ event, joined, onToggleJoin, onClose }: {
               </div>
 
               {/* Meeting point */}
-              <div style={{ backgroundColor: "rgba(122,158,111,0.1)", border: "1px solid rgba(122,158,111,0.25)", borderRadius: "0.375rem", padding: "0.875rem 1rem", display: "flex", gap: "0.625rem", alignItems: "flex-start" }}>
-                <MapPin size={15} color="#7A9E6F" style={{ marginTop: 2, flexShrink: 0 }} />
+              <div style={{ backgroundColor: "rgba(158,107,92,0.1)", border: "1px solid rgba(158,107,92,0.25)", borderRadius: "0.375rem", padding: "0.875rem 1rem", display: "flex", gap: "0.625rem", alignItems: "flex-start" }}>
+                <MapPin size={15} color="#9E6B5C" style={{ marginTop: 2, flexShrink: 0 }} />
                 <div>
-                  <p style={{ fontFamily: "var(--font-label)", fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#7A9E6F", margin: "0 0 0.2rem" }}>Meeting Point</p>
-                  <p style={{ fontFamily: "var(--font-ui)", fontSize: "0.875rem", color: "#2D4A2D", fontWeight: 500, margin: 0 }}>{event.meetingPoint}</p>
+                  <p style={{ fontFamily: "var(--font-label)", fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E6B5C", margin: "0 0 0.2rem" }}>Meeting Point</p>
+                  <p style={{ fontFamily: "var(--font-ui)", fontSize: "0.875rem", color: "#3A2A22", fontWeight: 500, margin: 0 }}>{event.meetingPoint}</p>
                 </div>
               </div>
             </div>
@@ -296,7 +296,7 @@ function EventDetailModal({ event, joined, onToggleJoin, onClose }: {
                   <img src={event.organiserAvatar} alt={event.organiser} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} />
                   <div>
                     <p style={{ fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: "0.875rem", color: "#1A1A1A", margin: 0 }}>{event.organiser}</p>
-                    <p style={{ fontFamily: "var(--font-ui)", fontSize: "0.75rem", color: "#7A9E6F", margin: 0 }}>Event Host · tap to view profile</p>
+                    <p style={{ fontFamily: "var(--font-ui)", fontSize: "0.75rem", color: "#9E6B5C", margin: 0 }}>Event Host · tap to view profile</p>
                   </div>
                 </button>
               </div>
@@ -315,7 +315,7 @@ function EventDetailModal({ event, joined, onToggleJoin, onClose }: {
                   </span>
                 </div>
                 <div style={{ height: 5, backgroundColor: "#D8D4C8", borderRadius: "3px" }}>
-                  <div style={{ height: "100%", width: `${Math.min(100, pct + (joined ? 3 : 0))}%`, backgroundColor: pct >= 90 ? "#C4713A" : "#7A9E6F", borderRadius: "3px", transition: "width 0.3s" }} />
+                  <div style={{ height: "100%", width: `${Math.min(100, pct + (joined ? 3 : 0))}%`, backgroundColor: pct >= 90 ? "#C4713A" : "#9E6B5C", borderRadius: "3px", transition: "width 0.3s" }} />
                 </div>
               </div>
 
@@ -325,8 +325,8 @@ function EventDetailModal({ event, joined, onToggleJoin, onClose }: {
                 style={{
                   width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem",
                   padding: "0.75rem", borderRadius: "0.25rem", border: "none",
-                  backgroundColor: joined ? "rgba(122,158,111,0.15)" : "#2D4A2D",
-                  color: joined ? "#7A9E6F" : "#F5F0E8",
+                  backgroundColor: joined ? "rgba(158,107,92,0.15)" : "#3A2A22",
+                  color: joined ? "#9E6B5C" : "#F5F0E8",
                   cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.85rem",
                   fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase",
                   transition: "all 0.15s",
@@ -340,7 +340,7 @@ function EventDetailModal({ event, joined, onToggleJoin, onClose }: {
                 <p style={{ fontFamily: "var(--font-label)", fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#6B6B5A", marginBottom: "0.5rem" }}>Tags</p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
                   {event.tags.map((t) => (
-                    <span key={t} style={{ padding: "0.2rem 0.625rem", backgroundColor: "rgba(45,74,45,0.08)", borderRadius: "2rem", fontSize: "0.72rem", fontFamily: "var(--font-label)", color: "#2D4A2D" }}>{t}</span>
+                    <span key={t} style={{ padding: "0.2rem 0.625rem", backgroundColor: "rgba(58,42,34,0.08)", borderRadius: "2rem", fontSize: "0.72rem", fontFamily: "var(--font-label)", color: "#3A2A22" }}>{t}</span>
                   ))}
                 </div>
               </div>
@@ -409,14 +409,14 @@ function EventCard({ e, joined, onToggleJoin, onClick }: {
             <img key={i} src={p.avatar} alt={p.name} title={p.name} style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover", border: "2px solid #EDEAE0", marginLeft: i > 0 ? -8 : 0 }} />
           ))}
           {e.joinedParticipants.length > 4 && (
-            <div style={{ width: 26, height: 26, borderRadius: "50%", backgroundColor: "#2D4A2D", border: "2px solid #EDEAE0", display: "flex", alignItems: "center", justifyContent: "center", marginLeft: -8 }}>
+            <div style={{ width: 26, height: 26, borderRadius: "50%", backgroundColor: "#3A2A22", border: "2px solid #EDEAE0", display: "flex", alignItems: "center", justifyContent: "center", marginLeft: -8 }}>
               <span style={{ fontFamily: "var(--font-label)", fontSize: "0.55rem", color: "#F5F0E8", fontWeight: 700 }}>+{e.joinedParticipants.length - 4}</span>
             </div>
           )}
         </div>
       </div>
       <div style={{ padding: "1.25rem", flex: 1, display: "flex", flexDirection: "column" }}>
-        <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem", fontWeight: 600, color: "#2D4A2D", lineHeight: 1.35, marginBottom: "0.75rem" }}>{e.title}</h3>
+        <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem", fontWeight: 600, color: "#3A2A22", lineHeight: 1.35, marginBottom: "0.75rem" }}>{e.title}</h3>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", marginBottom: "0.875rem" }}>
           {[
@@ -425,7 +425,7 @@ function EventCard({ e, joined, onToggleJoin, onClick }: {
             [MapPin, e.location],
           ].map(([Icon, text], i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <Icon size={13} color="#7A9E6F" />
+              <Icon size={13} color="#9E6B5C" />
               <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.82rem", color: "#4A4A3A" }}>{String(text)}</span>
             </div>
           ))}
@@ -435,7 +435,7 @@ function EventCard({ e, joined, onToggleJoin, onClick }: {
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", marginBottom: "1rem" }}>
           {e.tags.map((t) => (
-            <span key={t} style={{ padding: "0.15rem 0.5rem", backgroundColor: "rgba(45,74,45,0.08)", borderRadius: "2rem", fontSize: "0.7rem", fontFamily: "var(--font-label)", color: "#2D4A2D", letterSpacing: "0.04em" }}>{t}</span>
+            <span key={t} style={{ padding: "0.15rem 0.5rem", backgroundColor: "rgba(58,42,34,0.08)", borderRadius: "2rem", fontSize: "0.7rem", fontFamily: "var(--font-label)", color: "#3A2A22", letterSpacing: "0.04em" }}>{t}</span>
           ))}
         </div>
 
@@ -450,22 +450,22 @@ function EventCard({ e, joined, onToggleJoin, onClick }: {
             </span>
           </div>
           <div style={{ height: 4, backgroundColor: "#D8D4C8", borderRadius: "2px" }}>
-            <div style={{ height: "100%", width: `${pct}%`, backgroundColor: pct >= 90 ? "#C4713A" : "#7A9E6F", borderRadius: "2px" }} />
+            <div style={{ height: "100%", width: `${pct}%`, backgroundColor: pct >= 90 ? "#C4713A" : "#9E6B5C", borderRadius: "2px" }} />
           </div>
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.78rem", color: "#6B6B5A" }}>By {e.organiser} · </span>
-            <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.78rem", color: "#2D4A2D", fontWeight: 500 }}>{e.fee}</span>
+            <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.78rem", color: "#3A2A22", fontWeight: 500 }}>{e.fee}</span>
           </div>
           <button
             onClick={(ev) => { ev.stopPropagation(); onToggleJoin(e.id); }}
             style={{
               display: "flex", alignItems: "center", gap: "0.35rem",
               padding: "0.5rem 1rem", borderRadius: "0.25rem", border: "none",
-              backgroundColor: joined ? "rgba(122,158,111,0.15)" : "#2D4A2D",
-              color: joined ? "#7A9E6F" : "#F5F0E8",
+              backgroundColor: joined ? "rgba(158,107,92,0.15)" : "#3A2A22",
+              color: joined ? "#9E6B5C" : "#F5F0E8",
               cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.78rem",
               fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase",
             }}
@@ -517,8 +517,8 @@ function EventsContent() {
     <div style={{ minHeight: "100vh", backgroundColor: "#F5F0E8", padding: "3rem 1.5rem" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ marginBottom: "2.5rem" }}>
-          <p style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#7A9E6F", marginBottom: "0.5rem" }}>Meetups & adventures</p>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 600, color: "#2D4A2D", marginBottom: "0.5rem" }}>Events</h1>
+          <p style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#9E6B5C", marginBottom: "0.5rem" }}>Meetups & adventures</p>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 600, color: "#3A2A22", marginBottom: "0.5rem" }}>Events</h1>
           <p style={{ fontFamily: "var(--font-body)", color: "#6B6B5A", fontSize: "1rem" }}>Photography walks, island-hopping trips, cultural tours, and community meetups across the archipelago.</p>
           <button
             type="button"
@@ -532,16 +532,16 @@ function EventsContent() {
 
         <div style={{ display: "flex", gap: "0.5rem", marginBottom: "2rem", flexWrap: "wrap" }}>
           {types.map((t) => (
-            <button key={t} onClick={() => setActiveType(t)} style={{ padding: "0.6rem 1rem", borderRadius: "0.25rem", border: "1px solid", borderColor: activeType === t ? "#2D4A2D" : "rgba(45,74,45,0.2)", backgroundColor: activeType === t ? "#2D4A2D" : "transparent", color: activeType === t ? "#F5F0E8" : "#2D4A2D", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.78rem", fontWeight: 500, letterSpacing: "0.05em" }}>
+            <button key={t} onClick={() => setActiveType(t)} style={{ padding: "0.6rem 1rem", borderRadius: "0.25rem", border: "1px solid", borderColor: activeType === t ? "#3A2A22" : "rgba(58,42,34,0.2)", backgroundColor: activeType === t ? "#3A2A22" : "transparent", color: activeType === t ? "#F5F0E8" : "#3A2A22", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.78rem", fontWeight: 500, letterSpacing: "0.05em" }}>
               {t}
             </button>
           ))}
         </div>
 
         {joined.length > 0 && (
-          <div style={{ backgroundColor: "rgba(122,158,111,0.12)", border: "1px solid rgba(122,158,111,0.3)", borderRadius: "0.25rem", padding: "0.75rem 1.25rem", marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
-            <Calendar size={16} color="#7A9E6F" />
-            <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.875rem", color: "#2D4A2D" }}>You've joined {joined.length} event{joined.length > 1 ? "s" : ""}. Check your profile for details.</span>
+          <div style={{ backgroundColor: "rgba(158,107,92,0.12)", border: "1px solid rgba(158,107,92,0.3)", borderRadius: "0.25rem", padding: "0.75rem 1.25rem", marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <Calendar size={16} color="#9E6B5C" />
+            <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.875rem", color: "#3A2A22" }}>You've joined {joined.length} event{joined.length > 1 ? "s" : ""}. Check your profile for details.</span>
           </div>
         )}
 

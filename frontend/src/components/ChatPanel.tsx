@@ -33,7 +33,7 @@ const INITIAL_CONVERSATIONS: Conv[] = [
   {
     id: 1,
     name: "Marco Reyes",
-    avatarBackground: "#2D4A2D",
+    avatarBackground: "#3A2A22",
     initials: "MR",
     lastMessage: "You: grabe yung view sa Batanes!",
     time: "5m",
@@ -50,7 +50,7 @@ const INITIAL_CONVERSATIONS: Conv[] = [
   {
     id: 2,
     name: "Wanderers PH",
-    avatarBackground: "#7A9E6F",
+    avatarBackground: "#9E6B5C",
     initials: "W",
     lastMessage: "Lea: anyone been to Sagada?",
     time: "12m",
@@ -81,7 +81,7 @@ const INITIAL_CONVERSATIONS: Conv[] = [
   {
     id: 4,
     name: "Samal Trip Planning",
-    avatarBackground: "#7A9E6F",
+    avatarBackground: "#9E6B5C",
     initials: "S",
     lastMessage: "Karl: book na tayo ng ferry!",
     time: "2h",
@@ -97,7 +97,7 @@ const INITIAL_CONVERSATIONS: Conv[] = [
   {
     id: 5,
     name: "GSL Travel Squad",
-    avatarBackground: "#2D4A2D",
+    avatarBackground: "#3A2A22",
     initials: "G",
     lastMessage: "Delia sent an itinerary.",
     time: "4h",
@@ -113,7 +113,7 @@ const INITIAL_CONVERSATIONS: Conv[] = [
   {
     id: 6,
     name: "TravelTraces PH Community",
-    avatarBackground: "#2D4A2D",
+    avatarBackground: "#3A2A22",
     initials: "L",
     lastMessage: "Rose: Adto lang sa Palawan ga pag-",
     time: "5h",
@@ -147,7 +147,7 @@ function TypingIndicator() {
   return (
     <div className="flex w-fit gap-1 rounded-[14px_14px_14px_4px] bg-white px-3 py-2 shadow-sm">
       {[0, 1, 2].map((index) => (
-        <span key={index} className="h-1.5 w-1.5 rounded-full bg-[#7A9E6F]" style={{ animation: `typingDot 1.2s ${index * 0.2}s infinite ease-in-out` }} />
+        <span key={index} className="h-1.5 w-1.5 rounded-full bg-[#9E6B5C]" style={{ animation: `typingDot 1.2s ${index * 0.2}s infinite ease-in-out` }} />
       ))}
     </div>
   );
@@ -214,7 +214,7 @@ function MessageThreadView({
 
   return (
     <div className="flex h-full flex-col bg-[#F5F0E8]">
-      <div className="flex shrink-0 items-center gap-3 border-b border-[#2D4A2D]/10 bg-[#2D4A2D] px-4 py-3">
+      <div className="flex shrink-0 items-center gap-3 border-b border-[#3A2A22]/10 bg-[#3A2A22] px-4 py-3">
         <button onClick={onBack} className="grid min-h-10 min-w-10 place-items-center rounded-full text-[#F5F0E8] transition hover:bg-[#F5F0E8]/10" aria-label="Back to chats">
           <ArrowLeft size={20} />
         </button>
@@ -242,8 +242,8 @@ function MessageThreadView({
           const showSenderName = conv.isGroup && !isMe && (index === 0 || messages[index - 1]?.senderName !== msg.senderName);
           return (
             <div key={msg.id} className={`flex max-w-[85%] flex-col ${isMe ? "self-end items-end" : "self-start items-start"}`}>
-              {showSenderName ? <span className="mb-1 ml-1 text-[10px] text-[#7A9E6F]">{msg.senderName}</span> : null}
-              <div className={`rounded-2xl px-3 py-2 text-left text-[13px] leading-6 shadow-sm ${isMe ? "rounded-br-sm bg-[#2D4A2D] text-[#F5F0E8]" : "rounded-bl-sm bg-white text-[#1A1A1A]"}`}>{msg.text}</div>
+              {showSenderName ? <span className="mb-1 ml-1 text-[10px] text-[#9E6B5C]">{msg.senderName}</span> : null}
+              <div className={`rounded-2xl px-3 py-2 text-left text-[13px] leading-6 shadow-sm ${isMe ? "rounded-br-sm bg-[#3A2A22] text-[#F5F0E8]" : "rounded-bl-sm bg-white text-[#1A1A1A]"}`}>{msg.text}</div>
               <span className="mt-1 text-[9px] text-[#6B6B5A]">{msg.time}</span>
             </div>
           );
@@ -253,17 +253,17 @@ function MessageThreadView({
       </div>
 
       {showReactions ? (
-        <div className="flex gap-2 border-t border-[#2D4A2D]/10 bg-[#EDEAE0] px-4 py-2">
+        <div className="flex gap-2 border-t border-[#3A2A22]/10 bg-[#EDEAE0] px-4 py-2">
           {REACTIONS.map((reaction) => (
-            <button key={reaction} type="button" onClick={() => sendMsg(reaction)} className="rounded-full border border-[#2D4A2D]/15 px-3 py-1 text-xs font-semibold text-[#2D4A2D] transition hover:bg-[#F5F0E8]">
+            <button key={reaction} type="button" onClick={() => sendMsg(reaction)} className="rounded-full border border-[#3A2A22]/15 px-3 py-1 text-xs font-semibold text-[#3A2A22] transition hover:bg-[#F5F0E8]">
               {reaction}
             </button>
           ))}
         </div>
       ) : null}
 
-      <div className="flex shrink-0 items-center gap-2 border-t border-[#2D4A2D]/10 bg-[#EDEAE0] p-3">
-        <button type="button" onClick={() => setShowReactions((value) => !value)} className={`min-h-9 rounded-full px-3 text-xs font-bold ${showReactions ? "bg-[#C4713A] text-[#F5F0E8]" : "text-[#2D4A2D] hover:bg-[#F5F0E8]"}`}>
+      <div className="flex shrink-0 items-center gap-2 border-t border-[#3A2A22]/10 bg-[#EDEAE0] p-3">
+        <button type="button" onClick={() => setShowReactions((value) => !value)} className={`min-h-9 rounded-full px-3 text-xs font-bold ${showReactions ? "bg-[#C4713A] text-[#F5F0E8]" : "text-[#3A2A22] hover:bg-[#F5F0E8]"}`}>
           React
         </button>
         <input
@@ -273,9 +273,9 @@ function MessageThreadView({
             if (event.key === "Enter") sendMsg();
           }}
           placeholder="Type a message..."
-          className="min-h-10 min-w-0 flex-1 rounded-full border border-[#2D4A2D]/15 bg-[#F5F0E8] px-4 text-sm text-[#1A1A1A] outline-none placeholder:text-[#6B6B5A] focus:border-[#2D4A2D]"
+          className="min-h-10 min-w-0 flex-1 rounded-full border border-[#3A2A22]/15 bg-[#F5F0E8] px-4 text-sm text-[#1A1A1A] outline-none placeholder:text-[#6B6B5A] focus:border-[#3A2A22]"
         />
-        <button type="button" onClick={() => sendMsg()} className="grid min-h-10 min-w-10 place-items-center rounded-full bg-[#2D4A2D] text-[#F5F0E8] transition hover:bg-[#234023]" aria-label="Send message">
+        <button type="button" onClick={() => sendMsg()} className="grid min-h-10 min-w-10 place-items-center rounded-full bg-[#3A2A22] text-[#F5F0E8] transition hover:bg-[#4B352A]" aria-label="Send message">
           <Send size={15} />
         </button>
       </div>
@@ -326,7 +326,7 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
     const created: Conv = {
       id: nextId,
       name,
-      avatarBackground: "#2D4A2D",
+      avatarBackground: "#3A2A22",
       initials: name.split(/\s+/).slice(0, 2).map((word) => word[0]).join("").toUpperCase().slice(0, 2) || "G",
       lastMessage: `You: ${note}`,
       time: "Just now",
@@ -355,8 +355,8 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
         .custom-scrollbar { scrollbar-width: none; }
         .custom-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
-      <div onClick={onClose} className="fixed inset-0 z-[200] bg-[#2D4A2D]/28 backdrop-blur-[2px]" />
-      <aside className="fixed bottom-0 right-0 top-0 z-[201] flex w-full max-w-[360px] animate-[slideInChat_0.25s_cubic-bezier(0.16,1,0.3,1)] flex-col overflow-hidden bg-[#F5F0E8] shadow-[0_0_40px_rgba(45,74,45,0.28)]">
+      <div onClick={onClose} className="fixed inset-0 z-[200] bg-[#3A2A22]/28 backdrop-blur-[2px]" />
+      <aside className="fixed bottom-0 right-0 top-0 z-[201] flex w-full max-w-[360px] animate-[slideInChat_0.25s_cubic-bezier(0.16,1,0.3,1)] flex-col overflow-hidden bg-[#F5F0E8] shadow-[0_0_40px_rgba(58,42,34,0.28)]">
         {activeConv ? (
           <MessageThreadView
             conv={activeConv}
@@ -368,9 +368,9 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
           <>
             <div className="shrink-0 px-4 pb-2 pt-5">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <span className="font-[var(--font-display)] text-xl font-bold text-[#2D4A2D]">Chats</span>
+                <span className="font-[var(--font-display)] text-xl font-bold text-[#3A2A22]">Chats</span>
                 <div className="flex gap-2">
-                  <button title="Compose message" className="grid min-h-8 min-w-8 place-items-center rounded-full bg-[#2D4A2D]/10 text-[#2D4A2D] transition hover:bg-[#2D4A2D]/15">
+                  <button title="Compose message" className="grid min-h-8 min-w-8 place-items-center rounded-full bg-[#3A2A22]/10 text-[#3A2A22] transition hover:bg-[#3A2A22]/15">
                     <SquarePen size={16} />
                   </button>
                   <div className="relative">
@@ -378,19 +378,19 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
                       type="button"
                       title="Options"
                       onClick={() => setOptionsOpen((value) => !value)}
-                      className="grid min-h-8 min-w-8 place-items-center rounded-full bg-[#2D4A2D]/10 text-[#2D4A2D] transition hover:bg-[#2D4A2D]/15"
+                      className="grid min-h-8 min-w-8 place-items-center rounded-full bg-[#3A2A22]/10 text-[#3A2A22] transition hover:bg-[#3A2A22]/15"
                     >
                       <MoreHorizontal size={16} />
                     </button>
                     {optionsOpen ? (
-                      <div className="absolute right-0 top-[calc(100%+0.5rem)] z-10 w-48 overflow-hidden rounded-lg border border-[#2D4A2D]/15 bg-[#F5F0E8] shadow-[0_18px_40px_rgba(45,74,45,0.2)]">
+                      <div className="absolute right-0 top-[calc(100%+0.5rem)] z-10 w-48 overflow-hidden rounded-lg border border-[#3A2A22]/15 bg-[#F5F0E8] shadow-[0_18px_40px_rgba(58,42,34,0.2)]">
                         <button
                           type="button"
                           onClick={() => {
                             setCreateGroupOpen(true);
                             setOptionsOpen(false);
                           }}
-                          className="flex w-full items-center gap-2 px-3 py-3 text-left text-sm font-semibold text-[#2D4A2D] transition hover:bg-[#EDEAE0]"
+                          className="flex w-full items-center gap-2 px-3 py-3 text-left text-sm font-semibold text-[#3A2A22] transition hover:bg-[#EDEAE0]"
                         >
                           <Users size={15} />
                           Create a Group
@@ -405,13 +405,13 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
               </div>
 
               <div className="relative mb-3">
-                <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#7A9E6F]" />
+                <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#9E6B5C]" />
                 <input
                   type="text"
                   placeholder="Search"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
-                  className="min-h-9 w-full rounded-full border border-[#2D4A2D]/10 bg-white pl-9 pr-3 text-sm text-[#1A1A1A] outline-none placeholder:text-[#6B6B5A] focus:ring-2 focus:ring-[#7A9E6F]/30"
+                  className="min-h-9 w-full rounded-full border border-[#3A2A22]/10 bg-white pl-9 pr-3 text-sm text-[#1A1A1A] outline-none placeholder:text-[#6B6B5A] focus:ring-2 focus:ring-[#9E6B5C]/30"
                 />
               </div>
 
@@ -423,7 +423,7 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
                       key={tab}
                       type="button"
                       onClick={() => setActiveTab(tab)}
-                      className={`min-h-9 rounded-full px-3 text-xs font-bold transition ${selected ? "bg-[#2D4A2D] text-[#F5F0E8]" : "text-[#2D4A2D] hover:bg-[#2D4A2D]/10"}`}
+                      className={`min-h-9 rounded-full px-3 text-xs font-bold transition ${selected ? "bg-[#3A2A22] text-[#F5F0E8]" : "text-[#3A2A22] hover:bg-[#3A2A22]/10"}`}
                     >
                       {tab}
                     </button>
@@ -442,7 +442,7 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
                     {conv.online ? <span className="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full border-2 border-[#F5F0E8] bg-[#22c55e]" /> : null}
                   </span>
                   <span className="min-w-0 flex-1">
-                    {conv.label ? <span className="mb-0.5 block text-[10px] font-bold uppercase tracking-[0.05em] text-[#7A9E6F]">{conv.label}</span> : null}
+                    {conv.label ? <span className="mb-0.5 block text-[10px] font-bold uppercase tracking-[0.05em] text-[#9E6B5C]">{conv.label}</span> : null}
                     <span className="flex items-baseline justify-between gap-2">
                       <span className="truncate text-sm font-semibold text-[#1A1A1A]">{conv.name}</span>
                       <span className="shrink-0 text-[11px] text-[#6B6B5A]">{conv.time}</span>
@@ -450,7 +450,7 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
                     <span className="mt-1 flex items-center justify-between gap-2">
                       <span className="truncate text-xs text-[#6B6B5A]">{conv.lastMessage}</span>
                       <span className="flex shrink-0 items-center gap-2">
-                        {conv.muted ? <BellOff size={11} className="text-[#7A9E6F]" /> : null}
+                        {conv.muted ? <BellOff size={11} className="text-[#9E6B5C]" /> : null}
                         {conv.unread ? <span className="h-2 w-2 rounded-full bg-[#C4713A]" /> : null}
                       </span>
                     </span>
@@ -460,7 +460,7 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
 
               {!filtered.length ? (
                 <div className="px-6 py-12 text-center">
-                  <MessageSquare size={32} className="mx-auto mb-3 text-[#7A9E6F] opacity-50" />
+                  <MessageSquare size={32} className="mx-auto mb-3 text-[#9E6B5C] opacity-50" />
                   <p className="text-sm text-[#6B6B5A]">No conversations found.</p>
                 </div>
               ) : null}
@@ -476,14 +476,14 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
               event.preventDefault();
               handleCreateGroup();
             }}
-            className="w-full max-w-[430px] rounded-xl border border-[#2D4A2D]/15 bg-[#F5F0E8] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.28)]"
+            className="w-full max-w-[430px] rounded-xl border border-[#3A2A22]/15 bg-[#F5F0E8] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.28)]"
           >
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <p className="mb-1 font-[var(--font-label)] text-[0.7rem] font-bold uppercase tracking-[0.12em] text-[#C4713A]">Travel group</p>
-                <h2 className="m-0 font-[var(--font-display)] text-3xl font-semibold leading-tight text-[#2D4A2D]">Create a Group</h2>
+                <h2 className="m-0 font-[var(--font-display)] text-3xl font-semibold leading-tight text-[#3A2A22]">Create a Group</h2>
               </div>
-              <button type="button" onClick={() => setCreateGroupOpen(false)} className="grid min-h-9 min-w-9 place-items-center rounded-full bg-[#2D4A2D]/10 text-[#2D4A2D] transition hover:bg-[#2D4A2D]/15" aria-label="Close create group">
+              <button type="button" onClick={() => setCreateGroupOpen(false)} className="grid min-h-9 min-w-9 place-items-center rounded-full bg-[#3A2A22]/10 text-[#3A2A22] transition hover:bg-[#3A2A22]/15" aria-label="Close create group">
                 <X size={17} />
               </button>
             </div>
@@ -495,7 +495,7 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
               value={groupName}
               onChange={(event) => setGroupName(event.target.value)}
               placeholder="Example: Cebu Weekend Crew"
-              className="mb-3 min-h-11 w-full rounded-lg border border-[#2D4A2D]/15 bg-white px-3 text-sm text-[#1A1A1A] outline-none placeholder:text-[#6B6B5A] focus:border-[#2D4A2D]"
+              className="mb-3 min-h-11 w-full rounded-lg border border-[#3A2A22]/15 bg-white px-3 text-sm text-[#1A1A1A] outline-none placeholder:text-[#6B6B5A] focus:border-[#3A2A22]"
               autoFocus
             />
             <label className="mb-1 block text-xs font-bold uppercase tracking-[0.08em] text-[#6B6B5A]" htmlFor="chat-group-note">
@@ -507,13 +507,13 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
               onChange={(event) => setGroupNote(event.target.value)}
               placeholder="Add the first planning note for this group..."
               rows={4}
-              className="mb-4 w-full resize-none rounded-lg border border-[#2D4A2D]/15 bg-white px-3 py-2 text-sm leading-6 text-[#1A1A1A] outline-none placeholder:text-[#6B6B5A] focus:border-[#2D4A2D]"
+              className="mb-4 w-full resize-none rounded-lg border border-[#3A2A22]/15 bg-white px-3 py-2 text-sm leading-6 text-[#1A1A1A] outline-none placeholder:text-[#6B6B5A] focus:border-[#3A2A22]"
             />
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setCreateGroupOpen(false)} className="min-h-10 rounded-full border border-[#2D4A2D]/15 px-4 text-sm font-bold text-[#2D4A2D] transition hover:bg-[#EDEAE0]">
+              <button type="button" onClick={() => setCreateGroupOpen(false)} className="min-h-10 rounded-full border border-[#3A2A22]/15 px-4 text-sm font-bold text-[#3A2A22] transition hover:bg-[#EDEAE0]">
                 Cancel
               </button>
-              <button type="submit" disabled={!groupName.trim()} className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[#2D4A2D] px-4 text-sm font-bold text-[#F5F0E8] transition hover:bg-[#234023] disabled:cursor-default disabled:bg-[#D8D4C8]">
+              <button type="submit" disabled={!groupName.trim()} className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[#3A2A22] px-4 text-sm font-bold text-[#F5F0E8] transition hover:bg-[#4B352A] disabled:cursor-default disabled:bg-[#D8D4C8]">
                 <Plus size={15} />
                 Create
               </button>

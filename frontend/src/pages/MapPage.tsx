@@ -51,7 +51,7 @@ function PhilippinesMap({
       }}
     >
       {/* Ocean texture */}
-      <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 20% 80%, rgba(122,158,111,0.08) 0%, transparent 60%), radial-gradient(circle at 80% 20%, rgba(92,138,158,0.12) 0%, transparent 50%)" }} />
+      <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 20% 80%, rgba(158,107,92,0.08) 0%, transparent 60%), radial-gradient(circle at 80% 20%, rgba(92,138,158,0.12) 0%, transparent 50%)" }} />
 
       {/* Map label */}
       <div style={{ position: "absolute", top: "1rem", left: "1rem", fontFamily: "var(--font-label)", fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(26,26,26,0.5)", zIndex: 10 }}>
@@ -59,7 +59,7 @@ function PhilippinesMap({
       </div>
 
       {mapMode === "private" ? (
-        <div style={{ position: "absolute", top: "2.2rem", left: "1rem", fontFamily: "var(--font-ui)", fontSize: "0.68rem", color: "#2D4A2D", backgroundColor: "rgba(245,240,232,0.85)", padding: "0.25rem 0.6rem", borderRadius: "1rem", zIndex: 10, border: "1px solid rgba(45,74,45,0.1)", boxShadow: "0 2px 6px rgba(0,0,0,0.05)" }}>
+        <div style={{ position: "absolute", top: "2.2rem", left: "1rem", fontFamily: "var(--font-ui)", fontSize: "0.68rem", color: "#3A2A22", backgroundColor: "rgba(245,240,232,0.85)", padding: "0.25rem 0.6rem", borderRadius: "1rem", zIndex: 10, border: "1px solid rgba(58,42,34,0.1)", boxShadow: "0 2px 6px rgba(0,0,0,0.05)" }}>
           📍 Click anywhere to leave a pin & write a story
         </div>
       ) : (
@@ -71,36 +71,36 @@ function PhilippinesMap({
       {/* Simplified island outlines via SVG */}
       <svg viewBox="0 0 100 100" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.25 }}>
         {/* Luzon */}
-        <ellipse cx="50" cy="30" rx="14" ry="22" fill="#2D4A2D" />
+        <ellipse cx="50" cy="30" rx="14" ry="22" fill="#3A2A22" />
         {/* Mindoro */}
-        <ellipse cx="38" cy="47" rx="5" ry="8" fill="#2D4A2D" />
+        <ellipse cx="38" cy="47" rx="5" ry="8" fill="#3A2A22" />
         {/* Palawan */}
-        <ellipse cx="22" cy="60" rx="4" ry="18" fill="#2D4A2D" transform="rotate(-30 22 60)" />
+        <ellipse cx="22" cy="60" rx="4" ry="18" fill="#3A2A22" transform="rotate(-30 22 60)" />
         {/* Panay */}
-        <ellipse cx="40" cy="55" rx="7" ry="6" fill="#2D4A2D" />
+        <ellipse cx="40" cy="55" rx="7" ry="6" fill="#3A2A22" />
         {/* Cebu */}
-        <ellipse cx="55" cy="57" rx="3" ry="9" fill="#2D4A2D" />
+        <ellipse cx="55" cy="57" rx="3" ry="9" fill="#3A2A22" />
         {/* Negros */}
-        <ellipse cx="48" cy="58" rx="4" ry="10" fill="#2D4A2D" />
+        <ellipse cx="48" cy="58" rx="4" ry="10" fill="#3A2A22" />
         {/* Bohol */}
-        <ellipse cx="62" cy="59" rx="6" ry="5" fill="#2D4A2D" />
+        <ellipse cx="62" cy="59" rx="6" ry="5" fill="#3A2A22" />
         {/* Leyte */}
-        <ellipse cx="67" cy="52" rx="4" ry="9" fill="#2D4A2D" />
+        <ellipse cx="67" cy="52" rx="4" ry="9" fill="#3A2A22" />
         {/* Samar */}
-        <ellipse cx="73" cy="47" rx="6" ry="8" fill="#2D4A2D" />
+        <ellipse cx="73" cy="47" rx="6" ry="8" fill="#3A2A22" />
         {/* Mindanao */}
-        <ellipse cx="70" cy="72" rx="18" ry="14" fill="#2D4A2D" />
+        <ellipse cx="70" cy="72" rx="18" ry="14" fill="#3A2A22" />
         {/* Siargao area */}
-        <ellipse cx="78" cy="62" rx="3" ry="3" fill="#2D4A2D" />
+        <ellipse cx="78" cy="62" rx="3" ry="3" fill="#3A2A22" />
       </svg>
 
       {/* Anchor baseline User Location for context of Companion search */}
       <div style={{ position: "absolute", left: `${companionState.active && companionState.userLocation ? companionState.userLocation.x : 48}%`, top: `${companionState.active && companionState.userLocation ? companionState.userLocation.y : 35}%`, transform: "translate(-50%, -100%)", zIndex: 11 }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <div style={{ width: 14, height: 14, borderRadius: "50%", backgroundColor: "#2D4A2D", border: "2px solid white", boxShadow: "0 2px 4px rgba(0,0,0,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ width: 5, height: 5, backgroundColor: "#7A9E6F", borderRadius: "50%" }} />
+          <div style={{ width: 14, height: 14, borderRadius: "50%", backgroundColor: "#3A2A22", border: "2px solid white", boxShadow: "0 2px 4px rgba(0,0,0,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 5, height: 5, backgroundColor: "#9E6B5C", borderRadius: "50%" }} />
           </div>
-          <div style={{ backgroundColor: "#2D4A2D", color: "#F5F0E8", padding: "0.1rem 0.35rem", borderRadius: "1rem", fontSize: "0.55rem", whiteSpace: "nowrap", marginTop: "0.08rem", fontFamily: "var(--font-label)", fontWeight: "bold", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }}>
+          <div style={{ backgroundColor: "#3A2A22", color: "#F5F0E8", padding: "0.1rem 0.35rem", borderRadius: "1rem", fontSize: "0.55rem", whiteSpace: "nowrap", marginTop: "0.08rem", fontFamily: "var(--font-label)", fontWeight: "bold", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }}>
             You ({companionState.active && companionState.userLocation ? companionState.userLocation.name : "Manila"})
           </div>
         </div>
@@ -123,12 +123,12 @@ function PhilippinesMap({
             y1={companionState.userLocation ? companionState.userLocation.y : 35}
             x2={companionState.companion.x}
             y2={companionState.companion.y}
-            stroke="#2D4A2D"
+            stroke="#3A2A22"
             strokeWidth={0.4}
             strokeDasharray="1"
           />
           <g transform={`translate(${((companionState.userLocation ? companionState.userLocation.x : 48) + companionState.companion.x) / 2}, ${((companionState.userLocation ? companionState.userLocation.y : 35) + companionState.companion.y) / 2})`}>
-            <rect x={-20} y={-6} width={40} height={12} rx={2} fill="#2D4A2D" stroke="#EDEAE0" strokeWidth={0.3} />
+            <rect x={-20} y={-6} width={40} height={12} rx={2} fill="#3A2A22" stroke="#EDEAE0" strokeWidth={0.3} />
             <text x={0} y={2.5} fill="#F5F0E8" fontSize={3.2} fontWeight="bold" textAnchor="middle" fontFamily="var(--font-mono)">
               {companionState.distance}km
             </text>
@@ -161,16 +161,16 @@ function PhilippinesMap({
                 position: "absolute",
                 width: "24px",
                 height: "24px",
-                backgroundColor: "rgba(122,158,111,0.5)",
+                backgroundColor: "rgba(158,107,92,0.5)",
                 borderRadius: "50%",
                 animation: "ping 1.5s infinite",
               }}
               className="midpoint-pulse"
             />
-            <div style={{ backgroundColor: "#7A9E6F", color: "#F5F0E8", borderRadius: "50%", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", border: "1.5px solid #F5F0E8", boxShadow: "0 2px 6px rgba(0,0,0,0.3)", zIndex: 2 }}>
+            <div style={{ backgroundColor: "#9E6B5C", color: "#F5F0E8", borderRadius: "50%", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", border: "1.5px solid #F5F0E8", boxShadow: "0 2px 6px rgba(0,0,0,0.3)", zIndex: 2 }}>
               <span style={{ fontSize: "0.7rem" }}>★</span>
             </div>
-            <div style={{ backgroundColor: "#2D4A2D", color: "#F5F0E8", padding: "0.1rem 0.4rem", borderRadius: "0.15rem", fontSize: "0.55rem", whiteSpace: "nowrap", marginTop: "0.25rem", fontWeight: "bold", fontFamily: "var(--font-label)", border: "0.5px solid rgba(245,240,232,0.15)", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", zIndex: 2 }}>
+            <div style={{ backgroundColor: "#3A2A22", color: "#F5F0E8", padding: "0.1rem 0.4rem", borderRadius: "0.15rem", fontSize: "0.55rem", whiteSpace: "nowrap", marginTop: "0.25rem", fontWeight: "bold", fontFamily: "var(--font-label)", border: "0.5px solid rgba(245,240,232,0.15)", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", zIndex: 2 }}>
               Midpoint: {companionState.suggestedHub.name}
             </div>
           </div>
@@ -202,15 +202,15 @@ function PhilippinesMap({
                 height: 24,
                 borderRadius: "50% 50% 50% 0",
                 transform: "rotate(-45deg)",
-                backgroundColor: pin.type === "visited" ? "#2D4A2D" : "#C4713A",
+                backgroundColor: pin.type === "visited" ? "#3A2A22" : "#C4713A",
                 border: selectedPin?.id === pin.id ? "2px solid #F5F0E8" : "2px solid white",
-                boxShadow: selectedPin?.id === pin.id ? "0 0 0 2px " + (pin.type === "visited" ? "#2D4A2D" : "#C4713A") + ", 0 4px 12px rgba(0,0,0,0.3)" : "0 2px 8px rgba(0,0,0,0.2)",
+                boxShadow: selectedPin?.id === pin.id ? "0 0 0 2px " + (pin.type === "visited" ? "#3A2A22" : "#C4713A") + ", 0 4px 12px rgba(0,0,0,0.3)" : "0 2px 8px rgba(0,0,0,0.2)",
                 transition: "box-shadow 0.15s, transform 0.15s",
               }}
             />
             {/* Tiny text card styling if selected */}
             {selectedPin?.id === pin.id && (
-              <span style={{ position: "absolute", top: "-1.2rem", backgroundColor: "#2D4A2D", color: "#F5F0E8", fontSize: "0.52rem", padding: "0.1rem 0.35rem", borderRadius: "2px", whiteSpace: "nowrap", fontFamily: "var(--font-label)", fontWeight: "bold", textTransform: "uppercase", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
+              <span style={{ position: "absolute", top: "-1.2rem", backgroundColor: "#3A2A22", color: "#F5F0E8", fontSize: "0.52rem", padding: "0.1rem 0.35rem", borderRadius: "2px", whiteSpace: "nowrap", fontFamily: "var(--font-label)", fontWeight: "bold", textTransform: "uppercase", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
                 {pin.category}
               </span>
             )}
@@ -219,10 +219,10 @@ function PhilippinesMap({
       ))}
 
       {/* Legend inside map view */}
-      <div style={{ position: "absolute", bottom: "1rem", right: "1rem", backgroundColor: "rgba(245,240,232,0.92)", borderRadius: "0.25rem", padding: "0.6rem 0.85rem", backdropFilter: "blur(4px)", zIndex: 10, border: "1px solid rgba(45,74,45,0.08)", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
+      <div style={{ position: "absolute", bottom: "1rem", right: "1rem", backgroundColor: "rgba(245,240,232,0.92)", borderRadius: "0.25rem", padding: "0.6rem 0.85rem", backdropFilter: "blur(4px)", zIndex: 10, border: "1px solid rgba(58,42,34,0.08)", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
         <p style={{ margin: "0 0 0.3rem 0", fontFamily: "var(--font-label)", fontSize: "0.55rem", letterSpacing: "0.05em", textTransform: "uppercase", color: "#6B6B5A", fontWeight: 600 }}>Pin Type</p>
         <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.25rem" }}>
-          <div style={{ width: 10, height: 10, backgroundColor: "#2D4A2D", borderRadius: "50%" }} />
+          <div style={{ width: 10, height: 10, backgroundColor: "#3A2A22", borderRadius: "50%" }} />
           <span style={{ fontFamily: "var(--font-label)", fontSize: "0.65rem", letterSpacing: "0.06em", color: "#1A1A1A" }}>Visited</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
@@ -341,12 +341,12 @@ function MapContent() {
       <div style={{ padding: "2rem 1.5rem 1rem", maxWidth: 1400, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
 
         {/* Toggle Private vs Public buttons state */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1.25rem", borderBottom: "1px solid rgba(45,74,45,0.1)", paddingBottom: "1.25rem", marginBottom: "1.5rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1.25rem", borderBottom: "1px solid rgba(58,42,34,0.1)", paddingBottom: "1.25rem", marginBottom: "1.5rem" }}>
           <div>
-            <p style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#7A9E6F", marginBottom: "0.25rem" }}>
+            <p style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#9E6B5C", marginBottom: "0.25rem" }}>
               Explore the Philippines mapping hub
             </p>
-            <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2rem", fontWeight: 600, color: "#2D4A2D", margin: 0 }}>
+            <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2rem", fontWeight: 600, color: "#3A2A22", margin: 0 }}>
               {mapMode === "private" ? "My Secret Travel Map" : "Community Explorer Stories Map"}
             </h1>
           </div>
@@ -367,9 +367,9 @@ function MapContent() {
                 textTransform: "uppercase",
                 fontWeight: 600,
                 border: "1px solid",
-                borderColor: mapMode === "private" ? "#2D4A2D" : "rgba(45,74,45,0.2)",
-                backgroundColor: mapMode === "private" ? "#2D4A2D" : "transparent",
-                color: mapMode === "private" ? "#F5F0E8" : "#2D4A2D",
+                borderColor: mapMode === "private" ? "#3A2A22" : "rgba(58,42,34,0.2)",
+                backgroundColor: mapMode === "private" ? "#3A2A22" : "transparent",
+                color: mapMode === "private" ? "#F5F0E8" : "#3A2A22",
                 transition: "all 0.15s",
               }}
             >
@@ -390,9 +390,9 @@ function MapContent() {
                 textTransform: "uppercase",
                 fontWeight: 600,
                 border: "1px solid",
-                borderColor: mapMode === "public" ? "#2D4A2D" : "rgba(45,74,45,0.2)",
-                backgroundColor: mapMode === "public" ? "#2D4A2D" : "transparent",
-                color: mapMode === "public" ? "#F5F0E8" : "#2D4A2D",
+                borderColor: mapMode === "public" ? "#3A2A22" : "rgba(58,42,34,0.2)",
+                backgroundColor: mapMode === "public" ? "#3A2A22" : "transparent",
+                color: mapMode === "public" ? "#F5F0E8" : "#3A2A22",
                 transition: "all 0.15s",
               }}
             >
@@ -405,7 +405,7 @@ function MapContent() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "1rem", marginBottom: "1rem" }}>
           <div style={{ display: "flex", gap: "0.5rem" }}>
             {(["all", "visited", "wishlist"] as const).map((f) => (
-              <button key={f} onClick={() => setFilter(f)} style={{ padding: "0.45rem 1rem", borderRadius: "0.25rem", border: "1px solid", borderColor: filter === f ? "#2D4A2D" : "rgba(45,74,45,0.2)", backgroundColor: filter === f ? "#2D4A2D" : "transparent", color: filter === f ? "#F5F0E8" : "#2D4A2D", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.78rem", letterSpacing: "0.05em", textTransform: "capitalize" }}>
+              <button key={f} onClick={() => setFilter(f)} style={{ padding: "0.45rem 1rem", borderRadius: "0.25rem", border: "1px solid", borderColor: filter === f ? "#3A2A22" : "rgba(58,42,34,0.2)", backgroundColor: filter === f ? "#3A2A22" : "transparent", color: filter === f ? "#F5F0E8" : "#3A2A22", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.78rem", letterSpacing: "0.05em", textTransform: "capitalize" }}>
                 {f === "all" ? "All statuses" : f}
               </button>
             ))}
@@ -415,7 +415,7 @@ function MapContent() {
             <div style={{ display: "flex", gap: "0.75rem" }}>
               <div style={{ backgroundColor: "#EDEAE0", padding: "0.4rem 0.85rem", borderRadius: "0.25rem", textAlign: "center" }}>
                 <span style={{ fontSize: "0.65rem", fontFamily: "var(--font-label)", color: "#6B6B5A", textTransform: "uppercase" }}>Visited</span>
-                <span style={{ display: "block", fontSize: "1.1rem", fontWeight: "bold", color: "#2D4A2D" }}>{visitedCount}</span>
+                <span style={{ display: "block", fontSize: "1.1rem", fontWeight: "bold", color: "#3A2A22" }}>{visitedCount}</span>
               </div>
               <div style={{ backgroundColor: "#EDEAE0", padding: "0.4rem 0.85rem", borderRadius: "0.25rem", textAlign: "center" }}>
                 <span style={{ fontSize: "0.65rem", fontFamily: "var(--font-label)", color: "#6B6B5A", textTransform: "uppercase" }}>Wishlist</span>
@@ -457,7 +457,7 @@ function MapContent() {
 
         {/* MAP STAGE CANVAS */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-          <div style={{ height: 530, borderRadius: "0.25rem", overflow: "hidden", border: "1px solid rgba(45,74,45,0.12)", boxShadow: "0 4px 15px rgba(0,0,0,0.04)" }}>
+          <div style={{ height: 530, borderRadius: "0.25rem", overflow: "hidden", border: "1px solid rgba(58,42,34,0.12)", boxShadow: "0 4px 15px rgba(0,0,0,0.04)" }}>
             <PhilippinesMap
               pins={filteredPins}
               onPinClick={setSelectedPin}
@@ -485,11 +485,11 @@ function MapContent() {
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
 
           {/* Display Pinned Story card inside the side layout */}
-          <div style={{ backgroundColor: "#EDEAE0", borderRadius: "0.25rem", flex: 1, overflowY: "auto", minHeight: 400, border: "1px solid rgba(45,74,45,0.12)" }}>
+          <div style={{ backgroundColor: "#EDEAE0", borderRadius: "0.25rem", flex: 1, overflowY: "auto", minHeight: 400, border: "1px solid rgba(58,42,34,0.12)" }}>
             {selectedPin ? (
               <div style={{ padding: "1.5rem" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
-                  <span style={{ fontSize: "0.68rem", fontFamily: "var(--font-label)", letterSpacing: "0.06em", textTransform: "uppercase", padding: "0.2rem 0.55rem", backgroundColor: "#EDEAE0", border: "1px solid rgba(45,74,45,0.15)", borderRadius: "2px", color: "#6B6B5A" }}>
+                  <span style={{ fontSize: "0.68rem", fontFamily: "var(--font-label)", letterSpacing: "0.06em", textTransform: "uppercase", padding: "0.2rem 0.55rem", backgroundColor: "#EDEAE0", border: "1px solid rgba(58,42,34,0.15)", borderRadius: "2px", color: "#6B6B5A" }}>
                     Category Story
                   </span>
                   <button onClick={() => setSelectedPin(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B6B5A", padding: "0.2rem" }}>
@@ -497,16 +497,16 @@ function MapContent() {
                   </button>
                 </div>
 
-                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.35rem", fontWeight: 600, color: "#2D4A2D", lineHeight: 1.3, marginBottom: "0.5rem" }}>
+                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.35rem", fontWeight: 600, color: "#3A2A22", lineHeight: 1.3, marginBottom: "0.5rem" }}>
                   {selectedPin.name}
                 </h3>
 
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
-                  <MapPin size={13} color="#7A9E6F" />
+                  <MapPin size={13} color="#9E6B5C" />
                   <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.85rem", color: "#6B6B5A", fontWeight: 500 }}>
                     {selectedPin.region}
                   </span>
-                  <span style={{ padding: "0.15rem 0.5rem", borderRadius: "2rem", fontSize: "0.7rem", fontFamily: "var(--font-label)", backgroundColor: selectedPin.type === "visited" ? "rgba(45,74,45,0.12)" : "rgba(196,113,58,0.12)", color: selectedPin.type === "visited" ? "#2D4A2D" : "#C4713A", letterSpacing: "0.05em", textTransform: "uppercase", fontWeight: 600 }}>
+                  <span style={{ padding: "0.15rem 0.5rem", borderRadius: "2rem", fontSize: "0.7rem", fontFamily: "var(--font-label)", backgroundColor: selectedPin.type === "visited" ? "rgba(58,42,34,0.12)" : "rgba(196,113,58,0.12)", color: selectedPin.type === "visited" ? "#3A2A22" : "#C4713A", letterSpacing: "0.05em", textTransform: "uppercase", fontWeight: 600 }}>
                     {selectedPin.type}
                   </span>
                 </div>
@@ -517,14 +517,14 @@ function MapContent() {
                      backgroundColor: "#F5F0E8",
                      padding: "1.25rem",
                      borderRadius: "0.25rem",
-                     border: "1px solid rgba(45,74,45,0.1)",
+                     border: "1px solid rgba(58,42,34,0.1)",
                      boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
                      marginBottom: "1rem"
                    }}
                  >
                    {/* Inline Story Hero Image inside details card */}
                    {selectedPin.imageUrl && (
-                     <div style={{ width: "100%", height: "160px", borderRadius: "0.15rem", overflow: "hidden", marginBottom: "0.85rem", border: "1px solid rgba(45,74,45,0.12)" }}>
+                     <div style={{ width: "100%", height: "160px", borderRadius: "0.15rem", overflow: "hidden", marginBottom: "0.85rem", border: "1px solid rgba(58,42,34,0.12)" }}>
                        <img
                          src={selectedPin.imageUrl}
                          alt={selectedPin.name}
@@ -558,7 +558,7 @@ function MapContent() {
                    ) : selectedPin.isQuote ? (
                      <blockquote
                        style={{
-                         borderLeft: "3.5px solid #7A9E6F",
+                         borderLeft: "3.5px solid #9E6B5C",
                          paddingLeft: "0.85rem",
                          margin: "0.75rem 0",
                          fontFamily: "var(--font-body)",
@@ -622,7 +622,7 @@ function MapContent() {
             ) : (
               <div style={{ padding: "1.5rem" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
-                  <Info size={14} color="#7A9E6F" />
+                  <Info size={14} color="#9E6B5C" />
                   <span style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#6B6B5A" }}>
                     {mapMode === "private" ? "My Pinned Stories" : "Community Stories"}
                   </span>
@@ -632,7 +632,7 @@ function MapContent() {
                   <div style={{ padding: "1rem 0", textAlign: "center", color: "#6B6B5A" }}>
                     <p style={{ fontFamily: "var(--font-body)", fontSize: "0.875rem", margin: "0 0 0.5rem 0" }}>No pins matching filter</p>
                     {mapMode === "private" && (
-                      <p style={{ fontFamily: "var(--font-ui)", fontSize: "0.75rem", color: "#7A9E6F", fontWeight: 600 }}>Click anywhere on the map above to select and pin a story!</p>
+                      <p style={{ fontFamily: "var(--font-ui)", fontSize: "0.75rem", color: "#9E6B5C", fontWeight: 600 }}>Click anywhere on the map above to select and pin a story!</p>
                     )}
                   </div>
                 ) : (
@@ -653,11 +653,11 @@ function MapContent() {
                           cursor: "pointer",
                           textAlign: "left",
                           transition: "background-color 0.1s",
-                          backgroundColor: selectedPin?.id === p.id ? "rgba(45,74,45,0.08)" : "",
+                          backgroundColor: selectedPin?.id === p.id ? "rgba(58,42,34,0.08)" : "",
                         }}
                         onMouseEnter={(e) => {
                           if (selectedPin?.id !== p.id) {
-                            e.currentTarget.style.backgroundColor = "rgba(45,74,45,0.05)";
+                            e.currentTarget.style.backgroundColor = "rgba(58,42,34,0.05)";
                           }
                         }}
                         onMouseLeave={(e) => {
@@ -666,11 +666,11 @@ function MapContent() {
                           }
                         }}
                       >
-                        <div style={{ width: 14, height: 14, borderRadius: "50%", backgroundColor: p.type === "visited" ? "#2D4A2D" : "#C4713A", marginTop: 3, flexShrink: 0 }} />
+                        <div style={{ width: 14, height: 14, borderRadius: "50%", backgroundColor: p.type === "visited" ? "#3A2A22" : "#C4713A", marginTop: 3, flexShrink: 0 }} />
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <p style={{ fontFamily: "var(--font-ui)", fontSize: "0.85rem", fontWeight: 600, color: "#1A1A1A", margin: "0 0 0.1rem 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</p>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "0.7rem", color: "#7A9E6F", fontFamily: "var(--font-label)", textTransform: "uppercase", fontWeight: 600 }}>{p.category}</span>
+                            <span style={{ fontSize: "0.7rem", color: "#9E6B5C", fontFamily: "var(--font-label)", textTransform: "uppercase", fontWeight: 600 }}>{p.category}</span>
                             {p.author !== "You" && <span style={{ fontSize: "0.68rem", color: "#6B6B5A" }}>@{p.author.split(" ")[0]}</span>}
                           </div>
                         </div>

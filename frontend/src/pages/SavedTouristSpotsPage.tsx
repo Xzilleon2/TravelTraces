@@ -90,8 +90,8 @@ function SavedTouristSpotsContent() {
       <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[380px_1fr]">
         <aside className="space-y-6">
           <div>
-            <p className="mb-2 font-[var(--font-label)] text-sm font-semibold uppercase tracking-[0.06em] text-[#7A9E6F]">Bookmarks</p>
-            <h1 className="m-0 font-[var(--font-display)] text-4xl font-semibold text-[#2D4A2D]">Saved Tourist Spots</h1>
+            <p className="mb-2 font-[var(--font-label)] text-sm font-semibold uppercase tracking-[0.06em] text-[#9E6B5C]">Bookmarks</p>
+            <h1 className="m-0 font-[var(--font-display)] text-4xl font-semibold text-[#3A2A22]">Saved Tourist Spots</h1>
           </div>
           <WorkspaceSection title="Collections" icon={Bookmark}>
             <select value={collectionId} onChange={(event) => setCollectionId(event.target.value)} className={inputField}>
@@ -100,7 +100,7 @@ function SavedTouristSpotsContent() {
             </select>
             <div className="mt-3 flex gap-2">
               <input value={newCollection} onChange={(event) => setNewCollection(event.target.value)} className={`${inputField} min-w-0 flex-1`} placeholder="New collection" />
-              <button type="button" onClick={() => void addCollection()} className="min-h-12 rounded bg-[#2D4A2D] px-4 text-[#F5F0E8]" aria-label="Create collection"><Plus size={18} /></button>
+              <button type="button" onClick={() => void addCollection()} className="min-h-12 rounded bg-[#3A2A22] px-4 text-[#F5F0E8]" aria-label="Create collection"><Plus size={18} /></button>
             </div>
           </WorkspaceSection>
           <WorkspaceSection title="Save Place" icon={MapPin}>
@@ -139,7 +139,7 @@ function SavedTouristSpotsContent() {
               <article key={spot.place_id} className={sectionCard}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h2 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2D4A2D]">{spot.name}</h2>
+                    <h2 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#3A2A22]">{spot.name}</h2>
                     <p className="m-0 mt-1 text-sm text-[#6B6B5A]">{spot.category}</p>
                   </div>
                   <button type="button" onClick={() => void deleteTouristSpot(spot.place_id, viewerId).then(refresh)} className="rounded border border-[#C0392B]/20 p-2 text-[#C0392B]" aria-label="Unsave place"><Trash2 size={16} /></button>

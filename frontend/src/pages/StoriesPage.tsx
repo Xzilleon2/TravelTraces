@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { Search, MapPin, Clock, Heart, Bookmark, Share2, ArrowLeft, ChevronLeft, ChevronRight, Send, MessageCircle } from "lucide-react";
 import { GatedPage } from "../components/GatedPage";
 import { useAuth } from "../context/AuthContext";
@@ -41,7 +42,7 @@ const STORY_COMMENTS: Record<number, { id: number; author: string; avatar: strin
   ],
 };
 
-const STORY_PHOTOS: Record<number, string[]> = {
+export const STORY_PHOTOS: Record<number, string[]> = {
   1: [
     "https://images.unsplash.com/photo-1632307918787-8cb52566dd35?w=1100&h=720&fit=crop&auto=format",
     "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1100&h=720&fit=crop&auto=format",
@@ -74,7 +75,7 @@ const STORY_PHOTOS: Record<number, string[]> = {
   ],
 };
 
-const STORIES = [
+export const STORIES = [
   {
     id: 1,
     title: "48 Hours in El Nido: What the Guidebooks Don't Tell You",
@@ -169,7 +170,18 @@ const STORIES = [
 
 const categories = ["All", "Hiking", "Food Place", "Hidden Gems", "Beaches", "Forest", "Culture", "More"];
 
-function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext }: {
+export type TravelStory = (typeof STORIES)[number];
+
+export const STORY_MAP_POINTS: Record<number, { place: string; coordinate: { lat: number; lon: number } }> = {
+  1: { place: "El Nido, Palawan", coordinate: { lat: 11.1956, lon: 119.4075 } },
+  2: { place: "Basco, Batanes", coordinate: { lat: 20.4487, lon: 121.9702 } },
+  3: { place: "Banaue Rice Terraces, Ifugao", coordinate: { lat: 16.919, lon: 121.0593 } },
+  4: { place: "General Luna, Siargao", coordinate: { lat: 9.7843, lon: 126.1589 } },
+  5: { place: "Angeles, Pampanga", coordinate: { lat: 15.146, lon: 120.5887 } },
+  6: { place: "Hundred Islands, Pangasinan", coordinate: { lat: 16.2076, lon: 119.9706 } },
+};
+
+export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext }: {
   story: typeof STORIES[0];
   onBack: () => void;
   onPrev: () => void;
@@ -178,6 +190,7 @@ function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext }: {
   hasNext: boolean;
 }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [viewingProfile, setViewingProfile] = useState<GamifiedUser | null>(null);
@@ -189,6 +202,7 @@ function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext }: {
   const photos = STORY_PHOTOS[story.id] ?? [story.img];
   const activePhoto = photos[photoIndex] ?? photos[0];
   const hasMultiplePhotos = photos.length > 1;
+  const storyPoint = STORY_MAP_POINTS[story.id];
 
   useEffect(() => {
     setLiked(false);
@@ -212,6 +226,21 @@ function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext }: {
     };
     setComments((prev) => [...prev, newComment]);
     setCommentInput("");
+  };
+
+  const handlePinStoryLocation = () => {
+    if (storyPoint) {
+      window.localStorage.setItem(
+        "traveltraces.pendingStoryPin",
+        JSON.stringify({
+          storyId: story.id,
+          title: story.title,
+          place: storyPoint.place,
+          coordinate: storyPoint.coordinate,
+        }),
+      );
+    }
+    navigate("/maps");
   };
 
   return (
@@ -245,7 +274,7 @@ function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext }: {
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.45rem, 7vw, 5rem)", fontWeight: 600, color: "#1A1A1A", lineHeight: 0.98, letterSpacing: 0, marginBottom: "1rem" }}>{story.title}</h1>
           <p style={{ fontFamily: "var(--font-body)", fontSize: "clamp(1.05rem, 2vw, 1.35rem)", lineHeight: 1.65, color: "#4A4A3A", margin: "0 0 1.35rem" }}>{story.excerpt}</p>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", borderTop: "1px solid rgba(45,74,45,0.14)", borderBottom: "1px solid rgba(45,74,45,0.14)", padding: "1rem 0", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", borderTop: "1px solid rgba(58,42,34,0.14)", borderBottom: "1px solid rgba(58,42,34,0.14)", padding: "1rem 0", flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
               <button onClick={() => { const k = AUTHOR_KEY[story.author]; if (k) setViewingProfile(GAMIFIED_USERS[k]); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
                 <img src={story.authorAvatar} alt={story.author} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", display: "block" }} />
@@ -265,7 +294,7 @@ function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext }: {
                 <Heart size={14} fill={liked ? "#C4713A" : "none"} /> {story.likes + (liked ? 1 : 0)}
               </button>
               <button onClick={() => setSaved((v) => !v)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid", borderColor: saved ? "#3A2A22" : "rgba(58,42,34,0.2)", borderRadius: "999px", background: saved ? "rgba(58,42,34,0.08)" : "none", color: saved ? "#3A2A22" : "#6B5A50", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
-                <Bookmark size={14} fill={saved ? "#2D4A2D" : "none"} /> Save
+                <Bookmark size={14} fill={saved ? "#3A2A22" : "none"} /> Save
               </button>
               <button style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid rgba(58,42,34,0.2)", borderRadius: "999px", background: "none", color: "#6B5A50", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
                 <Share2 size={14} /> Share
@@ -313,17 +342,36 @@ function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext }: {
         {/* Content */}
         <div style={{ width: "min(100%, 780px)", margin: "0 auto" }}>
           <div>
-            <h3 style={{ fontFamily: "var(--font-label)", fontSize: "0.78rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#7A9E6F", marginBottom: "0.9rem" }}>Description</h3>
+            <h3 style={{ fontFamily: "var(--font-label)", fontSize: "0.78rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#9E6B5C", marginBottom: "0.9rem" }}>Description</h3>
             {story.body.split("\n\n").map((para, i) => (
               <p key={i} style={{ fontFamily: "var(--font-body)", fontSize: "clamp(1.05rem, 1.7vw, 1.2rem)", lineHeight: 1.85, color: "#1A1A1A", marginBottom: "1.45rem" }}>{para}</p>
             ))}
           </div>
 
+          {storyPoint ? (
+            <div style={{ borderTop: "1px solid rgba(58,42,34,0.12)", paddingTop: "1.75rem", margin: "0.5rem 0 1.75rem" }}>
+              <div style={{ backgroundColor: "#EFE7DC", border: "1px solid rgba(58,42,34,0.12)", borderRadius: "0.45rem", padding: "1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+                <div>
+                  <p style={{ margin: "0 0 0.35rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#9E6B5C" }}>Share your own trace</p>
+                  <h3 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.35rem", fontWeight: 600, color: "#3A2A22", lineHeight: 1.1 }}>Want to share your own story of this location?</h3>
+                  <p style={{ margin: "0.45rem 0 0", fontFamily: "var(--font-body)", color: "#5B4A40", lineHeight: 1.6 }}>Pin {storyPoint.place} on your map and write what happened there.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handlePinStoryLocation}
+                  style={{ display: "inline-flex", minHeight: 42, alignItems: "center", justifyContent: "center", gap: "0.45rem", borderRadius: "999px", border: "1px solid #3A2A22", backgroundColor: "#3A2A22", color: "#FBF7F0", padding: "0.62rem 1rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}
+                >
+                  <MapPin size={14} /> Pin this
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           {/* Comments */}
-          <div style={{ borderTop: "2px solid rgba(45,74,45,0.1)", paddingTop: "1.75rem", marginTop: "0.5rem" }}>
+          <div style={{ borderTop: "2px solid rgba(58,42,34,0.1)", paddingTop: "1.75rem", marginTop: "0.5rem" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1.5rem" }}>
-              <MessageCircle size={18} color="#2D4A2D" />
-              <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 600, color: "#2D4A2D", margin: 0 }}>
+              <MessageCircle size={18} color="#3A2A22" />
+              <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 600, color: "#3A2A22", margin: 0 }}>
                 {comments.length} Comment{comments.length !== 1 ? "s" : ""}
               </h3>
             </div>
@@ -342,12 +390,12 @@ function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext }: {
                   onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) submitComment(); }}
                   placeholder="Share your thoughts on this story…"
                   rows={2}
-                  style={{ width: "100%", padding: "0.625rem 0.875rem", backgroundColor: "#EDEAE0", border: "1px solid rgba(45,74,45,0.15)", borderRadius: "0.5rem", fontSize: "0.9rem", color: "#1A1A1A", fontFamily: "var(--font-body)", outline: "none", resize: "none", boxSizing: "border-box", lineHeight: 1.6 }}
+                  style={{ width: "100%", padding: "0.625rem 0.875rem", backgroundColor: "#EDEAE0", border: "1px solid rgba(58,42,34,0.15)", borderRadius: "0.5rem", fontSize: "0.9rem", color: "#1A1A1A", fontFamily: "var(--font-body)", outline: "none", resize: "none", boxSizing: "border-box", lineHeight: 1.6 }}
                 />
                 <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.5rem" }}>
                   <button
                     onClick={submitComment}
-                    style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.45rem 1rem", backgroundColor: commentInput.trim() ? "#2D4A2D" : "#D8D4C8", color: "#F5F0E8", border: "none", borderRadius: "0.25rem", cursor: commentInput.trim() ? "pointer" : "default", fontFamily: "var(--font-label)", fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", transition: "background 0.15s" }}
+                    style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.45rem 1rem", backgroundColor: commentInput.trim() ? "#3A2A22" : "#D8D4C8", color: "#F5F0E8", border: "none", borderRadius: "0.25rem", cursor: commentInput.trim() ? "pointer" : "default", fontFamily: "var(--font-label)", fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", transition: "background 0.15s" }}
                   >
                     <Send size={13} /> Post
                   </button>
@@ -392,9 +440,20 @@ function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext }: {
 }
 
 function StoriesContent() {
+  const location = useLocation();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
-  const [activeStory, setActiveStory] = useState<number | null>(null);
+  const [activeStory, setActiveStory] = useState<number | null>(() => {
+    const requestedStory = Number(new URLSearchParams(location.search).get("story"));
+    return STORIES.some((story) => story.id === requestedStory) ? requestedStory : null;
+  });
+
+  useEffect(() => {
+    const requestedStory = Number(new URLSearchParams(location.search).get("story"));
+    if (STORIES.some((story) => story.id === requestedStory)) {
+      setActiveStory(requestedStory);
+    }
+  }, [location.search]);
 
   const filtered = STORIES.filter((s) => {
     const matchSearch = s.title.toLowerCase().includes(search.toLowerCase()) || s.author.toLowerCase().includes(search.toLowerCase()) || s.region.toLowerCase().includes(search.toLowerCase());
@@ -421,8 +480,8 @@ function StoriesContent() {
     <div style={{ minHeight: "100vh", backgroundColor: "#F5F0E8", padding: "3rem 1.5rem" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ marginBottom: "2.5rem" }}>
-          <p style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#7A9E6F", marginBottom: "0.5rem" }}>Travel narratives</p>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 600, color: "#2D4A2D", marginBottom: "0.5rem" }}>Stories</h1>
+          <p style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#9E6B5C", marginBottom: "0.5rem" }}>Travel narratives</p>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 600, color: "#3A2A22", marginBottom: "0.5rem" }}>Stories</h1>
           <p style={{ fontFamily: "var(--font-body)", color: "#6B6B5A", fontSize: "1rem" }}>Long-form travel narratives from the TravelTraces community — honest, personal, and unhighlighted.</p>
         </div>
 
@@ -433,12 +492,12 @@ function StoriesContent() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search stories, authors, regions…"
-              style={{ width: "100%", padding: "0.75rem 1rem 0.75rem 2.5rem", backgroundColor: "#EDEAE0", border: "1px solid rgba(45,74,45,0.15)", borderRadius: "0.25rem", fontSize: "0.9rem", color: "#1A1A1A", fontFamily: "var(--font-ui)", outline: "none", boxSizing: "border-box" }}
+              style={{ width: "100%", padding: "0.75rem 1rem 0.75rem 2.5rem", backgroundColor: "#EDEAE0", border: "1px solid rgba(58,42,34,0.15)", borderRadius: "0.25rem", fontSize: "0.9rem", color: "#1A1A1A", fontFamily: "var(--font-ui)", outline: "none", boxSizing: "border-box" }}
             />
           </div>
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
             {categories.map((c) => (
-              <button key={c} onClick={() => setCategory(c)} style={{ padding: "0.6rem 1rem", borderRadius: "0.25rem", border: "1px solid", borderColor: category === c ? "#2D4A2D" : "rgba(45,74,45,0.2)", backgroundColor: category === c ? "#2D4A2D" : "transparent", color: category === c ? "#F5F0E8" : "#2D4A2D", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.78rem", fontWeight: 500, letterSpacing: "0.05em" }}>
+              <button key={c} onClick={() => setCategory(c)} style={{ padding: "0.6rem 1rem", borderRadius: "0.25rem", border: "1px solid", borderColor: category === c ? "#3A2A22" : "rgba(58,42,34,0.2)", backgroundColor: category === c ? "#3A2A22" : "transparent", color: category === c ? "#F5F0E8" : "#3A2A22", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.78rem", fontWeight: 500, letterSpacing: "0.05em" }}>
                 {c}
               </button>
             ))}
@@ -455,7 +514,7 @@ function StoriesContent() {
             <img src={filtered[0].img} alt={filtered[0].title} style={{ width: "100%", height: 380, objectFit: "cover", display: "block" }} />
             <div style={{ padding: "2.5rem", display: "flex", flexDirection: "column", justifyContent: "center" }}>
               <span style={{ fontFamily: "var(--font-label)", fontSize: "0.7rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#C4713A", marginBottom: "0.75rem" }}>{filtered[0].category}</span>
-              <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.75rem", fontWeight: 600, color: "#2D4A2D", lineHeight: 1.3, marginBottom: "1rem" }}>{filtered[0].title}</h2>
+              <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.75rem", fontWeight: 600, color: "#3A2A22", lineHeight: 1.3, marginBottom: "1rem" }}>{filtered[0].title}</h2>
               <p style={{ fontFamily: "var(--font-body)", color: "#4A4A3A", lineHeight: 1.7, fontSize: "0.95rem", marginBottom: "1.5rem" }}>{filtered[0].excerpt}</p>
               <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                 <div>
@@ -483,7 +542,7 @@ function StoriesContent() {
               <img src={s.img} alt={s.title} style={{ width: "100%", height: 180, objectFit: "cover", display: "block" }} />
               <div style={{ padding: "1.25rem" }}>
                 <span style={{ fontFamily: "var(--font-label)", fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#C4713A" }}>{s.category}</span>
-                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.15rem", fontWeight: 600, color: "#2D4A2D", lineHeight: 1.35, margin: "0.4rem 0 0.75rem" }}>{s.title}</h3>
+                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.15rem", fontWeight: 600, color: "#3A2A22", lineHeight: 1.35, margin: "0.4rem 0 0.75rem" }}>{s.title}</h3>
                 <p style={{ fontFamily: "var(--font-body)", fontSize: "0.875rem", color: "#4A4A3A", lineHeight: 1.6, marginBottom: "1rem" }}>{s.excerpt.slice(0, 120)}…</p>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>

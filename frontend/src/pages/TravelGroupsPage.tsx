@@ -148,8 +148,8 @@ function TravelGroupsContent() {
       <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[1fr_1fr]">
         <div className="space-y-6">
           <div>
-            <p className="mb-2 font-[var(--font-label)] text-sm font-semibold uppercase tracking-[0.06em] text-[#7A9E6F]">Travel coordination</p>
-            <h1 className="m-0 font-[var(--font-display)] text-4xl font-semibold text-[#2D4A2D]">Travel Groups</h1>
+            <p className="mb-2 font-[var(--font-label)] text-sm font-semibold uppercase tracking-[0.06em] text-[#9E6B5C]">Travel coordination</p>
+            <h1 className="m-0 font-[var(--font-display)] text-4xl font-semibold text-[#3A2A22]">Travel Groups</h1>
           </div>
           <WorkspaceSection title="Create or Join" icon={UserPlus}>
             <div className="grid gap-3">
@@ -185,17 +185,17 @@ function TravelGroupsContent() {
         <div className="space-y-6">
           <WorkspaceSection title="Invite Code" icon={Copy}>
             <WorkspaceButton variant="secondary" icon={Copy} disabled={!activeGroup} onClick={() => void generateInvite()}>Generate 2-Day Code</WorkspaceButton>
-            {shareCode && <div className="mt-4 rounded-lg bg-[#F5F0E8] p-4 text-center font-[var(--font-display)] text-3xl font-bold text-[#2D4A2D]">{shareCode}</div>}
+            {shareCode && <div className="mt-4 rounded-lg bg-[#F5F0E8] p-4 text-center font-[var(--font-display)] text-3xl font-bold text-[#3A2A22]">{shareCode}</div>}
           </WorkspaceSection>
           <WorkspaceSection title="Notifications" icon={Bell}>
             <div className="grid gap-2">
               {notifications.map((item) => {
                 const read = item.read_by.includes(viewerId);
                 return (
-                  <div key={item.event_id} className={`rounded-lg border p-3 text-sm ${read ? "border-[#2D4A2D]/10 bg-[#F5F0E8]" : "border-[#C4713A]/30 bg-[#C4713A]/10"}`}>
+                  <div key={item.event_id} className={`rounded-lg border p-3 text-sm ${read ? "border-[#3A2A22]/10 bg-[#F5F0E8]" : "border-[#C4713A]/30 bg-[#C4713A]/10"}`}>
                     <div className="font-semibold">{item.message}</div>
                     <div className="mt-2 flex gap-2">
-                      <button onClick={() => void markTravelNotificationRead(item.circle_id, item.event_id, viewerId).then(() => refresh(activeId))} className="text-xs font-semibold uppercase text-[#2D4A2D]">Mark read</button>
+                      <button onClick={() => void markTravelNotificationRead(item.circle_id, item.event_id, viewerId).then(() => refresh(activeId))} className="text-xs font-semibold uppercase text-[#3A2A22]">Mark read</button>
                       <button onClick={() => void deleteTravelNotification(item.circle_id, item.event_id, viewerId).then(() => refresh(activeId))} className="inline-flex items-center gap-1 text-xs font-semibold uppercase text-[#C0392B]"><Trash2 size={12} />Delete</button>
                     </div>
                   </div>

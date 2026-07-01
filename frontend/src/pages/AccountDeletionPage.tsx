@@ -38,7 +38,7 @@ function AccountDeletionContent() {
       <div className="mx-auto max-w-2xl">
         <div className="mb-6">
           <p className="mb-2 font-[var(--font-label)] text-sm font-semibold uppercase tracking-[0.06em] text-[#C4713A]">Data ownership</p>
-          <h1 className="m-0 font-[var(--font-display)] text-4xl font-semibold text-[#2D4A2D]">Delete My Account</h1>
+          <h1 className="m-0 font-[var(--font-display)] text-4xl font-semibold text-[#3A2A22]">Delete My Account</h1>
         </div>
         <WorkspaceSection title="Permanent Account Deletion" icon={AlertTriangle} iconClassName="text-[#C0392B]">
           <div className="rounded-lg border border-[#C0392B]/25 bg-[#C0392B]/10 p-4 text-sm leading-6 text-[#8a2c23]">

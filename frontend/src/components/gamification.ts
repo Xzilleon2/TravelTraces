@@ -43,7 +43,7 @@ export type Level = {
 
 export const LEVELS: Level[] = [
   { level: 1,  title: "Newcomer",       tagalog: "Baguhan",        minXp: 0,     maxXp: 299,   color: "#9A9A8A" },
-  { level: 2,  title: "Wanderer",       tagalog: "Palaboy",        minXp: 300,   maxXp: 699,   color: "#7A9E6F" },
+  { level: 2,  title: "Wanderer",       tagalog: "Palaboy",        minXp: 300,   maxXp: 699,   color: "#9E6B5C" },
   { level: 3,  title: "Traveler",       tagalog: "Manlalakbay",    minXp: 700,   maxXp: 1399,  color: "#5C8A9E" },
   { level: 4,  title: "Explorer",       tagalog: "Trail Seeker",    minXp: 1400,  maxXp: 2499,  color: "#4A78A8" },
   { level: 5,  title: "Pathfinder",     tagalog: "Tagahanap",      minXp: 2500,  maxXp: 4199,  color: "#9E6B5C" },
@@ -51,7 +51,7 @@ export const LEVELS: Level[] = [
   { level: 7,  title: "Navigator",      tagalog: "Piloto",         minXp: 6500,  maxXp: 9999,  color: "#9B59B6" },
   { level: 8,  title: "Chronicler",     tagalog: "Manunulat",      minXp: 10000, maxXp: 15999, color: "#E67E22" },
   { level: 9,  title: "Archipelago Hero", tagalog: "Bayani",      minXp: 16000, maxXp: 24999, color: "#C0392B" },
-  { level: 10, title: "Legend",         tagalog: "Alamat",         minXp: 25000, maxXp: Infinity, color: "#2D4A2D" },
+  { level: 10, title: "Legend",         tagalog: "Alamat",         minXp: 25000, maxXp: Infinity, color: "#3A2A22" },
 ];
 
 export function getLevelFromXp(xp: number): Level {

@@ -4,7 +4,7 @@ import { GamifiedUser, BADGES, getLevelFromXp, getXpProgress } from "./gamificat
 
 const RARITY_COLOR: Record<string, string> = {
   common:    "#9A9A8A",
-  uncommon:  "#7A9E6F",
+  uncommon:  "#9E6B5C",
   rare:      "#5C8A9E",
   epic:      "#9B59B6",
   legendary: "#C4713A",
@@ -12,7 +12,7 @@ const RARITY_COLOR: Record<string, string> = {
 
 const RARITY_BG: Record<string, string> = {
   common:    "rgba(154,154,138,0.1)",
-  uncommon:  "rgba(122,158,111,0.12)",
+  uncommon:  "rgba(158,107,92,0.12)",
   rare:      "rgba(92,138,158,0.12)",
   epic:      "rgba(155,89,182,0.12)",
   legendary: "rgba(196,113,58,0.15)",
@@ -75,7 +75,7 @@ export function UserProfileModal({ user, onClose }: { user: GamifiedUser; onClos
       <div style={{ backgroundColor: "#F5F0E8", borderRadius: "0.75rem", width: "100%", maxWidth: 520, maxHeight: "90vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 28px 72px rgba(0,0,0,0.28)" }}>
 
         {/* Header band */}
-        <div style={{ background: `linear-gradient(135deg, #1A2E1A 0%, ${level.color}55 100%)`, padding: "1.75rem 1.5rem 1.25rem", position: "relative", flexShrink: 0 }}>
+        <div style={{ background: `linear-gradient(135deg, #2C211C 0%, ${level.color}55 100%)`, padding: "1.75rem 1.5rem 1.25rem", position: "relative", flexShrink: 0 }}>
           <button onClick={onClose} style={{ position: "absolute", top: "1rem", right: "1rem", background: "rgba(245,240,232,0.12)", border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#F5F0E8" }}>
             <X size={15} />
           </button>
@@ -89,7 +89,7 @@ export function UserProfileModal({ user, onClose }: { user: GamifiedUser; onClos
                 backgroundColor: level.color, color: "#F5F0E8",
                 fontFamily: "var(--font-label)", fontSize: "0.6rem", fontWeight: 800,
                 letterSpacing: "0.06em", padding: "0.15rem 0.5rem", borderRadius: "2rem",
-                whiteSpace: "nowrap", border: "2px solid #1A2E1A",
+                whiteSpace: "nowrap", border: "2px solid #2C211C",
               }}>
                 LVL {level.level}
               </div>
@@ -112,8 +112,8 @@ export function UserProfileModal({ user, onClose }: { user: GamifiedUser; onClos
               style={{
                 display: "flex", alignItems: "center", gap: "0.4rem",
                 padding: "0.5rem 1rem", borderRadius: "2rem", border: "none",
-                backgroundColor: following ? "rgba(122,158,111,0.25)" : "#C4713A",
-                color: following ? "#7A9E6F" : "#F5F0E8",
+                backgroundColor: following ? "rgba(158,107,92,0.25)" : "#C4713A",
+                color: following ? "#9E6B5C" : "#F5F0E8",
                 cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.72rem",
                 fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
                 flexShrink: 0, transition: "all 0.15s",
@@ -128,7 +128,7 @@ export function UserProfileModal({ user, onClose }: { user: GamifiedUser; onClos
         <div style={{ overflowY: "auto", flex: 1 }}>
 
           {/* XP bar */}
-          <div style={{ padding: "1rem 1.5rem 0.75rem", borderBottom: "1px solid rgba(45,74,45,0.1)", backgroundColor: "#FAF7F0" }}>
+          <div style={{ padding: "1rem 1.5rem 0.75rem", borderBottom: "1px solid rgba(58,42,34,0.1)", backgroundColor: "#FAF7F0" }}>
             <XpBar xp={user.xp} />
           </div>
 
@@ -143,10 +143,10 @@ export function UserProfileModal({ user, onClose }: { user: GamifiedUser; onClos
             <div>
               <p style={{ fontFamily: "var(--font-label)", fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#6B6B5A", marginBottom: "0.625rem" }}>Activity</p>
               <div style={{ display: "flex", gap: "0.5rem" }}>
-                <StatPill icon={BookOpen}  value={user.storiesCount}         label="Stories"    color="#2D4A2D" />
+                <StatPill icon={BookOpen}  value={user.storiesCount}         label="Stories"    color="#3A2A22" />
                 <StatPill icon={Pin}       value={user.pinsCount}            label="Pins"       color="#5C8A9E" />
                 <StatPill icon={Trophy}    value={user.challengesCompleted}  label="Challenges" color="#C4713A" />
-                <StatPill icon={Users}     value={user.communitiesJoined}    label="Communities"color="#7A9E6F" />
+                <StatPill icon={Users}     value={user.communitiesJoined}    label="Communities"color="#9E6B5C" />
               </div>
             </div>
 
@@ -191,7 +191,7 @@ export function UserProfileModal({ user, onClose }: { user: GamifiedUser; onClos
                     <div key={s.id} style={{ display: "flex", gap: "0.75rem", backgroundColor: "#EDEAE0", borderRadius: "0.375rem", overflow: "hidden" }}>
                       <img src={s.img} alt={s.title} style={{ width: 80, height: 64, objectFit: "cover", flexShrink: 0 }} />
                       <div style={{ padding: "0.625rem 0.75rem 0.625rem 0", display: "flex", flexDirection: "column", justifyContent: "center", gap: "0.25rem", minWidth: 0 }}>
-                        <p style={{ fontFamily: "var(--font-display)", fontSize: "0.9rem", fontWeight: 600, color: "#2D4A2D", lineHeight: 1.3, margin: 0, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{s.title}</p>
+                        <p style={{ fontFamily: "var(--font-display)", fontSize: "0.9rem", fontWeight: 600, color: "#3A2A22", lineHeight: 1.3, margin: 0, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{s.title}</p>
                         <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
                           <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.72rem", color: "#6B6B5A", display: "flex", alignItems: "center", gap: "0.25rem" }}>
                             <MapPin size={10} />{s.region}

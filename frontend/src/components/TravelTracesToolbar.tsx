@@ -48,7 +48,7 @@ export function TravelTracesToolbar({ activeMenu, buttons, onActiveMenuChange }:
     <div className="pointer-events-none fixed inset-x-0 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 flex justify-center px-2 sm:bottom-6 sm:px-3">
       <div ref={toolbarRef} className="pointer-events-auto relative w-full max-w-[calc(100vw-1rem)] sm:w-auto sm:max-w-none">
         {activeButton ? (
-          <div className="absolute bottom-[calc(100%+0.6rem)] left-1/2 max-h-[min(72dvh,34rem)] w-[min(96vw,28rem)] -translate-x-1/2 overflow-y-auto overscroll-contain rounded-2xl border border-[#2D4A2D]/10 bg-white p-3 text-[#1A1A1A] shadow-[0_20px_45px_rgba(27,37,38,0.18)] sm:bottom-[calc(100%+0.85rem)] sm:p-4">
+          <div className="absolute bottom-[calc(100%+0.6rem)] left-1/2 max-h-[min(72dvh,34rem)] w-[min(96vw,28rem)] -translate-x-1/2 overflow-y-auto overscroll-contain rounded-2xl border border-[#3A2A22]/10 bg-white p-3 text-[#1A1A1A] shadow-[0_20px_45px_rgba(27,37,38,0.18)] sm:bottom-[calc(100%+0.85rem)] sm:p-4">
             {activeButton.panel}
           </div>
         ) : null}

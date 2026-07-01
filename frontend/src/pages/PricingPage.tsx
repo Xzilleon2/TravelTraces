@@ -242,7 +242,7 @@ export default function PricingPage() {
         .pricing-hero { position: relative; min-height: 520px; display: grid; place-items: center; text-align: center; overflow: hidden; padding: 5rem 1.5rem; }
         .pricing-hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: sepia(0.12) saturate(0.92); }
         .pricing-hero-warmth { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(72,42,20,0.34), rgba(44,33,28,0.68)); }
-        .pricing-frame { position: absolute; inset: 10%; border: 1px solid rgba(251,247,240,0.2); background-image: linear-gradient(90deg, rgba(251,247,240,0.12) 1px, transparent 1px), linear-gradient(rgba(251,247,240,0.1) 1px, transparent 1px); background-size: 25% 100%, 100% 50%; }
+        .pricing-frame { position: absolute; inset: 10%; border: 1px solid rgba(251,247,240,0.2); }
         .pricing-hero-copy { position: relative; z-index: 1; max-width: 760px; color: #FBF7F0; }
         .pricing-hero-copy p, .section-kicker, .pricing-kicker { margin: 0 0 0.75rem; font-family: var(--font-label); font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: #CFA68A; }
         .pricing-hero-copy h1, .pricing-compare h2, .pricing-addons h2, .pricing-faq h2, .pricing-final h2 { margin: 0; font-family: var(--font-display); font-weight: 500; letter-spacing: 0; text-transform: uppercase; line-height: 0.98; }

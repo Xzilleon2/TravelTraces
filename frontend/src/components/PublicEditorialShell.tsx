@@ -18,7 +18,7 @@ export function PublicEditorialShell({
       <section className="public-hero" style={{ position: "relative", minHeight: 420, display: "grid", placeItems: "center", textAlign: "center", overflow: "hidden", padding: "4.5rem 1.5rem" }}>
         <img src={HERO_IMG} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(72,42,20,0.32), rgba(44,33,28,0.66))" }} />
-        <div style={{ position: "absolute", inset: "12%", border: "1px solid rgba(251,247,240,0.2)", backgroundImage: "linear-gradient(90deg, rgba(251,247,240,0.12) 1px, transparent 1px), linear-gradient(rgba(251,247,240,0.1) 1px, transparent 1px)", backgroundSize: "25% 100%, 100% 50%" }} />
+        <div style={{ position: "absolute", inset: "12%", border: "1px solid rgba(251,247,240,0.2)" }} />
         <div style={{ position: "relative", zIndex: 1, width: "min(100%, 760px)", color: "#FBF7F0" }}>
           <p style={{ fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: "1rem" }}>{eyebrow}</p>
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.6rem, 7vw, 5rem)", fontWeight: 500, lineHeight: 0.98, textTransform: "uppercase", margin: 0 }}>{title}</h1>

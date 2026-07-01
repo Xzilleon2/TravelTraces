@@ -63,7 +63,7 @@ function formatDuration(seconds?: number) {
 
 function LayerSwitcher({ activeLayer, onChange }: { activeLayer: LayerKey; onChange: (layer: LayerKey) => void }) {
   return (
-    <div className="absolute left-4 top-4 z-[1000] overflow-hidden rounded border border-[#2D4A2D]/15 bg-[#F5F0E8]/95 shadow-lg backdrop-blur">
+    <div className="absolute left-4 top-4 z-[1000] overflow-hidden rounded border border-[#3A2A22]/15 bg-[#F5F0E8]/95 shadow-lg backdrop-blur">
       {layerOptions.map((option) => {
         const Icon = option.icon;
         const selected = activeLayer === option.key;
@@ -72,8 +72,8 @@ function LayerSwitcher({ activeLayer, onChange }: { activeLayer: LayerKey; onCha
             key={option.key}
             type="button"
             onClick={() => onChange(option.key)}
-            className={`flex min-h-11 w-40 items-center gap-2 border-b border-[#2D4A2D]/10 px-3 py-2 text-left font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.05em] transition last:border-b-0 ${
-              selected ? "bg-[#2D4A2D] text-[#F5F0E8]" : "text-[#2D4A2D] hover:bg-[#EDEAE0]"
+            className={`flex min-h-11 w-40 items-center gap-2 border-b border-[#3A2A22]/10 px-3 py-2 text-left font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.05em] transition last:border-b-0 ${
+              selected ? "bg-[#3A2A22] text-[#F5F0E8]" : "text-[#3A2A22] hover:bg-[#EDEAE0]"
             }`}
             aria-pressed={selected}
           >
@@ -88,7 +88,7 @@ function LayerSwitcher({ activeLayer, onChange }: { activeLayer: LayerKey; onCha
 
 function ScopeControl({ value, onChange }: { value: MapScope; onChange: (scope: MapScope) => void }) {
   return (
-    <div className="grid grid-cols-3 overflow-hidden rounded border border-[#2D4A2D]/15">
+    <div className="grid grid-cols-3 overflow-hidden rounded border border-[#3A2A22]/15">
       {scopeOptions.map((option) => {
         const Icon = option.icon;
         const selected = value === option.key;
@@ -98,7 +98,7 @@ function ScopeControl({ value, onChange }: { value: MapScope; onChange: (scope: 
             type="button"
             onClick={() => onChange(option.key)}
             className={`flex min-h-11 items-center justify-center gap-1.5 px-2 font-[var(--font-label)] text-[0.68rem] font-semibold uppercase tracking-[0.06em] transition ${
-              selected ? "bg-[#2D4A2D] text-[#F5F0E8]" : "bg-[#F5F0E8] text-[#2D4A2D] hover:bg-[#EDEAE0]"
+              selected ? "bg-[#3A2A22] text-[#F5F0E8]" : "bg-[#F5F0E8] text-[#3A2A22] hover:bg-[#EDEAE0]"
             }`}
             aria-pressed={selected}
           >
@@ -113,7 +113,7 @@ function ScopeControl({ value, onChange }: { value: MapScope; onChange: (scope: 
 
 function EngineControl({ value, onChange }: { value: RouteEngine; onChange: (engine: RouteEngine) => void }) {
   return (
-    <div className="grid grid-cols-3 overflow-hidden rounded border border-[#2D4A2D]/15">
+    <div className="grid grid-cols-3 overflow-hidden rounded border border-[#3A2A22]/15">
       {engineOptions.map((option) => {
         const selected = value === option.key;
         return (
@@ -122,7 +122,7 @@ function EngineControl({ value, onChange }: { value: RouteEngine; onChange: (eng
             type="button"
             onClick={() => onChange(option.key)}
             className={`min-h-11 px-2 font-[var(--font-label)] text-[0.68rem] font-semibold uppercase tracking-[0.06em] transition ${
-              selected ? "bg-[#C4713A] text-[#F5F0E8]" : "bg-[#F5F0E8] text-[#2D4A2D] hover:bg-[#EDEAE0]"
+              selected ? "bg-[#C4713A] text-[#F5F0E8]" : "bg-[#F5F0E8] text-[#3A2A22] hover:bg-[#EDEAE0]"
             }`}
             aria-pressed={selected}
           >
@@ -190,7 +190,7 @@ function LocatorControl({
       className={`absolute right-4 top-4 z-[1000] flex min-h-11 min-w-11 items-center justify-center rounded border shadow-lg transition ${
         active
           ? "border-[#C4713A] bg-[#C4713A] text-[#F5F0E8]"
-          : "border-[#2D4A2D]/15 bg-[#F5F0E8]/95 text-[#2D4A2D] hover:bg-[#EDEAE0]"
+          : "border-[#3A2A22]/15 bg-[#F5F0E8]/95 text-[#3A2A22] hover:bg-[#EDEAE0]"
       }`}
       aria-label={active ? "Disable GPS locator" : "Enable GPS locator"}
       title={active ? "Disable GPS locator" : "Enable GPS locator"}
@@ -230,8 +230,8 @@ function FlyToLocation({ location }: { location: ApiLocation | null }) {
 function pinColor(pin: ApiPin) {
   if (pin.source === "exif") return "#5C8A9E";
   if (pin.scope === "public") return "#C4713A";
-  if (pin.scope === "group") return "#7A9E6F";
-  return "#2D4A2D";
+  if (pin.scope === "group") return "#9E6B5C";
+  return "#3A2A22";
 }
 
 function GeotaggedMediaCapture({
@@ -281,10 +281,10 @@ function GeotaggedMediaCapture({
   };
 
   return (
-    <div className="rounded border border-[#2D4A2D]/15 bg-[#EDEAE0] p-4">
+    <div className="rounded border border-[#3A2A22]/15 bg-[#EDEAE0] p-4">
       <div className="mb-3 flex items-center gap-2">
         <Camera size={18} className="text-[#5C8A9E]" />
-        <h2 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2D4A2D]">Photo Pin</h2>
+        <h2 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#3A2A22]">Photo Pin</h2>
       </div>
       <label
         className={`inline-flex min-h-11 w-full items-center justify-center gap-2 rounded px-4 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] transition ${
@@ -306,7 +306,7 @@ function GeotaggedMediaCapture({
         />
       </label>
       {previewUrl && (
-        <div className="mt-3 overflow-hidden rounded border border-[#2D4A2D]/15">
+        <div className="mt-3 overflow-hidden rounded border border-[#3A2A22]/15">
           <img src={previewUrl} alt="Selected geotagged media" className="h-28 w-full object-cover" />
         </div>
       )}
@@ -332,11 +332,11 @@ function TelemetryPanel({
   onStop: () => void;
 }) {
   return (
-    <div className="rounded border border-[#2D4A2D]/15 bg-[#EDEAE0] p-4">
+    <div className="rounded border border-[#3A2A22]/15 bg-[#EDEAE0] p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          {connected ? <ShieldCheck size={18} className="text-[#7A9E6F]" /> : <Radio size={18} className="text-[#5C8A9E]" />}
-          <h2 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2D4A2D]">Telemetry</h2>
+          {connected ? <ShieldCheck size={18} className="text-[#9E6B5C]" /> : <Radio size={18} className="text-[#5C8A9E]" />}
+          <h2 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#3A2A22]">Telemetry</h2>
         </div>
         <span className="font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#6B6B5A]">
           {remoteCount} nodes
@@ -356,7 +356,7 @@ function TelemetryPanel({
           type="button"
           onClick={onStop}
           disabled={!connected}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded border border-[#2D4A2D]/20 bg-[#F5F0E8] px-3 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#2D4A2D] transition hover:bg-[#EDEAE0] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded border border-[#3A2A22]/20 bg-[#F5F0E8] px-3 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#3A2A22] transition hover:bg-[#EDEAE0] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <WifiOff size={15} />
           Stop
@@ -366,13 +366,13 @@ function TelemetryPanel({
         type="button"
         onClick={onPublish}
         disabled={!connected || disabled}
-        className="mt-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded bg-[#2D4A2D] px-4 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#F5F0E8] transition hover:bg-[#234023] disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded bg-[#3A2A22] px-4 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#F5F0E8] transition hover:bg-[#4B352A] disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Send size={15} />
         Publish Position
       </button>
       <div className="mt-3 rounded bg-[#F5F0E8] p-3 text-xs text-[#6B6B5A]">
-        <span className="block font-[var(--font-label)] font-semibold uppercase tracking-[0.08em] text-[#2D4A2D]">
+        <span className="block font-[var(--font-label)] font-semibold uppercase tracking-[0.08em] text-[#3A2A22]">
           {connected ? "Signed session active" : "No active socket"}
         </span>
         <span className="mt-1 block break-all">{session?.session_id ?? "Create a scoped session from the current route or map state."}</span>
@@ -591,12 +591,12 @@ export function LayerMapInterface() {
   return (
     <section className="min-h-dvh bg-[#F5F0E8] px-4 py-6 font-[var(--font-ui)] text-[#1A1A1A] sm:px-6">
       <div className="mx-auto flex max-w-[1400px] flex-col gap-5">
-        <header className="flex flex-col justify-between gap-4 border-b border-[#2D4A2D]/10 pb-5 lg:flex-row lg:items-end">
+        <header className="flex flex-col justify-between gap-4 border-b border-[#3A2A22]/10 pb-5 lg:flex-row lg:items-end">
           <div>
-            <p className="mb-1 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.14em] text-[#7A9E6F]">
+            <p className="mb-1 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.14em] text-[#9E6B5C]">
               Phase III Mapping Layer
             </p>
-            <h1 className="m-0 font-[var(--font-display)] text-3xl font-semibold text-[#2D4A2D]">
+            <h1 className="m-0 font-[var(--font-display)] text-3xl font-semibold text-[#3A2A22]">
               Live Base Map
             </h1>
           </div>
@@ -611,7 +611,7 @@ export function LayerMapInterface() {
                 setGpsLocation(null);
                 setOrigin(event.target.value);
               }}
-              className="min-h-11 rounded border border-[#2D4A2D]/15 bg-[#EDEAE0] px-3 text-sm outline-none transition focus:border-[#2D4A2D]"
+              className="min-h-11 rounded border border-[#3A2A22]/15 bg-[#EDEAE0] px-3 text-sm outline-none transition focus:border-[#3A2A22]"
               placeholder="Origin"
             />
             <label className="sr-only" htmlFor="place-search">
@@ -624,14 +624,14 @@ export function LayerMapInterface() {
               onKeyDown={(event) => {
                 if (event.key === "Enter") void handleSearch();
               }}
-              className="min-h-11 rounded border border-[#2D4A2D]/15 bg-white px-3 text-sm outline-none transition focus:border-[#2D4A2D]"
+              className="min-h-11 rounded border border-[#3A2A22]/15 bg-white px-3 text-sm outline-none transition focus:border-[#3A2A22]"
               placeholder="Search destination"
             />
             <button
               type="button"
               onClick={handleSearch}
               disabled={busy}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-[#2D4A2D] px-4 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#F5F0E8] transition hover:bg-[#234023] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-[#3A2A22] px-4 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#F5F0E8] transition hover:bg-[#4B352A] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Search size={15} />
               Search
@@ -640,7 +640,7 @@ export function LayerMapInterface() {
         </header>
 
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="relative min-h-[560px] overflow-hidden rounded border border-[#2D4A2D]/15 bg-[#EDEAE0] shadow-sm">
+          <div className="relative min-h-[560px] overflow-hidden rounded border border-[#3A2A22]/15 bg-[#EDEAE0] shadow-sm">
             <MapContainer
               bounds={SEA_LEAFLET_BOUNDS}
               maxBounds={SEA_LEAFLET_BOUNDS}
@@ -717,7 +717,7 @@ export function LayerMapInterface() {
               ))}
 
               {gpsLocation && (
-                <CircleMarker center={gpsLocation.coordinate} pathOptions={{ color: "#2D4A2D", fillColor: "#7A9E6F", fillOpacity: 0.9 }} radius={9}>
+                <CircleMarker center={gpsLocation.coordinate} pathOptions={{ color: "#3A2A22", fillColor: "#9E6B5C", fillOpacity: 0.9 }} radius={9}>
                   <Popup>{gpsLocation.label}</Popup>
                 </CircleMarker>
               )}
@@ -728,7 +728,7 @@ export function LayerMapInterface() {
                 </CircleMarker>
               )}
 
-              {routeLine.length > 0 && <Polyline positions={routeLine} pathOptions={{ color: "#2D4A2D", weight: 5, opacity: 0.85 }} />}
+              {routeLine.length > 0 && <Polyline positions={routeLine} pathOptions={{ color: "#3A2A22", weight: 5, opacity: 0.85 }} />}
 
               <ReverseClickHandler onReverse={setSelectedLocation} />
               <FlyToLocation location={selectedLocation} />
@@ -746,9 +746,9 @@ export function LayerMapInterface() {
           </div>
 
           <aside className="flex flex-col gap-4">
-            <div className="rounded border border-[#2D4A2D]/15 bg-[#EDEAE0] p-4">
+            <div className="rounded border border-[#3A2A22]/15 bg-[#EDEAE0] p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2D4A2D]">Scope</h2>
+                <h2 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#3A2A22]">Scope</h2>
                 <span className="font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#6B6B5A]">
                   {pins.length} pins / {savedRouteCount} routes
                 </span>
@@ -758,16 +758,16 @@ export function LayerMapInterface() {
                 type="button"
                 onClick={handleSaveSelectedPin}
                 disabled={busy || !selectedLocation}
-                className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded bg-[#2D4A2D] px-4 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#F5F0E8] transition hover:bg-[#234023] disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded bg-[#3A2A22] px-4 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#F5F0E8] transition hover:bg-[#4B352A] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <MapPin size={15} />
                 Save Pin
               </button>
             </div>
 
-            <div className="rounded border border-[#2D4A2D]/15 bg-[#EDEAE0] p-4">
+            <div className="rounded border border-[#3A2A22]/15 bg-[#EDEAE0] p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2D4A2D]">Places</h2>
+                <h2 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#3A2A22]">Places</h2>
                 <span className="font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#6B6B5A]">
                   {results.length} results
                 </span>
@@ -782,8 +782,8 @@ export function LayerMapInterface() {
                       onClick={() => setSelectedLocation(item)}
                       className={`rounded border px-3 py-2 text-left transition ${
                         selected
-                          ? "border-[#2D4A2D] bg-[#2D4A2D] text-[#F5F0E8]"
-                          : "border-[#2D4A2D]/10 bg-[#F5F0E8] text-[#1A1A1A] hover:border-[#2D4A2D]/30"
+                          ? "border-[#3A2A22] bg-[#3A2A22] text-[#F5F0E8]"
+                          : "border-[#3A2A22]/10 bg-[#F5F0E8] text-[#1A1A1A] hover:border-[#3A2A22]/30"
                       }`}
                     >
                       <span className="block text-sm font-semibold">{item.label}</span>
@@ -794,17 +794,17 @@ export function LayerMapInterface() {
                   );
                 })}
                 {!results.length && (
-                  <div className="rounded border border-dashed border-[#2D4A2D]/20 bg-[#F5F0E8] p-4 text-sm text-[#6B6B5A]">
+                  <div className="rounded border border-dashed border-[#3A2A22]/20 bg-[#F5F0E8] p-4 text-sm text-[#6B6B5A]">
                     Search or click the map to select a place.
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="rounded border border-[#2D4A2D]/15 bg-[#EDEAE0] p-4">
+            <div className="rounded border border-[#3A2A22]/15 bg-[#EDEAE0] p-4">
               <div className="mb-3 flex items-center gap-2">
                 <Route size={18} className="text-[#C4713A]" />
-                <h2 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2D4A2D]">Driving Route</h2>
+                <h2 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#3A2A22]">Driving Route</h2>
               </div>
               <EngineControl value={routeEngine} onChange={setRouteEngine} />
               <button
@@ -819,15 +819,15 @@ export function LayerMapInterface() {
                 <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                   <div className="rounded bg-[#F5F0E8] p-3">
                     <dt className="font-[var(--font-label)] text-[0.68rem] uppercase tracking-[0.08em] text-[#6B6B5A]">Distance</dt>
-                    <dd className="m-0 mt-1 font-semibold text-[#2D4A2D]">{formatDistance(route.distance_m)}</dd>
+                    <dd className="m-0 mt-1 font-semibold text-[#3A2A22]">{formatDistance(route.distance_m)}</dd>
                   </div>
                   <div className="rounded bg-[#F5F0E8] p-3">
                     <dt className="font-[var(--font-label)] text-[0.68rem] uppercase tracking-[0.08em] text-[#6B6B5A]">Duration</dt>
-                    <dd className="m-0 mt-1 font-semibold text-[#2D4A2D]">{formatDuration(route.duration_s)}</dd>
+                    <dd className="m-0 mt-1 font-semibold text-[#3A2A22]">{formatDuration(route.duration_s)}</dd>
                   </div>
                   <div className="col-span-2 rounded bg-[#F5F0E8] p-3">
                     <dt className="font-[var(--font-label)] text-[0.68rem] uppercase tracking-[0.08em] text-[#6B6B5A]">Engine</dt>
-                    <dd className="m-0 mt-1 font-semibold text-[#2D4A2D]">{route.provider}</dd>
+                    <dd className="m-0 mt-1 font-semibold text-[#3A2A22]">{route.provider}</dd>
                   </div>
                 </dl>
               )}
