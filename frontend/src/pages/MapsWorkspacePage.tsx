@@ -56,7 +56,7 @@ import {
 import { publishWorkspaceEvent, subscribeWorkspaceEvents } from "../utils/workspaceSync";
 import { markerSavePayload, primaryPhotoUrl, type PendingMarkerPhoto } from "../utils/photoPinHelpers";
 import { SEA_BOUNDS } from "../utils/seaBounds";
-import { STORIES, STORY_MAP_POINTS, STORY_PHOTOS } from "./StoriesPage";
+import { LOCAL_STORIES_KEY, STORIES, STORY_MAP_POINTS, STORY_PHOTOS, type TravelStory } from "./StoriesPage";
 import drawRouteIcon from "../assets/icons/draw-route.png";
 import meetupIcon from "../assets/icons/meetup.png";
 import panIcon from "../assets/icons/pan.png";
@@ -65,11 +65,13 @@ import pinIcon from "../assets/icons/pin.png";
 
 type BaseLayer = "street" | "satellite" | "terrain";
 type RouteMode = "fastest" | "shortest";
+type DrawRouteInputMode = "click" | "drag";
 type PickTarget = "from" | "to" | "marker" | null;
 type ExportFormat = "png" | "jpeg";
 type TravelToolbarTool = "path" | "draw" | "sharing" | "meetup" | "markers" | "spots";
 type WorkspaceSidePanel = TravelToolbarTool | "export" | null;
 type BoxZoomDrag = { startX: number; startY: number; currentX: number; currentY: number };
+type StoryMapHandoff = { storyId?: number; title?: string; place?: string; coordinate?: { lat: number; lon: number } };
 
 const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_KEY ?? "OxFhSEPyrURM6Iii2vm0";
 const MAPTILER_STYLES: Record<BaseLayer, string> = {
@@ -85,6 +87,14 @@ const PIN_SOURCE_ID = "workspace-pins";
 const TOURIST_SPOT_SOURCE_ID = "workspace-tourist-spots";
 const MEETUP_AREA_SOURCE_ID = "workspace-meetup-area";
 const PHOTO_PIN_LAYER = "workspace-photo-pins";
+const PIN_CATEGORY_LABEL_LAYER = "workspace-pin-category-labels";
+const PIN_ICON_IDS = {
+  private: "workspace-pin-private",
+  public: "workspace-pin-public",
+  group: "workspace-pin-group",
+  story: "workspace-pin-story",
+  photo: "workspace-pin-photo",
+} as const;
 
 const workspaceModes: Array<{
   key: MapScope;
@@ -137,10 +147,11 @@ const friendList = [
   },
 ];
 
-function storyToMapPin(story: (typeof STORIES)[number]): ApiPin | null {
-  const point = STORY_MAP_POINTS[story.id];
+function storyToMapPin(story: TravelStory): ApiPin | null {
+  const point = story.storyPoint ?? STORY_MAP_POINTS[story.id];
   if (!point) return null;
-  const photos = (STORY_PHOTOS[story.id] ?? [story.img]).map((url, index) => ({
+  const storyPhotos = story.photos?.length ? story.photos : STORY_PHOTOS[story.id] ?? [story.img];
+  const photos = storyPhotos.map((url, index) => ({
     filename: `story-${story.id}-${index + 1}.jpg`,
     mime_type: "image/jpeg",
     size_bytes: 0,
@@ -148,6 +159,9 @@ function storyToMapPin(story: (typeof STORIES)[number]): ApiPin | null {
     thumbnail_url: url,
     source: "upload",
   }));
+  const storyLinkMedia = story.local ? { storyDraftId: story.id } : { storyId: story.id };
+  const storyDate = new Date(story.date);
+  const timestamp = Number.isNaN(storyDate.getTime()) ? new Date().toISOString() : storyDate.toISOString();
 
   return {
     pin_id: `story-${story.id}`,
@@ -161,7 +175,9 @@ function storyToMapPin(story: (typeof STORIES)[number]): ApiPin | null {
     group_ids: DEFAULT_GROUP_IDS,
     source: "manual",
     media: {
-      storyId: story.id,
+      ...storyLinkMedia,
+      category: story.category,
+      place_name: point.place,
       filename: `story-${story.id}.jpg`,
       mime_type: "image/jpeg",
       size_bytes: 0,
@@ -170,12 +186,64 @@ function storyToMapPin(story: (typeof STORIES)[number]): ApiPin | null {
     },
     photos,
     map_id: null,
-    created_at: new Date(story.date).toISOString(),
-    updated_at: new Date(story.date).toISOString(),
+    created_at: timestamp,
+    updated_at: timestamp,
   };
 }
 
 const COMMUNITY_STORY_PINS = STORIES.map(storyToMapPin).filter((pin): pin is ApiPin => Boolean(pin));
+
+function readLocalMapStories(): TravelStory[] {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(LOCAL_STORIES_KEY) ?? "[]") as TravelStory[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistPrototypeStory(input: {
+  storyId: number;
+  pin: ApiPin;
+  category: string;
+  placeName: string;
+  author: string;
+  authorAvatar?: string;
+}) {
+  const photos = (input.pin.photos ?? [])
+    .map((photo) => {
+      const data = photo as { data_url?: unknown; preview_url?: unknown; thumbnail_url?: unknown };
+      return String(data.data_url ?? data.preview_url ?? data.thumbnail_url ?? "");
+    })
+    .filter(Boolean);
+  const cover = photos[0] ?? "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=900&h=620&fit=crop&auto=format";
+  const story: TravelStory = {
+    id: input.storyId,
+    title: input.pin.title,
+    author: input.author,
+    authorAvatar: input.authorAvatar ?? "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=48&h=48&fit=crop&auto=format",
+    region: input.placeName,
+    readTime: "Draft",
+    date: "Just now",
+    likes: 0,
+    saves: 0,
+    img: cover,
+    category: input.category,
+    excerpt: input.pin.note || `A new TravelTraces story pinned at ${input.placeName}.`,
+    body: input.pin.note || `A new TravelTraces story pinned at ${input.placeName}.`,
+    photos: photos.length ? photos : [cover],
+    storyPoint: { place: input.placeName, coordinate: input.pin.coordinate },
+    local: true,
+  };
+
+  try {
+    const current = JSON.parse(window.localStorage.getItem(LOCAL_STORIES_KEY) ?? "[]") as TravelStory[];
+    const next = [story, ...current.filter((item) => item.id !== story.id)].slice(0, 24);
+    window.localStorage.setItem(LOCAL_STORIES_KEY, JSON.stringify(next));
+  } catch {
+    window.localStorage.setItem(LOCAL_STORIES_KEY, JSON.stringify([story]));
+  }
+}
 
 const emptyLineCollection: FeatureCollection<LineString> = { type: "FeatureCollection", features: [] };
 const emptyPointCollection: FeatureCollection<Point> = { type: "FeatureCollection", features: [] };
@@ -231,6 +299,29 @@ function pinColor(pin: ApiPin) {
   if (pin.scope === "public") return "#C4713A";
   if (pin.scope === "group") return "#9E6B5C";
   return "#3A2A22";
+}
+
+function pinIconId(pin: ApiPin) {
+  if (pin.source === "exif" || pin.source === "gps") return PIN_ICON_IDS.photo;
+  if (pin.scope === "private") return PIN_ICON_IDS.private;
+  if (pin.scope === "public") return PIN_ICON_IDS.public;
+  if (pin.scope === "group") return PIN_ICON_IDS.group;
+  return PIN_ICON_IDS.story;
+}
+
+function pinCategory(pin: ApiPin) {
+  if (pin.media && typeof pin.media.category === "string") return pin.media.category;
+  if (pin.source === "exif" || pin.source === "gps") return "Photo";
+  if (pin.scope === "group") return "Group";
+  return "Story";
+}
+
+function pinStoryHref(pin: ApiPin) {
+  const storyId = typeof pin.media?.storyId === "number" ? pin.media.storyId : null;
+  const storyDraftId = typeof pin.media?.storyDraftId === "number" ? pin.media.storyDraftId : null;
+  if (storyId) return `/stories?story=${storyId}`;
+  if (storyDraftId) return `/stories?localStory=${storyDraftId}`;
+  return null;
 }
 
 function routeToGeoJson(route: ApiRoute | null): FeatureCollection<LineString> {
@@ -295,8 +386,11 @@ function pinsToGeoJson(pins: ApiPin[], scope: MapScope): FeatureCollection<Point
             title: pin.title,
             kind: pin.source,
             color: pinColor(pin),
+            pinIcon: pinIconId(pin),
+            category: pinCategory(pin),
             hasPhoto: Boolean(thumb),
             thumbUrl: thumb ?? "",
+            storyHref: pinStoryHref(pin) ?? "",
           },
         };
       }),
@@ -376,7 +470,61 @@ function setGeoJsonSource(map: MapLibreMap, sourceId: string, data: FeatureColle
   source?.setData(data);
 }
 
+function createPinIcon(color: string) {
+  const canvas = document.createElement("canvas");
+  const size = 72;
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return new ImageData(size, size);
+  }
+
+  context.clearRect(0, 0, size, size);
+  context.shadowColor = "rgba(58, 42, 34, 0.22)";
+  context.shadowBlur = 5;
+  context.shadowOffsetY = 3;
+  context.fillStyle = color;
+  context.strokeStyle = "#FBF7F0";
+  context.lineWidth = 4;
+
+  context.beginPath();
+  context.moveTo(36, 68);
+  context.bezierCurveTo(31, 56, 13, 40, 13, 24);
+  context.bezierCurveTo(13, 11, 23, 4, 36, 4);
+  context.bezierCurveTo(49, 4, 59, 11, 59, 24);
+  context.bezierCurveTo(59, 40, 41, 56, 36, 68);
+  context.closePath();
+  context.fill();
+  context.stroke();
+
+  context.shadowColor = "transparent";
+  context.fillStyle = "#FBF7F0";
+  context.beginPath();
+  context.arc(36, 25, 8.5, 0, Math.PI * 2);
+  context.fill();
+
+  return context.getImageData(0, 0, size, size);
+}
+
+function ensurePinImages(map: MapLibreMap) {
+  const pinImages: Array<[string, string]> = [
+    [PIN_ICON_IDS.private, "#3A2A22"],
+    [PIN_ICON_IDS.public, "#C4713A"],
+    [PIN_ICON_IDS.group, "#9E6B5C"],
+    [PIN_ICON_IDS.story, "#3A2A22"],
+    [PIN_ICON_IDS.photo, "#5C8A9E"],
+  ];
+
+  pinImages.forEach(([id, color]) => {
+    if (!map.hasImage(id)) {
+      map.addImage(id, createPinIcon(color), { pixelRatio: 2 });
+    }
+  });
+}
+
 function ensureWorkspaceLayers(map: MapLibreMap) {
+  ensurePinImages(map);
   if (!map.getSource(ROUTE_SOURCE_ID)) {
     map.addSource(ROUTE_SOURCE_ID, { type: "geojson", data: emptyLineCollection });
   }
@@ -428,29 +576,51 @@ function ensureWorkspaceLayers(map: MapLibreMap) {
   if (!map.getLayer("workspace-pins")) {
     map.addLayer({
       id: "workspace-pins",
-      type: "circle",
+      type: "symbol",
       source: PIN_SOURCE_ID,
       filter: ["!", ["get", "hasPhoto"]],
-      paint: {
-        "circle-color": ["get", "color"],
-        "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 5, 10, 8, 14, 12],
-        "circle-stroke-color": "#F5F0E8",
-        "circle-stroke-width": 2,
+      layout: {
+        "icon-image": ["get", "pinIcon"],
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 4, 0.34, 10, 0.52, 15, 0.72],
+        "icon-anchor": "bottom",
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
       },
     });
   }
   if (!map.getLayer(PHOTO_PIN_LAYER)) {
     map.addLayer({
       id: PHOTO_PIN_LAYER,
-      type: "circle",
+      type: "symbol",
       source: PIN_SOURCE_ID,
       filter: ["get", "hasPhoto"],
+      layout: {
+        "icon-image": ["get", "pinIcon"],
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 4, 0.38, 10, 0.58, 15, 0.78],
+        "icon-anchor": "bottom",
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+      },
+    });
+  }
+  if (!map.getLayer(PIN_CATEGORY_LABEL_LAYER)) {
+    map.addLayer({
+      id: PIN_CATEGORY_LABEL_LAYER,
+      type: "symbol",
+      source: PIN_SOURCE_ID,
+      minzoom: 9,
+      layout: {
+        "text-field": ["get", "category"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 9, 10, 13, 12, 16, 14],
+        "text-offset": [0, -3.25],
+        "text-anchor": "bottom",
+        "text-font": ["Noto Sans Regular"],
+        "text-allow-overlap": false,
+      },
       paint: {
-        "circle-color": "#5C8A9E",
-        "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 6, 8, 12, 12, 18, 16, 28],
-        "circle-stroke-color": "#F5F0E8",
-        "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 4, 1.5, 12, 2.5, 16, 3],
-        "circle-opacity": 0.92,
+        "text-color": "#3A2A22",
+        "text-halo-color": "#FBF7F0",
+        "text-halo-width": 2,
       },
     });
   }
@@ -754,10 +924,13 @@ function MapsWorkspaceContent() {
   const [activeTravelTool, setActiveTravelTool] = useState<TravelToolbarTool>("path");
   const [activeSidePanel, setActiveSidePanel] = useState<WorkspaceSidePanel>(null);
   const [meetupPlan, setMeetupPlan] = useState<MeetupPlan | null>(null);
+  const [localMapStories, setLocalMapStories] = useState<TravelStory[]>(() => readLocalMapStories());
+  const [pendingStoryViewPin, setPendingStoryViewPin] = useState<StoryMapHandoff | null>(null);
 
   const scopedGroupIds = useMemo(() => (scope === "group" ? groupIds : []), [scope, groupIds]);
   const activeMode = workspaceModes.find((mode) => mode.key === scope) ?? workspaceModes[0];
-  const mapPins = useMemo(() => [...COMMUNITY_STORY_PINS, ...pins], [pins]);
+  const localStoryPins = useMemo(() => localMapStories.map(storyToMapPin).filter((pin): pin is ApiPin => Boolean(pin)), [localMapStories]);
+  const mapPins = useMemo(() => [...COMMUNITY_STORY_PINS, ...localStoryPins, ...pins], [localStoryPins, pins]);
   const visiblePins = useMemo(() => mapPins.filter((pin) => pin.scope === scope), [mapPins, scope]);
   const markerPlacementActive = pickTarget === "marker";
   const workspaceFriends = user?.friends?.length ? user.friends : friendList;
@@ -856,7 +1029,12 @@ function MapsWorkspaceContent() {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
+    const refreshLayers = () => setStyleRevision((value) => value + 1);
+    map.once("idle", refreshLayers);
     map.setStyle(MAPTILER_STYLES[baseLayer]);
+    return () => {
+      map.off("idle", refreshLayers);
+    };
   }, [baseLayer, mapReady]);
 
   useEffect(() => {
@@ -908,11 +1086,29 @@ function MapsWorkspaceContent() {
   }, []);
 
   useEffect(() => {
+    setLocalMapStories(readLocalMapStories());
+
+    const pendingStoryView = window.localStorage.getItem("traveltraces.pendingStoryViewPin");
+    if (pendingStoryView) {
+      window.localStorage.removeItem("traveltraces.pendingStoryViewPin");
+      try {
+        const parsed = JSON.parse(pendingStoryView) as StoryMapHandoff;
+        setPendingStoryViewPin(parsed);
+        setScope("public");
+        setActiveTravelTool("markers");
+        setActiveSidePanel("markers");
+        setActiveToolbarMenu(null);
+        setStatus(`Opening ${parsed.place ?? parsed.title ?? "this story"} on the public map.`);
+      } catch {
+        setStatus("Opening this story on the public map.");
+      }
+    }
+
     const pendingStoryPin = window.localStorage.getItem("traveltraces.pendingStoryPin");
     if (pendingStoryPin) {
       window.localStorage.removeItem("traveltraces.pendingStoryPin");
       try {
-        const parsed = JSON.parse(pendingStoryPin) as { title?: string; place?: string; coordinate?: { lat: number; lon: number } };
+        const parsed = JSON.parse(pendingStoryPin) as StoryMapHandoff;
         if (parsed.coordinate) {
           setScope("public");
           setDraftMarkerLocation({
@@ -967,6 +1163,23 @@ function MapsWorkspaceContent() {
     map.touchZoomRotate.enableRotation();
     setPlacementPreview(null);
   }, [boxZoomActive, drawingActive, mapReady, markerPlacementActive, pickTarget]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !pendingStoryViewPin?.coordinate) return;
+    const { coordinate } = pendingStoryViewPin;
+    const matchingPin = mapPins.find((pin) => {
+      const storyId = typeof pin.media?.storyId === "number" ? pin.media.storyId : null;
+      const storyDraftId = typeof pin.media?.storyDraftId === "number" ? pin.media.storyDraftId : null;
+      return storyId === pendingStoryViewPin.storyId || storyDraftId === pendingStoryViewPin.storyId;
+    });
+
+    map.flyTo({ center: [coordinate.lon, coordinate.lat], zoom: 12.8, duration: 900 });
+    setScope("public");
+    setSelectedPin(matchingPin ?? null);
+    setStatus(matchingPin ? `Showing ${pendingStoryViewPin.place ?? matchingPin.title} on the public map.` : `Showing ${pendingStoryViewPin.place ?? "this story location"} on the public map.`);
+    setPendingStoryViewPin(null);
+  }, [mapPins, mapReady, pendingStoryViewPin]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1158,18 +1371,56 @@ function MapsWorkspaceContent() {
           photos: input.photos,
           source: input.source,
         });
-        const pin = await createPin(payload);
+        const storyId = Date.now();
+        let pin: ApiPin;
+        let savedLocally = false;
+        try {
+          pin = await createPin({
+            ...payload,
+            media: { ...(payload.media ?? {}), storyDraftId: storyId },
+          });
+          pin = { ...pin, media: { ...(pin.media ?? {}), ...(payload.media ?? {}), storyDraftId: storyId } };
+        } catch {
+          const now = new Date().toISOString();
+          const localPinId = `local-marker-${storyId}`;
+          pin = {
+            pin_id: localPinId,
+            post_id: localPinId,
+            title: payload.title,
+            note: payload.note,
+            coordinate: { lat: payload.lat, lon: payload.lon },
+            address: payload.address,
+            scope: payload.scope,
+            creator_id: user?.name ?? viewerId,
+            group_ids: payload.groupIds,
+            source: payload.source,
+            media: { ...(payload.media ?? {}), storyDraftId: storyId },
+            photos: payload.photos,
+            map_id: payload.mapId,
+            created_at: now,
+            updated_at: now,
+          };
+          savedLocally = true;
+        }
+        persistPrototypeStory({
+          storyId,
+          pin,
+          category: input.category,
+          placeName: input.placeName,
+          author: user?.name ?? "You",
+          authorAvatar: user?.avatar,
+        });
         addOrReplacePin(pin);
+        setSelectedPin(pin);
         setMarkerModalLocation(null);
         setDraftMarkerLocation(null);
         setScope(input.scope);
-      } catch (error) {
-        setStatus(error instanceof Error ? error.message : "Marker could not be saved.");
+        setStatus(savedLocally ? "Saved locally for prototype mode. Click the pin to open the full story." : "Marker saved. Click the pin to open the full story.");
       } finally {
         setBusy(false);
       }
     },
-    [activeMap?.map_id, addOrReplacePin, groupIds, markerModalLocation, viewerId],
+    [activeMap?.map_id, addOrReplacePin, groupIds, markerModalLocation, user?.avatar, user?.name, viewerId],
   );
 
   const handlePickedLocation = useCallback(
@@ -1196,7 +1447,16 @@ function MapsWorkspaceContent() {
       if (drawingActive) {
         setDraftStops((current) => {
           const next = [...current, location];
-          void buildRouteFromStops(next, false);
+          if (next.length === 1) {
+            setStatus("Route start set. Click the destination point and TravelTraces will correct the line to the best route.");
+          } else {
+            setStatus("Correcting your drawn line to the right route...");
+            void buildRouteFromStops(next, false).then((nextRoute) => {
+              if (nextRoute) {
+                setStatus(next.length === 2 ? "Route corrected from your first point to your destination." : "Route updated with the new routed stop.");
+              }
+            });
+          }
           return next;
         });
       }
@@ -1284,29 +1544,41 @@ function MapsWorkspaceContent() {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
-    const layers = ["workspace-pins", PHOTO_PIN_LAYER];
+    const layers = ["workspace-pins", PHOTO_PIN_LAYER, PIN_CATEGORY_LABEL_LAYER];
     const onPinClick = (event: maplibregl.MapLayerMouseEvent) => {
       const feature = event.features?.[0];
       const pinId = feature?.properties?.pin_id;
       if (!pinId) return;
       const pin = mapPins.find((item) => item.pin_id === pinId);
-      if (pin) setSelectedPin(pin);
+      if (!pin) return;
+
+      const storyHref = pinStoryHref(pin);
+      if (storyHref) {
+        navigate(storyHref);
+        return;
+      }
+
+      setSelectedPin(pin);
+    };
+    const onPinEnter = () => {
+      map.getCanvas().style.cursor = "pointer";
+    };
+    const onPinLeave = () => {
+      map.getCanvas().style.cursor = workspaceMapCursor({ markerPlacementActive, pickTarget, drawingActive, boxZoomActive });
     };
     layers.forEach((layer) => {
       map.on("click", layer, onPinClick);
-      map.on("mouseenter", layer, () => {
-        map.getCanvas().style.cursor = "pointer";
-      });
-      map.on("mouseleave", layer, () => {
-        map.getCanvas().style.cursor = workspaceMapCursor({ markerPlacementActive, pickTarget, drawingActive, boxZoomActive });
-      });
+      map.on("mouseenter", layer, onPinEnter);
+      map.on("mouseleave", layer, onPinLeave);
     });
     return () => {
       layers.forEach((layer) => {
         map.off("click", layer, onPinClick);
+        map.off("mouseenter", layer, onPinEnter);
+        map.off("mouseleave", layer, onPinLeave);
       });
     };
-  }, [boxZoomActive, drawingActive, mapPins, mapReady, markerPlacementActive, pickTarget, styleRevision]);
+  }, [boxZoomActive, drawingActive, mapPins, mapReady, markerPlacementActive, navigate, pickTarget, styleRevision]);
 
   const handleMeetupVenueSelect = useCallback((suggestion: MeetupSuggestion) => {
     const map = mapRef.current;
@@ -1373,7 +1645,7 @@ function MapsWorkspaceContent() {
     setBoxZoomDrag(null);
     setDrawingActive((value) => {
       const next = !value;
-      setStatus(next ? "Draw Route active. Click the map to add route stops." : "Draw Route stopped.");
+      setStatus(next ? "Draw Route active. Click the route start, then click the destination. The line will snap to the right route." : "Draw Route stopped.");
       return next;
     });
     setPickTarget(null);

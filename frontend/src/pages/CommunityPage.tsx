@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { MapPin, Users, Trophy, Search, UserPlus, MessageCircle } from "lucide-react";
+import { MapPin, Users, Search, UserPlus } from "lucide-react";
 import { GatedPage } from "../components/GatedPage";
 
 const TRAVELLERS = [
@@ -18,13 +18,7 @@ const CHALLENGES = [
   { id: 4, title: "Story Teller", desc: "Publish 10 long-form travel narratives.", progress: 18, total: 10, participants: 1560, badge: "✍️", completed: true },
 ];
 
-const COMPANION_DESTINATIONS = [
-  { name: "Puerto Galera", region: "Oriental Mindoro", desc: "Midpoint between Manila and Cebu — great diving, accessible by bus and ferry." },
-  { name: "Dumaguete", region: "Negros Oriental", desc: "Halfway point between Luzon and Mindanao travellers, with whale sharks at Oslob." },
-  { name: "Cagayan de Oro", region: "Northern Mindanao", desc: "Natural meeting point for Mindanao explorers, with whitewater rafting on the Cagayan River." },
-];
-
-const tabs = ["Travellers", "Rankings", "Challenges", "Find Companions"];
+const tabs = ["Travellers", "Rankings", "Challenges"];
 
 function TravellerCard({ t }: { t: typeof TRAVELLERS[0]; key?: any }) {
   const [following, setFollowing] = useState(false);
@@ -78,8 +72,6 @@ function TravellerCard({ t }: { t: typeof TRAVELLERS[0]; key?: any }) {
 function CommunityContent() {
   const [activeTab, setActiveTab] = useState("Travellers");
   const [search, setSearch] = useState("");
-  const [myLocation, setMyLocation] = useState("");
-  const [companionLocation, setCompanionLocation] = useState("");
 
   const filtered = TRAVELLERS.filter((t) =>
     t.name.toLowerCase().includes(search.toLowerCase()) || t.handle.toLowerCase().includes(search.toLowerCase())
@@ -91,7 +83,7 @@ function CommunityContent() {
         <div style={{ marginBottom: "2.5rem" }}>
           <p style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#9E6B5C", marginBottom: "0.5rem" }}>Traveller network</p>
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 600, color: "#3A2A22", marginBottom: "0.5rem" }}>Community</h1>
-          <p style={{ fontFamily: "var(--font-body)", color: "#6B6B5A", fontSize: "1rem" }}>Connect with fellow explorers, climb the rankings, and find your next travel companion.</p>
+          <p style={{ fontFamily: "var(--font-body)", color: "#6B6B5A", fontSize: "1rem" }}>Connect with fellow explorers, browse active travellers, and climb the TravelTraces rankings.</p>
         </div>
 
         {/* Tabs */}
@@ -174,38 +166,6 @@ function CommunityContent() {
           </div>
         )}
 
-        {activeTab === "Find Companions" && (
-          <div>
-            <div style={{ backgroundColor: "#EDEAE0", borderRadius: "0.25rem", padding: "2rem", marginBottom: "2rem" }}>
-              <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 600, color: "#3A2A22", marginBottom: "0.5rem" }}>Find your midpoint</h2>
-              <p style={{ fontFamily: "var(--font-body)", fontSize: "0.95rem", color: "#6B6B5A", marginBottom: "1.5rem" }}>Enter your location and a companion's location — TravelTraces calculates the midpoint and suggests destinations.</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
-                {[["Your location", myLocation, setMyLocation, "e.g. Quezon City"], ["Companion's location", companionLocation, setCompanionLocation, "e.g. Cebu City"]].map(([label, val, setter, placeholder]) => (
-                  <div key={String(label)}>
-                    <label style={{ display: "block", marginBottom: "0.4rem", fontFamily: "var(--font-label)", fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "#6B6B5A" }}>{String(label)}</label>
-                    <input value={String(val)} onChange={(e) => (setter as (v: string) => void)(e.target.value)} placeholder={String(placeholder)} style={{ width: "100%", padding: "0.75rem 1rem", backgroundColor: "#F5F0E8", border: "1px solid rgba(58,42,34,0.15)", borderRadius: "0.25rem", fontSize: "0.9rem", fontFamily: "var(--font-ui)", outline: "none", boxSizing: "border-box", color: "#1A1A1A" }} />
-                  </div>
-                ))}
-              </div>
-              <button style={{ padding: "0.75rem 2rem", backgroundColor: "#3A2A22", color: "#F5F0E8", border: "none", borderRadius: "0.25rem", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.875rem", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600 }}>
-                Find midpoints
-              </button>
-            </div>
-            <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.35rem", fontWeight: 600, color: "#3A2A22", marginBottom: "1rem" }}>Suggested meeting destinations</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 280px), 1fr))", gap: "1rem" }}>
-              {COMPANION_DESTINATIONS.map((d) => (
-                <div key={d.name} style={{ backgroundColor: "#EDEAE0", borderRadius: "0.25rem", padding: "1.25rem" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                    <MapPin size={14} color="#9E6B5C" />
-                    <span style={{ fontFamily: "var(--font-label)", fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E6B5C" }}>{d.region}</span>
-                  </div>
-                  <h4 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 600, color: "#3A2A22", marginBottom: "0.5rem" }}>{d.name}</h4>
-                  <p style={{ fontFamily: "var(--font-ui)", fontSize: "0.875rem", color: "#4A4A3A", lineHeight: 1.6 }}>{d.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

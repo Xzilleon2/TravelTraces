@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { Search, MapPin, Clock, Heart, Bookmark, Share2, ArrowLeft, ChevronLeft, ChevronRight, Send, MessageCircle } from "lucide-react";
+import { Search, MapPin, Clock, Heart, Bookmark, Share2, ArrowLeft, ChevronLeft, ChevronRight, Send, MessageCircle, Compass, Mountain, Utensils, Gem, Waves, TreePine, Landmark } from "lucide-react";
 import { GatedPage } from "../components/GatedPage";
 import { useAuth } from "../context/AuthContext";
 import { UserProfileModal } from "../components/UserProfileModal";
 import { GAMIFIED_USERS, GamifiedUser } from "../components/gamification";
+
+export const SAVED_STORIES_KEY = "traveltraces.savedStories";
+export const STORY_COLLECTIONS_KEY = "traveltraces.storyCollections";
 
 const AUTHOR_KEY: Record<string, string> = {
   "Carlo Reyes": "carlo",
@@ -169,8 +172,44 @@ export const STORIES = [
 ];
 
 const categories = ["All", "Hiking", "Food Place", "Hidden Gems", "Beaches", "Forest", "Culture", "More"];
+const STORY_CATEGORY_ICON: Record<string, typeof Compass> = {
+  Hiking: Mountain,
+  "Food Place": Utensils,
+  "Hidden Gems": Gem,
+  Beaches: Waves,
+  Forest: TreePine,
+  Culture: Landmark,
+  More: Compass,
+};
+export const LOCAL_STORIES_KEY = "traveltraces.localStories";
 
-export type TravelStory = (typeof STORIES)[number];
+export type TravelStory = (typeof STORIES)[number] & {
+  photos?: string[];
+  storyPoint?: { place: string; coordinate: { lat: number; lon: number } };
+  local?: boolean;
+};
+
+function readLocalStories(): TravelStory[] {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(LOCAL_STORIES_KEY) ?? "[]") as TravelStory[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function readSavedStoryIds(): number[] {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(SAVED_STORIES_KEY) ?? "[]") as number[];
+    return Array.isArray(parsed) ? parsed.map(Number).filter(Number.isFinite) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeSavedStoryIds(ids: number[]) {
+  window.localStorage.setItem(SAVED_STORIES_KEY, JSON.stringify(Array.from(new Set(ids))));
+}
 
 export const STORY_MAP_POINTS: Record<number, { place: string; coordinate: { lat: number; lon: number } }> = {
   1: { place: "El Nido, Palawan", coordinate: { lat: 11.1956, lon: 119.4075 } },
@@ -182,7 +221,7 @@ export const STORY_MAP_POINTS: Record<number, { place: string; coordinate: { lat
 };
 
 export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext }: {
-  story: typeof STORIES[0];
+  story: TravelStory;
   onBack: () => void;
   onPrev: () => void;
   onNext: () => void;
@@ -199,14 +238,15 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
   const [likedComments, setLikedComments] = useState<Set<number>>(new Set());
   const [photoIndex, setPhotoIndex] = useState(0);
 
-  const photos = STORY_PHOTOS[story.id] ?? [story.img];
+  const localPhotos = Array.isArray(story.photos) && story.photos.length ? story.photos : null;
+  const photos = localPhotos ?? STORY_PHOTOS[story.id] ?? [story.img];
   const activePhoto = photos[photoIndex] ?? photos[0];
   const hasMultiplePhotos = photos.length > 1;
-  const storyPoint = STORY_MAP_POINTS[story.id];
+  const storyPoint = story.storyPoint ?? STORY_MAP_POINTS[story.id];
 
   useEffect(() => {
     setLiked(false);
-    setSaved(false);
+    setSaved(readSavedStoryIds().includes(story.id));
     setViewingProfile(null);
     setComments(STORY_COMMENTS[story.id] ?? []);
     setCommentInput("");
@@ -228,10 +268,32 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
     setCommentInput("");
   };
 
+  const handleSaveStory = () => {
+    const savedIds = readSavedStoryIds();
+    const nextSaved = !saved;
+    writeSavedStoryIds(nextSaved ? [story.id, ...savedIds] : savedIds.filter((id) => id !== story.id));
+    setSaved(nextSaved);
+  };
+
   const handlePinStoryLocation = () => {
     if (storyPoint) {
       window.localStorage.setItem(
         "traveltraces.pendingStoryPin",
+        JSON.stringify({
+          storyId: story.id,
+          title: story.title,
+          place: storyPoint.place,
+          coordinate: storyPoint.coordinate,
+        }),
+      );
+    }
+    navigate("/maps");
+  };
+
+  const handleViewStoryPin = () => {
+    if (storyPoint) {
+      window.localStorage.setItem(
+        "traveltraces.pendingStoryViewPin",
         JSON.stringify({
           storyId: story.id,
           title: story.title,
@@ -293,7 +355,7 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
               <button onClick={() => setLiked((v) => !v)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid", borderColor: liked ? "#C4713A" : "rgba(58,42,34,0.2)", borderRadius: "999px", background: liked ? "rgba(196,113,58,0.08)" : "none", color: liked ? "#C4713A" : "#6B5A50", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
                 <Heart size={14} fill={liked ? "#C4713A" : "none"} /> {story.likes + (liked ? 1 : 0)}
               </button>
-              <button onClick={() => setSaved((v) => !v)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid", borderColor: saved ? "#3A2A22" : "rgba(58,42,34,0.2)", borderRadius: "999px", background: saved ? "rgba(58,42,34,0.08)" : "none", color: saved ? "#3A2A22" : "#6B5A50", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
+              <button onClick={handleSaveStory} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid", borderColor: saved ? "#3A2A22" : "rgba(58,42,34,0.2)", borderRadius: "999px", background: saved ? "rgba(58,42,34,0.08)" : "none", color: saved ? "#3A2A22" : "#6B5A50", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
                 <Bookmark size={14} fill={saved ? "#3A2A22" : "none"} /> Save
               </button>
               <button style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid rgba(58,42,34,0.2)", borderRadius: "999px", background: "none", color: "#6B5A50", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
@@ -356,13 +418,22 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
                   <h3 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.35rem", fontWeight: 600, color: "#3A2A22", lineHeight: 1.1 }}>Want to share your own story of this location?</h3>
                   <p style={{ margin: "0.45rem 0 0", fontFamily: "var(--font-body)", color: "#5B4A40", lineHeight: 1.6 }}>Pin {storyPoint.place} on your map and write what happened there.</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handlePinStoryLocation}
-                  style={{ display: "inline-flex", minHeight: 42, alignItems: "center", justifyContent: "center", gap: "0.45rem", borderRadius: "999px", border: "1px solid #3A2A22", backgroundColor: "#3A2A22", color: "#FBF7F0", padding: "0.62rem 1rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}
-                >
-                  <MapPin size={14} /> Pin this
-                </button>
+                <div style={{ display: "flex", gap: "0.65rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  <button
+                    type="button"
+                    onClick={handleViewStoryPin}
+                    style={{ display: "inline-flex", minHeight: 42, alignItems: "center", justifyContent: "center", gap: "0.45rem", borderRadius: "999px", border: "1px solid rgba(58,42,34,0.24)", backgroundColor: "#FBF7F0", color: "#3A2A22", padding: "0.62rem 1rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}
+                  >
+                    <MapPin size={14} /> View this pin in the map
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handlePinStoryLocation}
+                    style={{ display: "inline-flex", minHeight: 42, alignItems: "center", justifyContent: "center", gap: "0.45rem", borderRadius: "999px", border: "1px solid #3A2A22", backgroundColor: "#3A2A22", color: "#FBF7F0", padding: "0.62rem 1rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}
+                  >
+                    <MapPin size={14} /> Pin this
+                  </button>
+                </div>
               </div>
             </div>
           ) : null}
@@ -441,21 +512,26 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
 
 function StoriesContent() {
   const location = useLocation();
+  const [localStories, setLocalStories] = useState<TravelStory[]>(() => readLocalStories());
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [activeStory, setActiveStory] = useState<number | null>(() => {
-    const requestedStory = Number(new URLSearchParams(location.search).get("story"));
-    return STORIES.some((story) => story.id === requestedStory) ? requestedStory : null;
+    const params = new URLSearchParams(location.search);
+    const requestedStory = Number(params.get("story") ?? params.get("localStory"));
+    return Number.isFinite(requestedStory) && requestedStory > 0 ? requestedStory : null;
   });
+  const allStories: TravelStory[] = [...localStories, ...STORIES];
 
   useEffect(() => {
-    const requestedStory = Number(new URLSearchParams(location.search).get("story"));
-    if (STORIES.some((story) => story.id === requestedStory)) {
+    setLocalStories(readLocalStories());
+    const params = new URLSearchParams(location.search);
+    const requestedStory = Number(params.get("story") ?? params.get("localStory"));
+    if (Number.isFinite(requestedStory) && requestedStory > 0) {
       setActiveStory(requestedStory);
     }
   }, [location.search]);
 
-  const filtered = STORIES.filter((s) => {
+  const filtered = allStories.filter((s) => {
     const matchSearch = s.title.toLowerCase().includes(search.toLowerCase()) || s.author.toLowerCase().includes(search.toLowerCase()) || s.region.toLowerCase().includes(search.toLowerCase());
     const matchCat = category === "All" || s.category === category;
     return matchSearch && matchCat;
@@ -487,20 +563,50 @@ function StoriesContent() {
 
         <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
           <div style={{ position: "relative", flex: "1 1 260px" }}>
-            <Search size={16} style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "#6B6B5A" }} />
+            <Search size={16} style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "#6B5A50" }} />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search stories, authors, regions…"
-              style={{ width: "100%", padding: "0.75rem 1rem 0.75rem 2.5rem", backgroundColor: "#EDEAE0", border: "1px solid rgba(58,42,34,0.15)", borderRadius: "0.25rem", fontSize: "0.9rem", color: "#1A1A1A", fontFamily: "var(--font-ui)", outline: "none", boxSizing: "border-box" }}
+              style={{ width: "100%", padding: "0.75rem 1rem 0.75rem 2.5rem", backgroundColor: "#EFE7DC", border: "1px solid rgba(58,42,34,0.15)", borderRadius: "0.25rem", fontSize: "0.9rem", color: "#2C211C", fontFamily: "var(--font-ui)", outline: "none", boxSizing: "border-box" }}
             />
           </div>
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            {categories.map((c) => (
-              <button key={c} onClick={() => setCategory(c)} style={{ padding: "0.6rem 1rem", borderRadius: "0.25rem", border: "1px solid", borderColor: category === c ? "#3A2A22" : "rgba(58,42,34,0.2)", backgroundColor: category === c ? "#3A2A22" : "transparent", color: category === c ? "#F5F0E8" : "#3A2A22", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.78rem", fontWeight: 500, letterSpacing: "0.05em" }}>
-                {c}
-              </button>
-            ))}
+            {categories.map((c) => {
+              const Icon = STORY_CATEGORY_ICON[c] ?? Compass;
+              const isActive = category === c;
+              const isAll = c === "All";
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCategory(c)}
+                  className="category-pill"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    minHeight: 44,
+                    borderRadius: 999,
+                    border: "1px solid",
+                    borderColor: isActive ? "#3A2A22" : "rgba(58,42,34,0.2)",
+                    backgroundColor: isActive ? "#3A2A22" : "transparent",
+                    color: isActive ? "#F5F0E8" : "#3A2A22",
+                    padding: isAll ? "8px 24px" : "8px 16px",
+                    fontFamily: "var(--font-ui)",
+                    fontSize: 13,
+                    fontWeight: isActive ? 700 : 600,
+                    cursor: "pointer",
+                    transition: "background-color 0.2s, border-color 0.2s, color 0.2s",
+                    whiteSpace: "nowrap",
+                  }}
+                  aria-pressed={isActive}
+                >
+                  {!isAll && <Icon size={14} color={isActive ? "#F5F0E8" : "#9E6B5C"} style={{ flexShrink: 0 }} />}
+                  <span>{c}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -561,6 +667,8 @@ function StoriesContent() {
       </div>
 
       <style>{`
+        .category-pill:hover { background-color: rgba(58,42,34,0.08); border-color: #3A2A22; color: #3A2A22; }
+        .category-pill[aria-pressed="true"]:hover { background-color: #3A2A22; border-color: #3A2A22; color: #F5F0E8; }
         @media (max-width: 640px) {
           .featured-story-grid { grid-template-columns: 1fr !important; }
         }

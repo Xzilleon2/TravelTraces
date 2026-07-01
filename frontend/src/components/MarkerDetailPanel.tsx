@@ -12,6 +12,8 @@ export function MarkerDetailPanel({ pin, creatorName, onClose }: Props) {
   if (!pin) return null;
   const photos = photosFromPin(pin);
   const storyId = typeof pin.media?.storyId === "number" ? pin.media.storyId : null;
+  const storyDraftId = typeof pin.media?.storyDraftId === "number" ? pin.media.storyDraftId : null;
+  const storyHref = storyId ? `/stories?story=${storyId}` : storyDraftId ? `/stories?localStory=${storyDraftId}` : null;
 
   return (
     <div className="absolute left-3 right-3 top-20 z-20 w-auto overflow-hidden rounded border border-[#3A2A22]/15 bg-[#F5F0E8]/97 shadow-xl backdrop-blur sm:left-auto sm:right-4 sm:w-[min(calc(100%-2rem),320px)]">
@@ -33,9 +35,9 @@ export function MarkerDetailPanel({ pin, creatorName, onClose }: Props) {
           </div>
         )}
         {pin.note && <p className="m-0 text-sm leading-6 text-[#1A1A1A]">{pin.note}</p>}
-        {storyId ? (
+        {storyHref ? (
           <a
-            href={`/stories?story=${storyId}`}
+            href={storyHref}
             className="inline-flex min-h-10 items-center justify-center rounded-full bg-[#3A2A22] px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.1em] text-[#FBF7F0] transition hover:bg-[#4B352A]"
           >
             Open full story

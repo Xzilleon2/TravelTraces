@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowLeft, BellOff, MessageSquare, MoreHorizontal, Plus, Search, Send, SquarePen, Users, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { GAMIFIED_USERS, getLevelFromXp } from "./gamification";
@@ -347,7 +348,7 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
     setOptionsOpen(false);
   };
 
-  return (
+  return createPortal(
     <>
       <style>{`
         @keyframes slideInChat { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -355,8 +356,8 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
         .custom-scrollbar { scrollbar-width: none; }
         .custom-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
-      <div onClick={onClose} className="fixed inset-0 z-[200] bg-[#3A2A22]/28 backdrop-blur-[2px]" />
-      <aside className="fixed bottom-0 right-0 top-0 z-[201] flex w-full max-w-[360px] animate-[slideInChat_0.25s_cubic-bezier(0.16,1,0.3,1)] flex-col overflow-hidden bg-[#F5F0E8] shadow-[0_0_40px_rgba(58,42,34,0.28)]">
+      <div onClick={onClose} className="fixed inset-0 z-[1000] bg-[#3A2A22]/28 backdrop-blur-[2px]" />
+      <aside className="fixed bottom-0 right-0 top-0 z-[1001] flex w-full max-w-[360px] animate-[slideInChat_0.25s_cubic-bezier(0.16,1,0.3,1)] flex-col overflow-hidden bg-[#F5F0E8] shadow-[0_0_40px_rgba(58,42,34,0.28)]">
         {activeConv ? (
           <MessageThreadView
             conv={activeConv}
@@ -469,7 +470,7 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
         )}
       </aside>
       {createGroupOpen ? (
-        <div className="fixed inset-0 z-[203] grid place-items-center bg-[#1A1A1A]/45 px-4 backdrop-blur-sm" onClick={() => setCreateGroupOpen(false)}>
+        <div className="fixed inset-0 z-[1003] grid place-items-center bg-[#1A1A1A]/45 px-4 backdrop-blur-sm" onClick={() => setCreateGroupOpen(false)}>
           <form
             onClick={(event) => event.stopPropagation()}
             onSubmit={(event) => {
@@ -523,6 +524,7 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
       ) : null}
       {viewingProfile ? <UserProfileModal user={viewingProfile} onClose={() => setSelectedProfileKey(null)} /> : null}
       {!user ? <span className="sr-only">Chat preview mode</span> : null}
-    </>
+    </>,
+    document.body,
   );
 }
