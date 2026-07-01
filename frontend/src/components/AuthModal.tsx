@@ -3,6 +3,8 @@ import { useNavigate } from "react-router";
 import { X, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
+const PASSWORD_MIN_LENGTH = 12;
+
 export function AuthModal() {
   const { authModalOpen, authMode, closeAuthModal, login, signup, openAuthModal } = useAuth();
   const navigate = useNavigate();
@@ -30,13 +32,19 @@ export function AuthModal() {
     e.preventDefault();
     setError("");
     if (!email || !password) { setError("Please fill in all fields."); return; }
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      setError(`Password must be at least ${PASSWORD_MIN_LENGTH} characters.`);
+      return;
+    }
     if (authMode === "signup") {
       if (!name) { setError("Please enter your name."); return; }
       const ok = await signup(name, email, password);
       if (ok) navigate("/maps");
+      else setError("Sign up failed. Check your details and try again.");
     } else {
       const ok = await login(email, password);
       if (ok) navigate("/maps");
+      else setError("Sign in failed. Check your credentials and try again.");
     }
   };
 
@@ -137,6 +145,7 @@ export function AuthModal() {
             <div style={{ position: "relative" }}>
               <input
                 type={showPassword ? "text" : "password"}
+                minLength={PASSWORD_MIN_LENGTH}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"

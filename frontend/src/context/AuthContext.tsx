@@ -151,9 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthModalOpen(false);
       return true;
     } catch {
-      setUser({ ...MOCK_USER, email });
-      setAuthModalOpen(false);
-      return true;
+      return false;
     }
   };
 
@@ -162,10 +160,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const auth = await signupWithBackend(name, email, password);
       setUser(userFromAuth(auth, name));
     } catch {
-      setUser({ ...MOCK_USER, name, email, id: email.split("@")[0] || "demo-user" });
+      return false;
     }
-    setAuthModalOpen(false);
-    return true;
   };
 
   const logout = async () => {
