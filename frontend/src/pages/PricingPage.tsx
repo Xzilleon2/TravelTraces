@@ -1,17 +1,17 @@
 import React, { useState } from "react";
-import { Check, X, Zap, MapPin, Star, ArrowRight, HelpCircle } from "lucide-react";
+import { ArrowRight, Check, HelpCircle, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+
+const PRICING_HERO = "https://images.unsplash.com/photo-1695051702427-1c24ce3682e7?w=1600&h=720&fit=crop&auto=format";
 
 const PLANS = [
   {
     id: "free",
     name: "Free",
-    tagline: "Start documenting the Philippines",
+    tagline: "Start documenting Southeast Asia",
     price: { monthly: 0, annual: 0 },
-    color: "#7A9E6F",
     badge: null,
     cta: "Get Started Free",
-    ctaStyle: "outline" as const,
     features: [
       { text: "Up to 30 destination pins", included: true },
       { text: "3 stories published per month", included: true },
@@ -30,20 +30,18 @@ const PLANS = [
   {
     id: "explorer",
     name: "Explorer",
-    tagline: "For the serious Filipino traveller",
+    tagline: "For the serious Southeast Asia traveller",
     price: { monthly: 149, annual: 119 },
-    color: "#2D4A2D",
     badge: "Most Popular",
     cta: "Start Exploring",
-    ctaStyle: "filled" as const,
     features: [
       { text: "Unlimited destination pins", included: true },
       { text: "Unlimited stories", included: true },
       { text: "500 photo uploads", included: true },
-      { text: "Public + Private map control", included: true },
+      { text: "Public + private map control", included: true },
       { text: "Community access", included: true },
-      { text: "Create & host events", included: true },
-      { text: "Story views & reach analytics", included: true },
+      { text: "Create and host events", included: true },
+      { text: "Story views and reach analytics", included: true },
       { text: "Explorer profile badge", included: true },
       { text: "Ad-free experience", included: false },
       { text: "Priority in search", included: false },
@@ -54,19 +52,17 @@ const PLANS = [
   {
     id: "pathfinder",
     name: "Pathfinder",
-    tagline: "For power explorers & content creators",
+    tagline: "For power explorers and creators",
     price: { monthly: 349, annual: 279 },
-    color: "#C4713A",
     badge: "Best Value",
     cta: "Become a Pathfinder",
-    ctaStyle: "accent" as const,
     features: [
       { text: "Unlimited destination pins", included: true },
       { text: "Unlimited stories", included: true },
       { text: "Unlimited photo uploads", included: true },
       { text: "Full map visibility control", included: true },
       { text: "Community access", included: true },
-      { text: "Create & host events", included: true },
+      { text: "Create and host events", included: true },
       { text: "Full analytics dashboard", included: true },
       { text: "Pathfinder profile badge", included: true },
       { text: "Ad-free experience", included: true },
@@ -79,170 +75,64 @@ const PLANS = [
 
 const ADDONS = [
   {
-    icon: MapPin,
     title: "Business Listing",
-    who: "For guesthouses, tour operators & restaurants",
-    price: "₱500–₱2,000 / month",
-    desc: "Appear as a verified spot on the TravelTraces map near traveller pins. Reach active explorers at the moment they're planning.",
-    color: "#5C8A9E",
+    who: "For guesthouses, tour operators, and restaurants",
+    price: "PHP 500 - PHP 2,000 / month",
+    desc: "Appear as a verified spot on the TravelTraces map near traveller pins. Reach active explorers at the moment they are planning.",
   },
   {
-    icon: Star,
     title: "Destination Spotlight",
-    who: "For LGUs & Tourism Boards",
+    who: "For destinations, cities, and tourism teams",
     price: "Custom pricing",
-    desc: "Featured placement on the Explore page for your province or municipality. Reach 42,000+ active Filipino travellers.",
-    color: "#2D4A2D",
+    desc: "Featured placement on the Explore page for your destination, province, or city. Reach 42,000+ active Southeast Asia travellers.",
   },
   {
-    icon: Zap,
     title: "Event Hosting",
     who: "For organisers selling tickets",
-    price: "5–10% platform fee",
+    price: "5-10% platform fee",
     desc: "Sell tickets through TravelTraces Events. We handle discovery, RSVPs, and payment processing.",
-    color: "#C4713A",
   },
 ];
 
 const FAQS = [
   { q: "Can I upgrade or downgrade at any time?", a: "Yes. You can change your plan anytime from your profile settings. Upgrades take effect immediately; downgrades apply at the end of your billing period." },
-  { q: "What happens when I hit my Free pin or story limit?", a: "You'll receive a prompt to upgrade. Your existing pins and stories are always preserved — you simply can't add new ones until you upgrade or the month resets." },
-  { q: "Is there a student or group discount?", a: "Yes. Students with a valid school email get 30% off Explorer. Travel clubs and groups of 5+ get custom pricing — contact us at hello@traveltraces.app." },
-  { q: "Do you offer refunds?", a: "We offer a 7-day money-back guarantee on all paid plans, no questions asked." },
-  { q: "What payment methods do you accept?", a: "GCash, Maya, credit/debit cards (Visa, Mastercard), and bank transfer for annual plans." },
+  { q: "What happens when I hit my Free pin or story limit?", a: "You will receive a prompt to upgrade. Your existing pins and stories are always preserved; you simply cannot add new ones until you upgrade or the month resets." },
+  { q: "Is there a student or group discount?", a: "Yes. Students with a valid school email get 30% off Explorer. Travel clubs and groups of 5+ can contact us for custom pricing." },
+  { q: "Do you offer refunds?", a: "We offer a 7-day money-back guarantee on all paid plans." },
+  { q: "What payment methods do you accept?", a: "GCash, Maya, credit/debit cards, and bank transfer for annual plans." },
 ];
 
-function PlanCard({ plan, annual }: { plan: typeof PLANS[0]; annual: boolean; key?: any }) {
+function PlanCard({ plan, annual }: { plan: typeof PLANS[0]; annual: boolean; key?: string }) {
   const { isAuthenticated, openAuthModal, user } = useAuth();
   const price = annual ? plan.price.annual : plan.price.monthly;
   const isCurrentPlan = user?.plan === plan.id;
-  const isFree = plan.id === "free";
+  const isFeatured = plan.badge === "Most Popular";
 
   const handleCta = () => {
-    if (!isAuthenticated) { openAuthModal("signup"); return; }
-    // In a real app, this would navigate to checkout
+    if (!isAuthenticated) openAuthModal("signup");
   };
 
-  const bgColor = plan.badge === "Most Popular" ? "#2D4A2D" : "#EDEAE0";
-  const textColor = plan.badge === "Most Popular" ? "#F5F0E8" : "#1A1A1A";
-  const mutedColor = plan.badge === "Most Popular" ? "rgba(245,240,232,0.65)" : "#6B6B5A";
-  const borderColor = plan.badge === "Most Popular" ? "transparent" : "rgba(45,74,45,0.12)";
-  const checkColor = plan.badge === "Most Popular" ? "#7A9E6F" : "#2D4A2D";
-  const crossColor = plan.badge === "Most Popular" ? "rgba(245,240,232,0.2)" : "#D8D4C8";
-
   return (
-    <div
-      style={{
-        backgroundColor: bgColor,
-        border: `1px solid ${borderColor}`,
-        borderRadius: "0.5rem",
-        padding: "2rem",
-        display: "flex",
-        flexDirection: "column",
-        position: "relative",
-        overflow: "hidden",
-        transition: "transform 0.2s, box-shadow 0.2s",
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(0,0,0,0.15)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
-    >
-      {/* Badge */}
-      {plan.badge && (
-        <div style={{
-          position: "absolute", top: "1.25rem", right: "1.25rem",
-          padding: "0.25rem 0.65rem",
-          backgroundColor: plan.id === "pathfinder" ? "#C4713A" : "rgba(245,240,232,0.15)",
-          color: "#F5F0E8",
-          borderRadius: "2rem",
-          fontFamily: "var(--font-label)", fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.08em",
-        }}>
-          {plan.badge}
-        </div>
-      )}
-
-      {/* Plan name */}
-      <div style={{ marginBottom: "1.5rem" }}>
-        <div style={{ width: 36, height: 4, backgroundColor: plan.color, borderRadius: "2px", marginBottom: "1rem" }} />
-        <p style={{ fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.12em", textTransform: "uppercase", color: plan.color, marginBottom: "0.35rem" }}>
-          {plan.name}
-        </p>
-        <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 600, color: textColor, lineHeight: 1.2, marginBottom: "0.5rem" }}>
-          {plan.tagline}
-        </h3>
+    <article className={`pricing-card ${isFeatured ? "featured" : ""}`}>
+      {plan.badge && <div className="pricing-badge">{plan.badge}</div>}
+      <p className="pricing-kicker">{plan.name}</p>
+      <h3>{plan.tagline}</h3>
+      <div className="pricing-price">
+        {price === 0 ? "Free" : <>PHP {price}<span>/month</span></>}
       </div>
-
-      {/* Price */}
-      <div style={{ marginBottom: "1.75rem", paddingBottom: "1.75rem", borderBottom: `1px solid ${plan.badge === "Most Popular" ? "rgba(245,240,232,0.12)" : "rgba(45,74,45,0.1)"}` }}>
-        {isFree ? (
-          <div style={{ display: "flex", alignItems: "baseline", gap: "0.25rem" }}>
-            <span style={{ fontFamily: "var(--font-display)", fontSize: "3rem", fontWeight: 700, color: textColor, lineHeight: 1 }}>Free</span>
-          </div>
-        ) : (
-          <>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "0.25rem" }}>
-              <span style={{ fontFamily: "var(--font-label)", fontSize: "1rem", color: mutedColor }}>₱</span>
-              <span style={{ fontFamily: "var(--font-display)", fontSize: "3rem", fontWeight: 700, color: textColor, lineHeight: 1 }}>{price}</span>
-              <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.85rem", color: mutedColor }}>/month</span>
-            </div>
-            {annual && (
-              <p style={{ fontFamily: "var(--font-ui)", fontSize: "0.78rem", color: plan.color, marginTop: "0.35rem" }}>
-                Save ₱{(plan.price.monthly - plan.price.annual) * 12}/year with annual billing
-              </p>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* Features */}
-      <ul style={{ listStyle: "none", margin: "0 0 2rem", padding: 0, flex: 1 }}>
-        {plan.features.map((f) => (
-          <li key={f.text} style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", marginBottom: "0.75rem" }}>
-            <div style={{ width: 18, height: 18, borderRadius: "50%", backgroundColor: f.included ? checkColor : "transparent", border: f.included ? "none" : `1.5px solid ${crossColor}`, display: "flex", alignItems: "center", justifycontent: "center", flexShrink: 0, marginTop: "1px" }}>
-              {f.included
-                ? <Check size={11} color="#F5F0E8" strokeWidth={3} />
-                : <X size={10} color={crossColor} strokeWidth={2.5} />
-              }
-            </div>
-            <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.875rem", color: f.included ? textColor : mutedColor, lineHeight: 1.5 }}>
-              {f.text}
-            </span>
+      {annual && price > 0 && <p className="pricing-save">Save PHP {(plan.price.monthly - plan.price.annual) * 12}/year with annual billing</p>}
+      <ul>
+        {plan.features.map((feature) => (
+          <li key={feature.text} className={feature.included ? "" : "muted"}>
+            {feature.included ? <Check size={13} /> : <X size={13} />}
+            {feature.text}
           </li>
         ))}
       </ul>
-
-      {/* CTA */}
-      <button
-        onClick={handleCta}
-        disabled={isCurrentPlan}
-        style={{
-          width: "100%",
-          padding: "0.875rem",
-          borderRadius: "0.25rem",
-          border: plan.ctaStyle === "outline" ? "1px solid rgba(45,74,45,0.35)" : "none",
-          backgroundColor:
-            isCurrentPlan ? "rgba(122,158,111,0.15)" :
-            plan.ctaStyle === "filled" ? "rgba(245,240,232,0.12)" :
-            plan.ctaStyle === "accent" ? "#C4713A" : "transparent",
-          color:
-            isCurrentPlan ? "#7A9E6F" :
-            plan.ctaStyle === "outline" ? "#2D4A2D" : "#F5F0E8",
-          cursor: isCurrentPlan ? "default" : "pointer",
-          fontFamily: "var(--font-label)",
-          fontSize: "0.85rem",
-          fontWeight: 700,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "0.5rem",
-          transition: "opacity 0.15s",
-        }}
-      >
-        {isCurrentPlan ? "Current Plan" : plan.cta}
-        {!isCurrentPlan && <ArrowRight size={14} />}
+      <button onClick={handleCta} disabled={isCurrentPlan}>
+        {isCurrentPlan ? "Current Plan" : plan.cta} {!isCurrentPlan && <ArrowRight size={14} />}
       </button>
-    </div>
+    </article>
   );
 }
 
@@ -252,215 +142,163 @@ export default function PricingPage() {
   const { openAuthModal } = useAuth();
 
   return (
-    <div style={{ backgroundColor: "#F5F0E8" }}>
-
-      {/* Header */}
-      <section style={{ backgroundColor: "#2D4A2D", padding: "5rem 1.5rem 4rem", textAlign: "center" }}>
-        <div style={{ maxWidth: 680, margin: "0 auto" }}>
-          <p style={{ fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#7A9E6F", marginBottom: "0.75rem" }}>
-            Simple, honest pricing
-          </p>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.5rem, 6vw, 4rem)", fontWeight: 600, color: "#F5F0E8", lineHeight: 1.1, marginBottom: "1rem" }}>
-            Choose your journey
-          </h1>
-          <p style={{ fontFamily: "var(--font-body)", color: "rgba(245,240,232,0.75)", fontSize: "1.05rem", lineHeight: 1.7, marginBottom: "2.25rem" }}>
-            Start free. Upgrade when the islands call louder. Every plan keeps your memories safe forever.
-          </p>
-
-          {/* Billing toggle */}
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "0.875rem", backgroundColor: "rgba(245,240,232,0.08)", border: "1px solid rgba(245,240,232,0.15)", borderRadius: "2rem", padding: "0.4rem 0.4rem 0.4rem 1rem" }}>
-            <span style={{ fontFamily: "var(--font-label)", fontSize: "0.8rem", letterSpacing: "0.05em", color: !annual ? "#F5F0E8" : "rgba(245,240,232,0.5)" }}>Monthly</span>
-            <button
-              onClick={() => setAnnual((v) => !v)}
-              style={{
-                width: 44, height: 24, borderRadius: "12px",
-                backgroundColor: annual ? "#C4713A" : "rgba(245,240,232,0.2)",
-                border: "none", cursor: "pointer", position: "relative", transition: "background-color 0.2s", flexShrink: 0,
-              }}
-            >
-              <div style={{ width: 18, height: 18, backgroundColor: "#F5F0E8", borderRadius: "50%", position: "absolute", top: 3, left: annual ? 23 : 3, transition: "left 0.2s" }} />
+    <div className="pricing-page">
+      <section className="pricing-hero">
+        <img src={PRICING_HERO} alt="" />
+        <div className="pricing-hero-warmth" />
+        <div className="pricing-frame" />
+        <div className="pricing-hero-copy">
+          <p>Simple, honest pricing</p>
+          <h1>Choose your journey</h1>
+          <span>Start free. Upgrade when Southeast Asia calls louder. Every plan keeps your memories safe forever.</span>
+          <div className="billing-toggle">
+            <span className={!annual ? "active" : ""}>Monthly</span>
+            <button onClick={() => setAnnual((value) => !value)} aria-label="Toggle annual billing">
+              <i className={annual ? "annual" : ""} />
             </button>
-            <span style={{ fontFamily: "var(--font-label)", fontSize: "0.8rem", letterSpacing: "0.05em", color: annual ? "#F5F0E8" : "rgba(245,240,232,0.5)" }}>Annual</span>
-            {annual && (
-              <span style={{ padding: "0.2rem 0.6rem", backgroundColor: "#C4713A", borderRadius: "2rem", fontFamily: "var(--font-label)", fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", color: "#F5F0E8" }}>
-                SAVE 20%
-              </span>
-            )}
+            <span className={annual ? "active" : ""}>Annual</span>
+            {annual && <strong>Save 20%</strong>}
           </div>
         </div>
       </section>
 
-      {/* Pricing cards */}
-      <section style={{ maxWidth: 1100, margin: "-2rem auto 0", padding: "0 1.5rem 5rem", position: "relative", zIndex: 1 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.25rem" }} className="pricing-grid">
+      <section className="pricing-plans">
+        <div className="pricing-grid">
           {PLANS.map((plan) => <PlanCard key={plan.id} plan={plan} annual={annual} />)}
         </div>
-
-        <p style={{ textAlign: "center", fontFamily: "var(--font-ui)", fontSize: "0.82rem", color: "#6B6B5A", marginTop: "1.5rem" }}>
-          All plans include a 7-day money-back guarantee · Pay with GCash, Maya, or card · Cancel anytime
-        </p>
+        <p className="pricing-note">All plans include a 7-day money-back guarantee. Pay with GCash, Maya, card, or annual bank transfer.</p>
       </section>
 
-      {/* Feature comparison table */}
-      <section style={{ backgroundColor: "#EDEAE0", padding: "5rem 1.5rem" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "3rem" }}>
-            <p style={{ fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#7A9E6F", marginBottom: "0.5rem" }}>Full breakdown</p>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.75rem, 3.5vw, 2.75rem)", fontWeight: 600, color: "#2D4A2D" }}>Compare all features</h2>
-          </div>
-
-          <div style={{ overflowX: "auto" }}>
-          <div style={{ backgroundColor: "#F5F0E8", borderRadius: "0.5rem", overflow: "hidden", border: "1px solid rgba(45,74,45,0.1)", minWidth: 640 }}>
-            {/* Header row */}
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", padding: "1rem 1.5rem", backgroundColor: "#2D4A2D" }}>
-              <span style={{ fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(245,240,232,0.6)" }}>Feature</span>
-              {["Free", "Explorer", "Pathfinder"].map((p) => (
-                <span key={p} style={{ fontFamily: "var(--font-label)", fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.08em", color: "#F5F0E8", textAlign: "center" }}>{p}</span>
-              ))}
-            </div>
-
-            {[
-              ["Destination pins", "30", "Unlimited", "Unlimited"],
-              ["Stories per month", "3", "Unlimited", "Unlimited"],
-              ["Photo uploads", "50", "500", "Unlimited"],
-              ["Map privacy control", "Public only", "Public + Private", "Full control"],
-              ["Community & events", "✓", "✓", "✓"],
-              ["Host your own events", "✗", "✓", "✓"],
-              ["Story analytics", "✗", "Views & reach", "Full dashboard"],
-              ["Profile badge", "—", "Explorer", "Pathfinder"],
-              ["Ad-free experience", "✗", "✗", "✓"],
-              ["Priority in search", "✗", "✗", "✓"],
-              ["Early feature access", "✗", "✗", "✓"],
-              ["Dedicated support", "✗", "✗", "✓"],
-            ].map(([feature, free, explorer, pathfinder], i) => (
-              <div
-                key={feature}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "2fr 1fr 1fr 1fr",
-                  padding: "0.875rem 1.5rem",
-                  backgroundColor: i % 2 === 0 ? "#F5F0E8" : "#EDEAE0",
-                  borderBottom: "1px solid rgba(45,74,45,0.06)",
-                }}
-              >
-                <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.875rem", color: "#1A1A1A" }}>{feature}</span>
-                {[free, explorer, pathfinder].map((val, j) => (
-                  <span
-                    key={j}
-                    style={{
-                      fontFamily: val === "✓" || val === "✗" ? "var(--font-ui)" : "var(--font-label)",
-                      fontSize: "0.85rem",
-                      textAlign: "center",
-                      color: val === "✓" ? "#2D4A2D" : val === "✗" ? "#D8D4C8" : "#1A1A1A",
-                      fontWeight: val !== "✓" && val !== "✗" ? 600 : 400,
-                    }}
-                  >
-                    {val}
-                  </span>
-                ))}
-              </div>
-            ))}
-          </div>
-          </div>
-        </div>
-      </section>
-
-      {/* B2B Add-ons */}
-      <section style={{ maxWidth: 1100, margin: "0 auto", padding: "5rem 1.5rem" }}>
-        <div style={{ textAlign: "center", marginBottom: "3rem" }}>
-          <p style={{ fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#7A9E6F", marginBottom: "0.5rem" }}>For businesses & government</p>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.75rem, 3.5vw, 2.75rem)", fontWeight: 600, color: "#2D4A2D", marginBottom: "0.75rem" }}>Partner with TravelTraces</h2>
-          <p style={{ fontFamily: "var(--font-body)", color: "#6B6B5A", fontSize: "1rem", maxWidth: 480, margin: "0 auto" }}>
-            Reach 42,000+ active Filipino travellers at exactly the moment they're planning their next trip.
-          </p>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.25rem" }} className="addons-grid">
-          {ADDONS.map((addon) => (
-            <div
-              key={addon.title}
-              style={{ backgroundColor: "#EDEAE0", borderRadius: "0.5rem", padding: "2rem", borderTop: `3px solid ${addon.color}` }}
-            >
-              <div style={{ width: 44, height: 44, backgroundColor: addon.color, borderRadius: "0.25rem", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1.25rem" }}>
-                <addon.icon size={22} color="#F5F0E8" />
-              </div>
-              <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.35rem", fontWeight: 600, color: "#2D4A2D", marginBottom: "0.25rem" }}>{addon.title}</h3>
-              <p style={{ fontFamily: "var(--font-label)", fontSize: "0.7rem", letterSpacing: "0.06em", textTransform: "uppercase", color: addon.color, marginBottom: "0.75rem" }}>{addon.who}</p>
-              <p style={{ fontFamily: "var(--font-ui)", fontSize: "0.875rem", color: "#4A4A3A", lineHeight: 1.65, marginBottom: "1.25rem" }}>{addon.desc}</p>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", fontWeight: 600, color: "#2D4A2D" }}>{addon.price}</span>
-                <button
-                  onClick={() => openAuthModal("signup")}
-                  style={{ display: "flex", alignItems: "center", gap: "0.35rem", background: "none", border: `1px solid ${addon.color}`, color: addon.color, padding: "0.45rem 0.875rem", borderRadius: "0.25rem", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}
-                >
-                  Enquire <ArrowRight size={12} />
-                </button>
-              </div>
+      <section className="pricing-compare">
+        <p className="section-kicker">Full breakdown</p>
+        <h2>Compare all features</h2>
+        <div className="compare-table">
+          {[
+            ["Destination pins", "30", "Unlimited", "Unlimited"],
+            ["Stories per month", "3", "Unlimited", "Unlimited"],
+            ["Photo uploads", "50", "500", "Unlimited"],
+            ["Map privacy control", "Public only", "Public + private", "Full control"],
+            ["Community and events", "Yes", "Yes", "Yes"],
+            ["Host your own events", "No", "Yes", "Yes"],
+            ["Story analytics", "No", "Views and reach", "Full dashboard"],
+            ["Profile badge", "-", "Explorer", "Pathfinder"],
+            ["Ad-free experience", "No", "No", "Yes"],
+            ["Priority in search", "No", "No", "Yes"],
+          ].map(([feature, free, explorer, pathfinder]) => (
+            <div key={feature}>
+              <strong>{feature}</strong>
+              <span>{free}</span>
+              <span>{explorer}</span>
+              <span>{pathfinder}</span>
             </div>
           ))}
         </div>
       </section>
 
-      {/* FAQ */}
-      <section style={{ backgroundColor: "#EDEAE0", padding: "5rem 1.5rem" }}>
-        <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "3rem" }}>
-            <p style={{ fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#7A9E6F", marginBottom: "0.5rem" }}>Got questions?</p>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.75rem, 3.5vw, 2.75rem)", fontWeight: 600, color: "#2D4A2D" }}>Frequently Asked</h2>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-            {FAQS.map((faq, i) => (
-              <div
-                key={i}
-                style={{ backgroundColor: "#F5F0E8", borderRadius: "0.25rem", overflow: "hidden", border: "1px solid rgba(45,74,45,0.08)" }}
-              >
-                <button
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  style={{
-                    width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
-                    padding: "1.25rem 1.5rem", background: "none", border: "none", cursor: "pointer", textAlign: "left",
-                  }}
-                >
-                  <span style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", fontWeight: 600, color: "#2D4A2D", paddingRight: "1rem" }}>{faq.q}</span>
-                  <HelpCircle size={18} color={openFaq === i ? "#C4713A" : "#7A9E6F"} style={{ flexShrink: 0, transition: "color 0.15s" }} />
-                </button>
-                {openFaq === i && (
-                  <div style={{ padding: "0 1.5rem 1.25rem" }}>
-                    <p style={{ fontFamily: "var(--font-body)", fontSize: "0.95rem", color: "#4A4A3A", lineHeight: 1.75 }}>{faq.a}</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+      <section className="pricing-addons">
+        <div>
+          <p className="section-kicker">Partners</p>
+          <h2>Bring your place into the map</h2>
+          <p>Reach active Southeast Asia travellers at exactly the moment they are planning their next trip.</p>
+        </div>
+        <div className="addon-grid">
+          {ADDONS.map((addon) => (
+            <article key={addon.title}>
+              <p>{addon.who}</p>
+              <h3>{addon.title}</h3>
+              <span>{addon.desc}</span>
+              <strong>{addon.price}</strong>
+              <button onClick={() => openAuthModal("signup")}>Enquire <ArrowRight size={13} /></button>
+            </article>
+          ))}
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section style={{ backgroundColor: "#2D4A2D", padding: "5rem 1.5rem", textAlign: "center" }}>
-        <div style={{ maxWidth: 580, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2rem, 4.5vw, 3.25rem)", fontWeight: 600, color: "#F5F0E8", lineHeight: 1.15, marginBottom: "1rem" }}>
-            Your first footstep<br /><em>costs nothing.</em>
-          </h2>
-          <p style={{ fontFamily: "var(--font-body)", color: "rgba(245,240,232,0.75)", fontSize: "1.05rem", lineHeight: 1.7, marginBottom: "2rem" }}>
-            Join free today. Upgrade when you're ready. Every memory you create is yours to keep, forever.
-          </p>
-          <button
-            onClick={() => openAuthModal("signup")}
-            style={{ backgroundColor: "#C4713A", color: "#F5F0E8", border: "none", padding: "1rem 2.5rem", borderRadius: "0.25rem", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.875rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
-          >
-            Get Started Free <ArrowRight size={16} />
-          </button>
+      <section className="pricing-faq">
+        <p className="section-kicker">Got questions?</p>
+        <h2>Frequently asked</h2>
+        <div>
+          {FAQS.map((faq, index) => (
+            <article key={faq.q}>
+              <button onClick={() => setOpenFaq(openFaq === index ? null : index)}>
+                <span>{faq.q}</span>
+                <HelpCircle size={18} />
+              </button>
+              {openFaq === index && <p>{faq.a}</p>}
+            </article>
+          ))}
         </div>
+      </section>
+
+      <section className="pricing-final">
+        <p className="section-kicker">Free to begin</p>
+        <h2>Your first footstep costs nothing.</h2>
+        <button onClick={() => openAuthModal("signup")}>Get Started Free <ArrowRight size={16} /></button>
       </section>
 
       <style>{`
+        .pricing-page { background: #FBF7F0; color: #2C211C; overflow: hidden; }
+        .pricing-page * { box-sizing: border-box; }
+        .pricing-hero { position: relative; min-height: 520px; display: grid; place-items: center; text-align: center; overflow: hidden; padding: 5rem 1.5rem; }
+        .pricing-hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: sepia(0.12) saturate(0.92); }
+        .pricing-hero-warmth { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(72,42,20,0.34), rgba(44,33,28,0.68)); }
+        .pricing-frame { position: absolute; inset: 10%; border: 1px solid rgba(251,247,240,0.2); background-image: linear-gradient(90deg, rgba(251,247,240,0.12) 1px, transparent 1px), linear-gradient(rgba(251,247,240,0.1) 1px, transparent 1px); background-size: 25% 100%, 100% 50%; }
+        .pricing-hero-copy { position: relative; z-index: 1; max-width: 760px; color: #FBF7F0; }
+        .pricing-hero-copy p, .section-kicker, .pricing-kicker { margin: 0 0 0.75rem; font-family: var(--font-label); font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: #CFA68A; }
+        .pricing-hero-copy h1, .pricing-compare h2, .pricing-addons h2, .pricing-faq h2, .pricing-final h2 { margin: 0; font-family: var(--font-display); font-weight: 500; letter-spacing: 0; text-transform: uppercase; line-height: 0.98; }
+        .pricing-hero-copy h1 { font-size: clamp(2.8rem, 7vw, 5.3rem); color: #FBF7F0; }
+        .pricing-hero-copy span { display: block; max-width: 620px; margin: 1.25rem auto 2rem; font-family: var(--font-body); line-height: 1.65; color: rgba(251,247,240,0.84); }
+        .billing-toggle { display: inline-flex; align-items: center; gap: 0.75rem; padding: 0.45rem 0.45rem 0.45rem 1rem; border: 1px solid rgba(251,247,240,0.2); border-radius: 999px; background: rgba(251,247,240,0.08); font-family: var(--font-label); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
+        .billing-toggle span { margin: 0; color: rgba(251,247,240,0.55); font-family: inherit; line-height: 1; }
+        .billing-toggle span.active { color: #FBF7F0; }
+        .billing-toggle button { position: relative; width: 46px; height: 26px; border: none; border-radius: 999px; background: rgba(251,247,240,0.22); cursor: pointer; }
+        .billing-toggle i { position: absolute; width: 18px; height: 18px; top: 4px; left: 4px; border-radius: 50%; background: #FBF7F0; transition: left 0.18s ease; }
+        .billing-toggle i.annual { left: 24px; }
+        .billing-toggle strong { padding: 0.28rem 0.7rem; border-radius: 999px; background: #9E6B5C; color: #FBF7F0; }
+        .pricing-plans, .pricing-compare, .pricing-addons, .pricing-faq, .pricing-final { max-width: 1120px; margin: 0 auto; padding: 5.5rem 1.5rem; }
+        .pricing-plans { margin-top: -3rem; position: relative; z-index: 2; padding-top: 0; }
+        .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+        .pricing-card { position: relative; display: flex; flex-direction: column; min-height: 100%; padding: 1.75rem; background: #EFE7DC; border: 1px solid rgba(58,42,34,0.12); box-shadow: 0 18px 50px rgba(44,33,28,0.08); }
+        .pricing-card.featured { background: #3A2A22; color: #FBF7F0; transform: translateY(-1rem); }
+        .pricing-badge { position: absolute; top: 1rem; right: 1rem; padding: 0.28rem 0.65rem; border-radius: 999px; background: #9E6B5C; color: #FBF7F0; font-family: var(--font-label); font-size: 0.64rem; letter-spacing: 0.1em; text-transform: uppercase; }
+        .pricing-card h3 { margin: 0 0 1.3rem; font-family: var(--font-display); font-size: 1.55rem; font-weight: 500; line-height: 1.1; text-transform: uppercase; }
+        .pricing-price { font-family: var(--font-display); font-size: 2.35rem; line-height: 1; color: #9E6B5C; margin-bottom: 0.6rem; }
+        .pricing-card.featured .pricing-price { color: #CFA68A; }
+        .pricing-price span { font-family: var(--font-ui); font-size: 0.85rem; color: inherit; opacity: 0.75; }
+        .pricing-save, .pricing-note { font-family: var(--font-ui); font-size: 0.82rem; color: #5B4A40; }
+        .pricing-card.featured .pricing-save { color: rgba(251,247,240,0.72); }
+        .pricing-card ul { list-style: none; padding: 1.4rem 0 0; margin: 1.4rem 0 1.5rem; border-top: 1px solid rgba(58,42,34,0.12); flex: 1; }
+        .pricing-card.featured ul { border-top-color: rgba(251,247,240,0.14); }
+        .pricing-card li { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.7rem; font-family: var(--font-ui); font-size: 0.9rem; color: inherit; }
+        .pricing-card li svg { color: #9E6B5C; flex: 0 0 auto; }
+        .pricing-card li.muted { opacity: 0.45; }
+        .pricing-card button, .addon-grid button, .pricing-final button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; border-radius: 999px; border: 1px solid currentColor; background: #3A2A22; color: #FBF7F0; padding: 0.72rem 1.2rem; font-family: var(--font-label); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase; cursor: pointer; }
+        .pricing-card.featured button { background: #FBF7F0; color: #3A2A22; }
+        .pricing-note { text-align: center; margin-top: 1.4rem; }
+        .pricing-compare h2, .pricing-addons h2, .pricing-faq h2, .pricing-final h2 { font-size: clamp(2.2rem, 5vw, 4rem); color: #2C211C; margin-bottom: 2rem; }
+        .compare-table { background: #EFE7DC; border: 1px solid rgba(58,42,34,0.12); box-shadow: 0 18px 50px rgba(44,33,28,0.08); overflow-x: auto; }
+        .compare-table div { min-width: 680px; display: grid; grid-template-columns: 2fr repeat(3, 1fr); gap: 1rem; padding: 1rem 1.25rem; border-bottom: 1px solid rgba(58,42,34,0.1); font-family: var(--font-ui); }
+        .compare-table div:first-child { background: #3A2A22; color: #FBF7F0; }
+        .compare-table strong { color: inherit; }
+        .compare-table span { text-align: center; }
+        .pricing-addons { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 2rem; align-items: start; }
+        .pricing-addons > div > p:not(.section-kicker), .pricing-final { font-family: var(--font-body); color: #5B4A40; line-height: 1.7; }
+        .addon-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+        .addon-grid article { padding: 1.5rem; background: #EFE7DC; border: 1px solid rgba(58,42,34,0.12); box-shadow: 0 18px 50px rgba(44,33,28,0.08); }
+        .addon-grid p { margin: 0 0 0.35rem; font-family: var(--font-label); font-size: 0.68rem; letter-spacing: 0.13em; text-transform: uppercase; color: #9E6B5C; }
+        .addon-grid h3 { margin: 0 0 0.7rem; font-family: var(--font-display); font-weight: 500; font-size: 1.45rem; text-transform: uppercase; }
+        .addon-grid span { display: block; font-family: var(--font-body); color: #5B4A40; line-height: 1.65; }
+        .addon-grid strong { display: block; margin: 1rem 0; font-family: var(--font-display); font-size: 1.25rem; color: #2C211C; }
+        .addon-grid button { background: transparent; color: #3A2A22; }
+        .pricing-faq > div { display: grid; gap: 0.75rem; }
+        .pricing-faq article { background: #EFE7DC; border: 1px solid rgba(58,42,34,0.12); }
+        .pricing-faq article > button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1.2rem 1.35rem; border: none; background: transparent; color: #2C211C; cursor: pointer; text-align: left; font-family: var(--font-display); font-size: 1.1rem; }
+        .pricing-faq p { margin: 0; padding: 0 1.35rem 1.2rem; font-family: var(--font-body); line-height: 1.7; color: #5B4A40; }
+        .pricing-final { text-align: center; padding-bottom: 6rem; }
         @media (max-width: 900px) {
-          .pricing-grid { grid-template-columns: 1fr !important; max-width: 420px; margin: 0 auto; }
-          .addons-grid { grid-template-columns: 1fr !important; }
-        }
-        @media (max-width: 600px) {
-          .pricing-grid { max-width: 100%; }
+          .pricing-grid, .pricing-addons, .addon-grid { grid-template-columns: 1fr; }
+          .pricing-card.featured { transform: none; }
+          .pricing-hero { min-height: 600px; }
         }
       `}</style>
     </div>

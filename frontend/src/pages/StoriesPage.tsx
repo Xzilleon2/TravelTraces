@@ -215,23 +215,23 @@ function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext }: {
   };
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#F5F0E8", padding: "2rem clamp(1rem, 4vw, 2rem) 5rem" }}>
-      <article style={{ width: "min(100%, 1120px)", margin: "0 auto", backgroundColor: "#F5F0E8" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#FBF7F0", padding: "2rem clamp(1rem, 4vw, 2rem) 5rem" }}>
+      <article style={{ width: "min(100%, 1120px)", margin: "0 auto", backgroundColor: "#FBF7F0" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "center", marginBottom: "2rem", flexWrap: "wrap" }}>
           <button
             onClick={onBack}
-            style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", border: "1px solid rgba(45,74,45,0.18)", background: "transparent", color: "#2D4A2D", borderRadius: "999px", padding: "0.55rem 1rem", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}
+            style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", border: "1px solid rgba(58,42,34,0.18)", background: "transparent", color: "#3A2A22", borderRadius: "999px", padding: "0.55rem 1rem", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}
           >
             <ArrowLeft size={15} /> Stories
           </button>
           <div style={{ display: "flex", gap: "0.5rem" }}>
             {hasPrev && (
-              <button aria-label="Previous story" onClick={onPrev} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", border: "1px solid rgba(45,74,45,0.18)", background: "transparent", color: "#2D4A2D", borderRadius: "999px", padding: "0.55rem 0.9rem", cursor: "pointer", fontFamily: "var(--font-ui)", fontSize: "0.82rem", fontWeight: 700 }}>
+              <button aria-label="Previous story" onClick={onPrev} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", border: "1px solid rgba(58,42,34,0.18)", background: "transparent", color: "#3A2A22", borderRadius: "999px", padding: "0.55rem 0.9rem", cursor: "pointer", fontFamily: "var(--font-ui)", fontSize: "0.82rem", fontWeight: 700 }}>
                 <ChevronLeft size={16} /> Previous
               </button>
             )}
             {hasNext && (
-              <button aria-label="Next story" onClick={onNext} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", border: "1px solid rgba(45,74,45,0.18)", background: "transparent", color: "#2D4A2D", borderRadius: "999px", padding: "0.55rem 0.9rem", cursor: "pointer", fontFamily: "var(--font-ui)", fontSize: "0.82rem", fontWeight: 700 }}>
+              <button aria-label="Next story" onClick={onNext} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", border: "1px solid rgba(58,42,34,0.18)", background: "transparent", color: "#3A2A22", borderRadius: "999px", padding: "0.55rem 0.9rem", cursor: "pointer", fontFamily: "var(--font-ui)", fontSize: "0.82rem", fontWeight: 700 }}>
                 Next <ChevronRight size={16} />
               </button>
             )}
@@ -252,7 +252,7 @@ function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext }: {
               </button>
               <div>
                 <button onClick={() => { const k = AUTHOR_KEY[story.author]; if (k) setViewingProfile(GAMIFIED_USERS[k]); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: "0.94rem", color: "#1A1A1A" }}>{story.author}</button>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: "#6B6B5A", flexWrap: "wrap", marginTop: "0.15rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: "#6B5A50", flexWrap: "wrap", marginTop: "0.15rem" }}>
                   <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.82rem", fontFamily: "var(--font-ui)" }}><MapPin size={12} />{story.region}, Philippines</span>
                   <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.82rem", fontFamily: "var(--font-ui)" }}><Clock size={12} />Posted {story.date}</span>
                   <span style={{ fontSize: "0.82rem", fontFamily: "var(--font-ui)" }}>{story.readTime} read</span>
@@ -261,13 +261,13 @@ function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext }: {
             </div>
 
             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-              <button onClick={() => setLiked((v) => !v)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid", borderColor: liked ? "#C4713A" : "rgba(45,74,45,0.2)", borderRadius: "999px", background: liked ? "rgba(196,113,58,0.08)" : "none", color: liked ? "#C4713A" : "#6B6B5A", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
+              <button onClick={() => setLiked((v) => !v)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid", borderColor: liked ? "#C4713A" : "rgba(58,42,34,0.2)", borderRadius: "999px", background: liked ? "rgba(196,113,58,0.08)" : "none", color: liked ? "#C4713A" : "#6B5A50", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
                 <Heart size={14} fill={liked ? "#C4713A" : "none"} /> {story.likes + (liked ? 1 : 0)}
               </button>
-              <button onClick={() => setSaved((v) => !v)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid", borderColor: saved ? "#2D4A2D" : "rgba(45,74,45,0.2)", borderRadius: "999px", background: saved ? "rgba(45,74,45,0.08)" : "none", color: saved ? "#2D4A2D" : "#6B6B5A", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
+              <button onClick={() => setSaved((v) => !v)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid", borderColor: saved ? "#3A2A22" : "rgba(58,42,34,0.2)", borderRadius: "999px", background: saved ? "rgba(58,42,34,0.08)" : "none", color: saved ? "#3A2A22" : "#6B5A50", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
                 <Bookmark size={14} fill={saved ? "#2D4A2D" : "none"} /> Save
               </button>
-              <button style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid rgba(45,74,45,0.2)", borderRadius: "999px", background: "none", color: "#6B6B5A", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
+              <button style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid rgba(58,42,34,0.2)", borderRadius: "999px", background: "none", color: "#6B5A50", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
                 <Share2 size={14} /> Share
               </button>
             </div>
@@ -282,14 +282,14 @@ function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext }: {
               <button
                 aria-label="Previous photo"
                 onClick={() => setPhotoIndex((current) => (current - 1 + photos.length) % photos.length)}
-                style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", background: "rgba(26,26,26,0.5)", border: "none", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#F5F0E8" }}
+                style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", background: "rgba(58,42,34,0.5)", border: "none", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#FBF7F0" }}
               >
                 <ChevronLeft size={20} />
               </button>
               <button
                 aria-label="Next photo"
                 onClick={() => setPhotoIndex((current) => (current + 1) % photos.length)}
-                style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", background: "rgba(26,26,26,0.5)", border: "none", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#F5F0E8" }}
+                style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", background: "rgba(58,42,34,0.5)", border: "none", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#FBF7F0" }}
               >
                 <ChevronRight size={20} />
               </button>
@@ -299,7 +299,7 @@ function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext }: {
                     key={index}
                     aria-label={`Show photo ${index + 1}`}
                     onClick={() => setPhotoIndex(index)}
-                    style={{ width: index === photoIndex ? 18 : 7, height: 7, borderRadius: "999px", border: "none", backgroundColor: index === photoIndex ? "#F5F0E8" : "rgba(245,240,232,0.45)", padding: 0, cursor: "pointer" }}
+                    style={{ width: index === photoIndex ? 18 : 7, height: 7, borderRadius: "999px", border: "none", backgroundColor: index === photoIndex ? "#FBF7F0" : "rgba(251,247,240,0.45)", padding: 0, cursor: "pointer" }}
                   />
                 ))}
               </div>

@@ -1,9 +1,9 @@
 import React from "react";
 import { useAuth } from "../context/AuthContext";
 import { ArrowRight } from "lucide-react";
-const kayeenImg = "/imports/Kayeen.jpg";
-const allenImg = "/imports/Allen.jpg";
-const hersheyImg = "/imports/Hershey.jpg";
+const kayeenImg = "/creator-profiles/Kayeen.jpg";
+const allenImg = "/creator-profiles/Allen.jpg";
+const hersheyImg = "/creator-profiles/Hershey.jpg";
 
 const HERO_IMG = "https://images.unsplash.com/photo-1695051702427-1c24ce3682e7?w=1400&h=600&fit=crop&auto=format";
 const NATURE_IMG = "https://images.unsplash.com/photo-1609412058473-c199497c3c5d?w=900&h=560&fit=crop&auto=format";
@@ -39,46 +39,44 @@ export default function AboutPage() {
   const { openAuthModal } = useAuth();
 
   return (
-    <div style={{ backgroundColor: "#F5F0E8" }}>
+    <div style={{ backgroundColor: "#FBF7F0" }}>
 
       {/* Hero */}
-      <div style={{ position: "relative", height: 440, overflow: "hidden" }}>
-        <img src={HERO_IMG} alt="Philippine archipelago aerial view" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(26,26,26,0.35) 0%, rgba(26,26,26,0.65) 100%)" }} />
-        <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", maxWidth: 1000, margin: "0 auto", padding: "0 1.5rem" }}>
+      <section style={{ position: "relative", minHeight: 430, overflow: "hidden", display: "grid", placeItems: "center", textAlign: "center" }}>
+        <img src={HERO_IMG} alt="Southeast Asian island aerial view" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(72,42,20,0.34), rgba(44,33,28,0.68))" }} />
+        <div style={{ position: "absolute", inset: "12%", border: "1px solid rgba(251,247,240,0.2)", backgroundImage: "linear-gradient(90deg, rgba(251,247,240,0.12) 1px, transparent 1px), linear-gradient(rgba(251,247,240,0.1) 1px, transparent 1px)", backgroundSize: "25% 100%, 100% 50%" }} />
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 760, margin: "0 auto", padding: "4rem 1.5rem" }}>
           <p style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(245,240,232,0.75)", marginBottom: "0.75rem" }}>
             Our Story
           </p>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.25rem, 6vw, 4rem)", fontWeight: 600, color: "#F5F0E8", lineHeight: 1.15, maxWidth: 640 }}>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.25rem, 6vw, 4rem)", fontWeight: 500, color: "#F5F0E8", lineHeight: 1.05, maxWidth: 700, textTransform: "uppercase" }}>
             Born from the love of<br />
-            <em>Filipino wandering.</em>
+            <em>Southeast Asian journeys.</em>
           </h1>
-          <p style={{ fontFamily: "var(--font-body)", fontSize: "1.1rem", color: "rgba(245,240,232,0.85)", marginTop: "1rem", maxWidth: 480 }}>
-            "TravelTraces" means footstep in Filipino. Every footstep is a story. Every story is an invitation.
-          </p>
         </div>
-      </div>
+      </section>
 
       {/* Mission / Vision / Goal */}
-      <section style={{ backgroundColor: "#2D4A2D", padding: "5rem 1.5rem" }}>
+      <section style={{ backgroundColor: "#3A2A22", padding: "5rem 1.5rem" }}>
         <div style={{ maxWidth: 1000, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "3rem" }} className="mvg-grid">
           {[
             {
               label: "Mission",
-              body: "To empower every Filipino traveler to document, share, and celebrate the beauty and diversity of the Philippine archipelago through authentic storytelling.",
+              body: "To empower travellers to document, share, and celebrate the beauty and diversity of Southeast Asia through authentic storytelling.",
             },
             {
               label: "Vision",
-              body: "A world where every province of the Philippines has a story — told by the people who lived it, not just the guidebooks.",
+              body: "A world where every island, city, trail, market, and heritage street in Southeast Asia has a story told by the people who lived it.",
             },
             {
               label: "Goal",
-              body: "Cover all 81 provinces, 1,634 municipalities, and 7,641 islands with traveler-created stories, photos, and pinned memories by 2030.",
+              body: "Build a living community atlas of Southeast Asia with traveller-created stories, photos, routes, and pinned memories.",
             },
           ].map((item) => (
             <div key={item.label} style={{ borderTop: "2px solid rgba(196,113,58,0.6)", paddingTop: "1.5rem" }}>
               <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.75rem", fontWeight: 600, color: "#F5F0E8", marginBottom: "1rem" }}>{item.label}</h2>
-              <p style={{ fontFamily: "var(--font-body)", color: "rgba(245,240,232,0.8)", lineHeight: 1.75, fontSize: "1rem" }}>{item.body}</p>
+              <p style={{ fontFamily: "var(--font-body)", color: "rgba(251,247,240,0.8)", lineHeight: 1.75, fontSize: "1rem" }}>{item.body}</p>
             </div>
           ))}
         </div>
@@ -88,18 +86,18 @@ export default function AboutPage() {
       <section style={{ maxWidth: 1000, margin: "0 auto", padding: "5rem 1.5rem" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4rem", alignItems: "center" }} className="why-grid">
           <div>
-            <p style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#7A9E6F", marginBottom: "0.75rem" }}>
+            <p style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#9E6B5C", marginBottom: "0.75rem" }}>
               Why we built TravelTraces
             </p>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.75rem, 3.5vw, 2.75rem)", fontWeight: 600, color: "#2D4A2D", lineHeight: 1.2, marginBottom: "1.5rem" }}>
-              The Philippines deserves a permanent record.
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.75rem, 3.5vw, 2.75rem)", fontWeight: 500, color: "#2C211C", lineHeight: 1.2, marginBottom: "1.5rem", textTransform: "uppercase" }}>
+              Southeast Asia deserves a permanent record.
             </h2>
             <div style={{ fontFamily: "var(--font-body)", color: "#3A3A2A", lineHeight: 1.8, fontSize: "1.025rem" }}>
               <p style={{ marginBottom: "1.25rem" }}>
-                TravelTraces was born from a simple frustration: the Philippines is one of the most beautiful and diverse countries on Earth, yet its stories were scattered — buried in old blogs, fleeting Instagram posts, and word-of-mouth recommendations that disappeared with every algorithm change.
+                TravelTraces was born from a simple frustration: Southeast Asia is one of the most beautiful and diverse regions on Earth, yet many of its travel stories are scattered across old blogs, fleeting posts, and word-of-mouth recommendations that disappear with every algorithm change.
               </p>
               <p>
-                We built TravelTraces to be the permanent, community-owned record of Filipino travel — a platform where the story of every barangay, beach, mountain, and heritage site is told with care, preserved with love, and shared freely with the next traveler who needs to discover it.
+                We built TravelTraces to be a permanent, community-owned travel record: a platform where beaches, mountains, food places, heritage sites, and hidden gems are told with care, preserved with love, and shared freely with the next traveller who needs to discover them.
               </p>
             </div>
           </div>
@@ -110,36 +108,36 @@ export default function AboutPage() {
               style={{ width: "100%", height: 420, objectFit: "cover", display: "block" }}
             />
             <p style={{ fontFamily: "var(--font-label)", fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#6B6B5A", marginTop: "0.5rem", textAlign: "right" }}>
-              Philippines nature
+              Southeast Asia nature
             </p>
           </div>
         </div>
       </section>
 
       {/* Team */}
-      <section style={{ backgroundColor: "#1A2E1A", padding: "6rem 1.5rem", overflow: "hidden", position: "relative" }}>
+      <section style={{ backgroundColor: "#2C211C", padding: "6rem 1.5rem", overflow: "hidden", position: "relative" }}>
         {/* Background watermark */}
         <div style={{
           position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
           fontFamily: "var(--font-display)", fontSize: "clamp(8rem, 20vw, 18rem)", fontWeight: 700,
-          color: "rgba(245,240,232,0.03)", whiteSpace: "nowrap", pointerEvents: "none", userSelect: "none", lineHeight: 1,
+          color: "rgba(251,247,240,0.04)", whiteSpace: "nowrap", pointerEvents: "none", userSelect: "none", lineHeight: 1,
         }}>
           TravelTraces
         </div>
 
         <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative", zIndex: 1 }}>
           {/* Header */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "4rem", borderBottom: "1px solid rgba(245,240,232,0.1)", paddingBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "4rem", borderBottom: "1px solid rgba(251,247,240,0.12)", paddingBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
             <div>
-              <p style={{ fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#7A9E6F", marginBottom: "0.5rem" }}>
-                The people behind TravelTraces
+              <p style={{ fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#CFA68A", marginBottom: "0.5rem" }}>
+                Creator Profiles
               </p>
-              <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.5rem, 5vw, 4rem)", fontWeight: 600, color: "#F5F0E8", lineHeight: 1 }}>
-                The Team
+              <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.5rem, 5vw, 4rem)", fontWeight: 500, color: "#FBF7F0", lineHeight: 1, textTransform: "uppercase" }}>
+                The Creators
               </h2>
             </div>
-            <p style={{ fontFamily: "var(--font-body)", color: "rgba(245,240,232,0.5)", fontSize: "0.95rem", maxWidth: 280, lineHeight: 1.65, textAlign: "right" }}>
-              Two builders who believe Filipino stories deserve a permanent home.
+            <p style={{ fontFamily: "var(--font-body)", color: "rgba(251,247,240,0.62)", fontSize: "0.95rem", maxWidth: 280, lineHeight: 1.65, textAlign: "right" }}>
+              A Philippine-born team building a permanent home for Southeast Asian travel stories.
             </p>
           </div>
 
@@ -150,7 +148,7 @@ export default function AboutPage() {
                 key={member.name}
                 style={{
                   position: "relative",
-                  backgroundColor: i === 0 ? "#243824" : i === 1 ? "#1A2E1A" : "#21351F",
+                  backgroundColor: i === 0 ? "#3A2A22" : i === 1 ? "#2C211C" : "#4B352A",
                   overflow: "hidden",
                 }}
               >
@@ -158,7 +156,7 @@ export default function AboutPage() {
                 <div style={{
                   position: "absolute", top: "1.25rem", right: "1.5rem",
                   fontFamily: "var(--font-display)", fontSize: "5rem", fontWeight: 700, lineHeight: 1,
-                  color: "rgba(245,240,232,0.06)", pointerEvents: "none", userSelect: "none",
+                  color: "rgba(251,247,240,0.07)", pointerEvents: "none", userSelect: "none",
                 }}>
                   {member.number}
                 </div>
@@ -190,7 +188,7 @@ export default function AboutPage() {
                     onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.filter = "grayscale(15%)"; }}
                   />
                   {/* Gradient overlay at base of image */}
-                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "40%", background: `linear-gradient(to bottom, transparent, ${i === 0 ? "#243824" : i === 1 ? "#1A2E1A" : "#21351F"})` }} />
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "40%", background: `linear-gradient(to bottom, transparent, ${i === 0 ? "#3A2A22" : i === 1 ? "#2C211C" : "#4B352A"})` }} />
 
                   {/* Role badge floating on image */}
                   <div style={{
@@ -200,7 +198,7 @@ export default function AboutPage() {
                     <span style={{
                       padding: "0.3rem 0.75rem",
                       backgroundColor: "#C4713A",
-                      color: "#F5F0E8",
+                      color: "#FBF7F0",
                       fontFamily: "var(--font-label)",
                       fontSize: "0.68rem",
                       fontWeight: 700,
@@ -221,7 +219,7 @@ export default function AboutPage() {
                     fontFamily: "var(--font-display)",
                     fontSize: "clamp(1.75rem, 3vw, 2.25rem)",
                     fontWeight: 600,
-                    color: "#F5F0E8",
+                    color: "#FBF7F0",
                     lineHeight: 1.15,
                     marginBottom: "0.5rem",
                   }}>
@@ -229,8 +227,8 @@ export default function AboutPage() {
                   </h3>
 
                   <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", marginBottom: "1.25rem" }}>
-                    <div style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: "#7A9E6F", flexShrink: 0 }} />
-                    <span style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#7A9E6F" }}>
+                    <div style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: "#CFA68A", flexShrink: 0 }} />
+                    <span style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#CFA68A" }}>
                       {member.location}
                     </span>
                   </div>
@@ -238,7 +236,7 @@ export default function AboutPage() {
                   <blockquote style={{
                     fontFamily: "var(--font-body)",
                     fontSize: "0.975rem",
-                    color: "rgba(245,240,232,0.65)",
+                    color: "rgba(251,247,240,0.68)",
                     lineHeight: 1.75,
                     margin: 0,
                     borderLeft: "2px solid rgba(196,113,58,0.4)",
@@ -255,19 +253,19 @@ export default function AboutPage() {
       </section>
 
       {/* CTA */}
-      <section style={{ backgroundColor: "#2D4A2D", padding: "5rem 1.5rem", textAlign: "center" }}>
+      <section style={{ backgroundColor: "#3A2A22", padding: "5rem 1.5rem", textAlign: "center" }}>
         <div style={{ maxWidth: 580, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 600, color: "#F5F0E8", lineHeight: 1.2, marginBottom: "1rem" }}>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 500, color: "#FBF7F0", lineHeight: 1.2, marginBottom: "1rem", textTransform: "uppercase" }}>
             Join our growing community
           </h2>
-          <p style={{ fontFamily: "var(--font-body)", color: "rgba(245,240,232,0.8)", fontSize: "1.05rem", lineHeight: 1.7, marginBottom: "2.25rem" }}>
-            34,000+ travelers are already documenting the Philippines. Be part of the story.
+          <p style={{ fontFamily: "var(--font-body)", color: "rgba(251,247,240,0.8)", fontSize: "1.05rem", lineHeight: 1.7, marginBottom: "2.25rem" }}>
+            Travellers are already documenting routes across Southeast Asia. Be part of the story.
           </p>
           <button
             onClick={() => openAuthModal("signup")}
             style={{
-              backgroundColor: "#C4713A", color: "#F5F0E8", border: "none",
-              padding: "1rem 2.5rem", borderRadius: "0.25rem", cursor: "pointer",
+              backgroundColor: "#FBF7F0", color: "#3A2A22", border: "1px solid rgba(251,247,240,0.35)",
+              padding: "1rem 2.5rem", borderRadius: "999px", cursor: "pointer",
               fontFamily: "var(--font-label)", fontSize: "0.875rem", fontWeight: 600,
               letterSpacing: "0.08em", textTransform: "uppercase",
               display: "inline-flex", alignItems: "center", gap: "0.5rem",
@@ -291,3 +289,4 @@ export default function AboutPage() {
     </div>
   );
 }
+

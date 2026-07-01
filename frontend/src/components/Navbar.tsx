@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router";
-import { Menu, X, MapPin, LogOut, User, ChevronDown, MessageSquare, Bookmark } from "lucide-react";
+import { Menu, X, LogOut, User, ChevronDown, MessageSquare, Bookmark } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { ChatPanel } from "./ChatPanel";
 import { MusicBox } from "./MusicBox";
@@ -20,7 +20,7 @@ const publicLinks = [
   { label: "How it Works", hash: "how-it-works" },
   { label: "Pricing", hash: "pricing-route" },
   { label: "Help", hash: "help-route" },
-  { label: "Contact", hash: "contact-route" },
+  { label: "Contact", hash: "contact-section" },
 ];
 
 export function Navbar() {
@@ -28,16 +28,41 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
   const navigate = useNavigate();
+  const isPublicHeader = true;
+
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      setIsScrolled(currentScrollY > 12);
+
+      if (currentScrollY < 24) {
+        setIsHidden(false);
+      } else if (currentScrollY > lastScrollY + 4) {
+        setIsHidden(true);
+      } else if (currentScrollY < lastScrollY - 4) {
+        setIsHidden(false);
+      }
+
+      lastScrollY = currentScrollY;
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handlePublicLinkClick = (hash: string) => {
     setMobileOpen(false);
     if (hash === "help-route") { navigate("/help"); return; }
-    if (hash === "contact-route") { navigate("/contact"); return; }
     if (hash === "pricing-route") { navigate("/pricing"); return; }
     if (hash === "") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
       navigate("/");
+      setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 30);
       return;
     }
     const el = document.getElementById(hash);
@@ -59,14 +84,14 @@ export function Navbar() {
   };
 
   const linkBaseStyle: React.CSSProperties = {
-    padding: "0.35rem 0.55rem",
+    padding: isPublicHeader ? "0.45rem 0.85rem" : "0.35rem 0.55rem",
     borderRadius: "0.25rem",
     textDecoration: "none",
-    color: "rgba(245,240,232,0.7)",
+    color: isPublicHeader ? "#3A2A22" : "rgba(245,240,232,0.7)",
     backgroundColor: "transparent",
-    fontSize: "0.74rem",
+    fontSize: isPublicHeader ? "0.7rem" : "0.74rem",
     fontWeight: 500,
-    letterSpacing: "0.03em",
+    letterSpacing: isPublicHeader ? "0.08em" : "0.03em",
     fontFamily: "var(--font-label)",
     textTransform: "uppercase",
     whiteSpace: "nowrap",
@@ -77,29 +102,43 @@ export function Navbar() {
 
   const mapsLinkStyle = (isActive = false): React.CSSProperties => ({
     ...linkBaseStyle,
-    color: "#F5F0E8",
-    backgroundColor: isActive ? "rgba(196,113,58,0.34)" : "rgba(196,113,58,0.2)",
-    border: "1px solid rgba(196,113,58,0.55)",
-    boxShadow: isActive ? "inset 0 -2px 0 #C4713A" : "none",
+    color: isActive ? "#FBF7F0" : "#3A2A22",
+    backgroundColor: isActive ? "#3A2A22" : "rgba(158,107,92,0.12)",
+    border: "1px solid rgba(58,42,34,0.18)",
+    borderRadius: "999px",
+    boxShadow: "none",
   });
 
   return (
-    <nav style={{ backgroundColor: "#2D4A2D", fontFamily: "var(--font-ui)", position: "sticky", top: 0, zIndex: 50 }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 clamp(0.85rem, 3vw, 1.5rem)" }}>
+    <nav
+      className="site-header"
+      style={{
+        backgroundColor: isScrolled ? "rgba(251,247,240,0.96)" : "rgba(251,247,240,0.9)",
+        borderBottom: "1px solid rgba(58,42,34,0.12)",
+        fontFamily: "var(--font-ui)",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 80,
+        transform: isHidden ? "translateY(-105%)" : "translateY(0)",
+        boxShadow: isScrolled ? "0 14px 36px rgba(58,42,34,0.12)" : "none",
+        backdropFilter: isScrolled ? "blur(18px)" : "blur(8px)",
+        transition: "transform 0.28s var(--motion-ease), background-color 0.28s ease, box-shadow 0.28s ease, backdrop-filter 0.28s ease",
+      }}
+    >
+      <div style={{ maxWidth: isPublicHeader ? 1280 : 1200, margin: "0 auto", padding: "0 clamp(0.85rem, 3vw, 1.5rem)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
 
           {/* Logo */}
-          <NavLink to="/" style={{ display: "flex", alignItems: "center", gap: "0.5rem", textDecoration: "none" }}>
-            <div style={{ width: 32, height: 32, backgroundColor: "#C4713A", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <MapPin size={16} color="#F5F0E8" strokeWidth={2.5} />
-            </div>
-            <span style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.18rem, 4.8vw, 1.5rem)", fontWeight: 600, color: "#F5F0E8", letterSpacing: "0.02em", whiteSpace: "nowrap" }}>
+          <NavLink to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+            <span style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.18rem, 4.8vw, 1.5rem)", fontWeight: 600, color: isPublicHeader ? "#3A2A22" : "#F5F0E8", letterSpacing: isPublicHeader ? "0.18em" : "0.02em", whiteSpace: "nowrap", textTransform: isPublicHeader ? "uppercase" : "none" }}>
               TravelTraces
             </span>
           </NavLink>
 
           {/* Desktop nav */}
-          <div style={{ alignItems: "center", gap: "0.18rem", flexWrap: "nowrap" }} className="hidden xl:flex">
+          <div style={{ alignItems: "center", gap: isPublicHeader ? "0.55rem" : "0.18rem", flexWrap: "nowrap" }} className="hidden xl:flex">
             {isAuthenticated ? (
               memberLinks.map((link) => (
                 <NavLink
@@ -107,8 +146,8 @@ export function Navbar() {
                   to={link.to}
                   style={({ isActive }) => ({
                     ...(link.featured ? mapsLinkStyle(isActive) : linkBaseStyle),
-                    color: isActive ? "#F5F0E8" : "rgba(245,240,232,0.7)",
-                    backgroundColor: isActive ? "rgba(245,240,232,0.12)" : "transparent",
+                    color: isActive ? "#C4713A" : "#3A2A22",
+                    backgroundColor: isActive ? "rgba(196,113,58,0.1)" : "transparent",
                     ...(link.featured ? mapsLinkStyle(isActive) : {}),
                   })}
                 >
@@ -121,8 +160,8 @@ export function Navbar() {
                   key={link.label}
                   onClick={() => handlePublicLinkClick(link.hash)}
                   style={linkBaseStyle}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = "#F5F0E8")}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(245,240,232,0.7)")}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = isPublicHeader ? "#C4713A" : "#F5F0E8")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = isPublicHeader ? "#3A2A22" : "rgba(245,240,232,0.7)")}
                 >
                   {link.label}
                 </button>
@@ -135,17 +174,17 @@ export function Navbar() {
             {isAuthenticated && user && (
               <button
                 onClick={() => setChatOpen((v) => !v)}
-                style={{ position: "relative", background: "rgba(245,240,232,0.1)", border: "1px solid rgba(245,240,232,0.2)", borderRadius: "50%", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#F5F0E8" }}
+                style={{ position: "relative", background: "rgba(196,113,58,0.1)", border: "1px solid rgba(58,42,34,0.16)", borderRadius: "50%", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#3A2A22" }}
               >
                 <MessageSquare size={17} />
-                <span style={{ position: "absolute", top: 4, right: 4, width: 8, height: 8, backgroundColor: "#C4713A", borderRadius: "50%", border: "1.5px solid #2D4A2D" }} />
+                <span style={{ position: "absolute", top: 4, right: 4, width: 8, height: 8, backgroundColor: "#C4713A", borderRadius: "50%", border: "1.5px solid #FBF7F0" }} />
               </button>
             )}
             {isAuthenticated && user ? (
               <div style={{ position: "relative" }}>
                 <button
                   onClick={() => setUserMenuOpen((v) => !v)}
-                  style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "rgba(245,240,232,0.1)", border: "1px solid rgba(245,240,232,0.2)", borderRadius: "2rem", padding: "0.35rem 0.75rem 0.35rem 0.35rem", cursor: "pointer", color: "#F5F0E8" }}
+                  style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "rgba(196,113,58,0.1)", border: "1px solid rgba(58,42,34,0.16)", borderRadius: "2rem", padding: "0.35rem 0.75rem 0.35rem 0.35rem", cursor: "pointer", color: "#3A2A22" }}
                 >
                   <img
                     src={user.avatar}
@@ -156,7 +195,7 @@ export function Navbar() {
                   <ChevronDown size={14} />
                 </button>
                 {userMenuOpen && (
-                  <div style={{ position: "absolute", right: 0, top: "calc(100% + 0.5rem)", backgroundColor: "#EDEAE0", border: "1px solid rgba(45,74,45,0.15)", borderRadius: "0.5rem", minWidth: 160, boxShadow: "0 4px 20px rgba(0,0,0,0.12)", overflow: "hidden" }}>
+                  <div style={{ position: "absolute", right: 0, top: "calc(100% + 0.5rem)", backgroundColor: "#EFE7DC", border: "1px solid rgba(58,42,34,0.14)", borderRadius: "0.5rem", minWidth: 160, boxShadow: "0 18px 40px rgba(44,33,28,0.16)", overflow: "hidden", animation: "cardRise 0.3s var(--motion-ease) both" }}>
                     <NavLink to="/profile" onClick={() => setUserMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 1rem", color: "#1A1A1A", textDecoration: "none", fontSize: "0.875rem" }}>
                       <User size={15} /> My Profile
                     </NavLink>
@@ -171,19 +210,14 @@ export function Navbar() {
                 )}
               </div>
             ) : (
-              <>
-                <button onClick={() => openAuthModal("login")} style={{ background: "none", border: "1px solid rgba(245,240,232,0.35)", color: "#F5F0E8", padding: "0.4rem 0.85rem", borderRadius: "0.25rem", cursor: "pointer", fontSize: "0.78rem", fontFamily: "var(--font-label)", fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-                  Sign In
-                </button>
-                <button onClick={() => openAuthModal("signup")} style={{ background: "#C4713A", border: "none", color: "#F5F0E8", padding: "0.4rem 0.85rem", borderRadius: "0.25rem", cursor: "pointer", fontSize: "0.78rem", fontFamily: "var(--font-label)", fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-                  Join Free
-                </button>
-              </>
+              <button onClick={() => openAuthModal("signup")} style={{ background: "#3A2A22", border: "1px solid rgba(58,42,34,0.32)", color: "#FBF7F0", padding: "0.55rem 1.15rem", borderRadius: "999px", cursor: "pointer", fontSize: "0.74rem", fontFamily: "var(--font-label)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                Sign in / Join free
+              </button>
             )}
           </div>
 
           {/* Mobile hamburger */}
-          <button onClick={() => setMobileOpen((v) => !v)} style={{ background: "none", border: "none", color: "#F5F0E8", cursor: "pointer", padding: "0.25rem", minWidth: 44, minHeight: 44 }} className="xl:hidden">
+          <button onClick={() => setMobileOpen((v) => !v)} style={{ background: "none", border: "none", color: isPublicHeader ? "#3A2A22" : "#F5F0E8", cursor: "pointer", padding: "0.25rem", minWidth: 44, minHeight: 44 }} className="xl:hidden">
             {mobileOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
@@ -193,7 +227,7 @@ export function Navbar() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div style={{ backgroundColor: "#234023", borderTop: "1px solid rgba(245,240,232,0.1)", padding: "1rem clamp(0.85rem, 3vw, 1.5rem)", maxHeight: "calc(100dvh - 64px)", overflowY: "auto" }} className="xl:hidden">
+        <div style={{ backgroundColor: "#FBF7F0", borderTop: "1px solid rgba(58,42,34,0.12)", padding: "1rem clamp(0.85rem, 3vw, 1.5rem)", maxHeight: "calc(100dvh - 64px)", overflowY: "auto", animation: "cardRise 0.35s var(--motion-ease) both" }} className="xl:hidden">
           {isAuthenticated ? (
             memberLinks.map((link) => (
               <NavLink
@@ -202,19 +236,19 @@ export function Navbar() {
                 onClick={() => setMobileOpen(false)}
                 style={({ isActive }) => ({
                   display: "block", padding: "0.75rem 0",
-                  color: isActive ? "#F5F0E8" : "rgba(245,240,232,0.7)",
+                  color: isActive ? "#9E6B5C" : "#3A2A22",
                   textDecoration: "none", fontSize: "1rem",
                   fontFamily: "var(--font-label)", fontWeight: 500,
                   letterSpacing: "0.05em", textTransform: "uppercase",
-                  borderBottom: "1px solid rgba(245,240,232,0.08)",
+                  borderBottom: "1px solid rgba(58,42,34,0.1)",
                   ...(link.featured
                     ? {
-                        color: "#F5F0E8",
+                        color: isActive ? "#FBF7F0" : "#3A2A22",
                         padding: "0.75rem 0.6rem",
                         marginBottom: "0.35rem",
-                        border: "1px solid rgba(196,113,58,0.45)",
-                        borderRadius: "0.25rem",
-                        backgroundColor: isActive ? "rgba(196,113,58,0.34)" : "rgba(196,113,58,0.2)",
+                        border: "1px solid rgba(58,42,34,0.18)",
+                        borderRadius: "999px",
+                        backgroundColor: isActive ? "#3A2A22" : "rgba(158,107,92,0.12)",
                       }
                     : {}),
                 })}
@@ -230,8 +264,8 @@ export function Navbar() {
                 style={{
                   display: "block", width: "100%", textAlign: "left",
                   padding: "0.75rem 0", background: "none", border: "none",
-                  borderBottom: "1px solid rgba(245,240,232,0.08)",
-                  color: "rgba(245,240,232,0.7)", fontSize: "1rem",
+                  borderBottom: isPublicHeader ? "1px solid rgba(58,42,34,0.1)" : "1px solid rgba(245,240,232,0.08)",
+                  color: isPublicHeader ? "#3A2A22" : "rgba(245,240,232,0.7)", fontSize: "1rem",
                   fontFamily: "var(--font-label)", fontWeight: 500,
                   letterSpacing: "0.05em", textTransform: "uppercase", cursor: "pointer",
                 }}
@@ -247,30 +281,25 @@ export function Navbar() {
                 <NavLink
                   to="/profile"
                   onClick={() => setMobileOpen(false)}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", minHeight: 44, background: "rgba(245,240,232,0.1)", border: "1px solid rgba(245,240,232,0.2)", color: "#F5F0E8", padding: "0.6rem", borderRadius: "0.25rem", textDecoration: "none", fontFamily: "var(--font-label)", fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", minHeight: 44, background: "rgba(196,113,58,0.1)", border: "1px solid rgba(58,42,34,0.16)", color: "#3A2A22", padding: "0.6rem", borderRadius: "999px", textDecoration: "none", fontFamily: "var(--font-label)", fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}
                 >
                   <User size={15} /> My Profile
                 </NavLink>
                 <NavLink
                   to="/saved-places"
                   onClick={() => setMobileOpen(false)}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", minHeight: 44, background: "rgba(245,240,232,0.1)", border: "1px solid rgba(245,240,232,0.2)", color: "#F5F0E8", padding: "0.6rem", borderRadius: "0.25rem", textDecoration: "none", fontFamily: "var(--font-label)", fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", minHeight: 44, background: "rgba(196,113,58,0.1)", border: "1px solid rgba(58,42,34,0.16)", color: "#3A2A22", padding: "0.6rem", borderRadius: "999px", textDecoration: "none", fontFamily: "var(--font-label)", fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}
                 >
                   <Bookmark size={15} /> Saved Places
                 </NavLink>
-                <button onClick={() => { void logout().finally(() => { setMobileOpen(false); navigate("/"); }); }} style={{ width: "100%", minHeight: 44, background: "rgba(192,57,43,0.15)", border: "1px solid rgba(192,57,43,0.3)", color: "#F5F0E8", padding: "0.6rem", borderRadius: "0.25rem", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <button onClick={() => { void logout().finally(() => { setMobileOpen(false); navigate("/"); }); }} style={{ width: "100%", minHeight: 44, background: "rgba(192,57,43,0.12)", border: "1px solid rgba(192,57,43,0.25)", color: "#9E3B2F", padding: "0.6rem", borderRadius: "999px", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Sign Out
                 </button>
               </>
             ) : (
-              <div style={{ display: "flex", gap: "0.75rem" }}>
-                <button onClick={() => { openAuthModal("login"); setMobileOpen(false); }} style={{ flex: 1, background: "none", border: "1px solid rgba(245,240,232,0.35)", color: "#F5F0E8", padding: "0.6rem", borderRadius: "0.25rem", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  Sign In
-                </button>
-                <button onClick={() => { openAuthModal("signup"); setMobileOpen(false); }} style={{ flex: 1, background: "#C4713A", border: "none", color: "#F5F0E8", padding: "0.6rem", borderRadius: "0.25rem", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  Join Free
-                </button>
-              </div>
+              <button onClick={() => { openAuthModal("signup"); setMobileOpen(false); }} style={{ width: "100%", background: "#C4713A", border: "none", color: "#FBF7F0", padding: "0.75rem", borderRadius: "999px", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>
+                Sign in / Join free
+              </button>
             )}
           </div>
         </div>

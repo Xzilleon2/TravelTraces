@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { createHostedTourMeetup, type HostedTourMeetupRecord } from "../services/eventsApi";
@@ -32,6 +32,13 @@ export function HostTourMeetupForm({ places, onClose, onCreated }: HostTourMeetu
   const [license, setLicense] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    document.body.classList.add("modal-open");
+    return () => {
+      document.body.classList.remove("modal-open");
+    };
+  }, []);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -77,15 +84,18 @@ export function HostTourMeetupForm({ places, onClose, onCreated }: HostTourMeetu
 
   return (
     <div
-      className="fixed inset-0 z-[210] flex items-center justify-center bg-[#12212E]/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[210] flex items-center justify-center bg-[#2C211C]/72 p-4 backdrop-blur-sm"
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="max-h-[90vh] w-full max-w-[640px] overflow-auto rounded-lg bg-[#ECE7DC] p-6 text-[#12212E] shadow-[0_24px_64px_rgba(0,0,0,0.3)] sm:p-8">
+      <div className="max-h-[90vh] w-full max-w-[720px] overflow-auto rounded-[1rem] border border-[#3A2A22]/12 bg-[#FBF7F0] p-6 text-[#2C211C] shadow-[0_24px_64px_rgba(0,0,0,0.3)] sm:p-8">
         <div className="mb-6 flex items-center justify-between gap-4">
-          <h2 className="m-0 font-[var(--font-display)] text-2xl font-semibold text-[#12212E]">Host Tour Meetup</h2>
-          <button type="button" onClick={onClose} className="grid min-h-10 min-w-10 place-items-center rounded-full text-[#6B6B5A] transition hover:bg-[#12212E]/5" aria-label="Close host tour meetup form">
+          <div>
+            <p className="mb-1 font-[var(--font-label)] text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#9E6B5C]">Events</p>
+            <h2 className="m-0 font-[var(--font-display)] text-2xl font-semibold text-[#2C211C]">Host Tour Meetup</h2>
+          </div>
+          <button type="button" onClick={onClose} className="grid min-h-10 min-w-10 place-items-center rounded-full text-[#6B5A50] transition hover:bg-[#3A2A22]/5" aria-label="Close host tour meetup form">
             <X size={20} />
           </button>
         </div>
@@ -121,7 +131,7 @@ export function HostTourMeetupForm({ places, onClose, onCreated }: HostTourMeetu
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="flex min-h-12 items-center gap-3 pt-5 text-sm font-semibold text-[#12212E]">
+            <label className="flex min-h-12 items-center gap-3 pt-5 text-sm font-semibold text-[#2C211C]">
               <input type="checkbox" checked={isPaid} onChange={(event) => setIsPaid(event.target.checked)} className="h-[18px] w-[18px]" />
               Ticketed/Paid Tour
             </label>
@@ -149,10 +159,10 @@ export function HostTourMeetupForm({ places, onClose, onCreated }: HostTourMeetu
           </div>
 
           <div className="mt-2 flex justify-end gap-3">
-            <button type="button" onClick={onClose} className="min-h-11 rounded border border-[#12212E]/30 px-5 font-[var(--font-label)] text-xs font-semibold text-[#12212E] transition hover:bg-[#12212E]/5">
+            <button type="button" onClick={onClose} className="min-h-11 rounded border border-[#3A2A22]/20 px-5 font-[var(--font-label)] text-xs font-semibold text-[#2C211C] transition hover:bg-[#3A2A22]/5">
               Cancel
             </button>
-            <button type="submit" className="min-h-11 rounded bg-[#12212E] px-5 font-[var(--font-label)] text-xs font-bold text-[#ECE7DC] transition hover:bg-[#1c3244]">
+            <button type="submit" className="min-h-11 rounded bg-[#3A2A22] px-5 font-[var(--font-label)] text-xs font-bold text-[#FBF7F0] transition hover:bg-[#2C211C]">
               Schedule Meetup
             </button>
           </div>
