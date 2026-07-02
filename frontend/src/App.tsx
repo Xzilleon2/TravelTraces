@@ -70,8 +70,6 @@ function isPageReload() {
 }
 
 function LandingOpeningScreen({ progress, phase }: { progress: number; phase: "loading" | "exit" }) {
-  const letters = "TravelTraces".split("");
-
   return (
     <div className={`landing-opening-screen landing-opening-screen--${phase}`} aria-hidden="true">
       <div className="landing-opening-curtain landing-opening-curtain-top" />
@@ -81,26 +79,20 @@ function LandingOpeningScreen({ progress, phase }: { progress: number; phase: "l
       <div className="landing-opening-glow landing-opening-glow-left" />
       <div className="landing-opening-glow landing-opening-glow-right" />
 
-      <div className="landing-opening-card">
-        <div className="landing-opening-wordmark" aria-label="TravelTraces">
-          {letters.map((letter, index) => (
-            <span
-              key={`${letter}-${index}`}
-              className="landing-opening-letter"
-              style={{ animationDelay: `${index * 74}ms` }}
-            >
-              {letter}
-            </span>
-          ))}
-        </div>
-
-        <div className="landing-opening-progress-wrap">
-          <div className="landing-opening-progress-label">
-            <span>Loading</span>
-            <strong>{String(progress).padStart(2, "0")}%</strong>
+      <div className="landing-opening-stage">
+        <div className="landing-opening-card">
+          <div className="landing-opening-wordmark" aria-label="TravelTraces">
+            TravelTraces
           </div>
-          <div className="landing-opening-track" aria-hidden="true">
-            <span style={{ transform: `scaleX(${Math.max(0.02, progress / 100)})` }} />
+
+          <div className="landing-opening-progress-wrap">
+            <div className="landing-opening-progress-label">
+              <span>Loading</span>
+              <strong>{progress}%</strong>
+            </div>
+            <div className="landing-opening-track" aria-hidden="true">
+              <span style={{ transform: `scaleX(${Math.max(0.01, progress / 100)})` }} />
+            </div>
           </div>
         </div>
       </div>
@@ -121,41 +113,39 @@ function LandingOpeningScreen({ progress, phase }: { progress: number; phase: "l
           isolation: isolate;
         }
 
-        .landing-opening-card {
+        .landing-opening-stage {
           position: relative;
           z-index: 3;
-          width: fit-content;
-          max-width: min(88vw, 34rem);
+          width: 100%;
+          min-height: 100dvh;
+          display: grid;
+          place-items: center;
+          padding: clamp(1.25rem, 5vw, 3rem);
+        }
+
+        .landing-opening-card {
+          width: min(100%, 42rem);
           display: grid;
           justify-items: center;
-          align-items: center;
           gap: 1.15rem;
           text-align: center;
           animation: traveltraces-opening-rise 1150ms cubic-bezier(.16,1,.3,1) both;
         }
 
         .landing-opening-wordmark {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          flex-wrap: nowrap;
-          gap: 0;
-          padding-left: 0;
+          display: block;
           font-family: var(--font-display);
-          font-size: clamp(2.7rem, 10vw, 5.6rem);
+          font-size: clamp(1.95rem, 7.4vw, 4.6rem);
           font-weight: 600;
-          line-height: 0.9;
-          letter-spacing: 0.04em;
+          line-height: 1;
+          letter-spacing: 0.18em;
+          max-width: 100%;
           white-space: nowrap;
           text-transform: uppercase;
           filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.28));
-        }
-
-        .landing-opening-letter {
-          display: inline-block;
           opacity: 0;
-          transform: translateY(-1.3em) scale(0.98);
-          animation: traveltraces-letter-drop 760ms cubic-bezier(.16,1,.3,1) both;
+          transform: scale(0.985);
+          animation: traveltraces-wordmark-fade 1100ms ease 260ms both;
         }
 
         .landing-opening-progress-wrap {
@@ -186,6 +176,7 @@ function LandingOpeningScreen({ progress, phase }: { progress: number; phase: "l
 
         .landing-opening-track {
           position: relative;
+          width: 100%;
           height: 3px;
           overflow: hidden;
           border-radius: 999px;
@@ -280,10 +271,9 @@ function LandingOpeningScreen({ progress, phase }: { progress: number; phase: "l
           to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
         }
 
-        @keyframes traveltraces-letter-drop {
-          0% { opacity: 0; transform: translateY(-1.5em) scale(0.96); filter: blur(10px); }
-          55% { opacity: 1; filter: blur(0); }
-          100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        @keyframes traveltraces-wordmark-fade {
+          0% { opacity: 0; transform: scale(0.985); filter: blur(8px); }
+          100% { opacity: 1; transform: scale(1); filter: blur(0); }
         }
 
         @keyframes traveltraces-curtain-open-top {
@@ -318,7 +308,7 @@ function LandingOpeningScreen({ progress, phase }: { progress: number; phase: "l
           .landing-opening-card,
           .landing-opening-curtain,
           .landing-opening-panel,
-          .landing-opening-letter {
+          .landing-opening-wordmark {
             animation: none !important;
           }
 
@@ -402,14 +392,28 @@ function AppLayout() {
   }, [showScrollTop, location.pathname]);
 
   useEffect(() => {
+    if (!showLandingOpening || typeof document === "undefined") return undefined;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [showLandingOpening]);
+
+  useEffect(() => {
     if (location.pathname !== "/") {
       setShowLandingOpening(false);
       setCanShowLandingOpening(false);
       setLoadingProgress(1);
       setLoadingPhase("loading");
       readyToFinishRef.current = false;
-      progressTargetRef.current = 0;
-      progressValueRef.current = 0;
+      progressTargetRef.current = 1;
+      progressValueRef.current = 1;
       if (animationFrameRef.current !== null) {
         window.cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
@@ -431,8 +435,8 @@ function AppLayout() {
     setLoadingProgress(1);
     setLoadingPhase("loading");
     readyToFinishRef.current = false;
-    progressTargetRef.current = 0;
-    progressValueRef.current = 0;
+    progressTargetRef.current = 1;
+    progressValueRef.current = 1;
 
     let cancelled = false;
     const startedAt = window.performance.now();
@@ -465,17 +469,19 @@ function AppLayout() {
     const animateProgress = () => {
       if (cancelled) return;
 
-      const target = progressTargetRef.current;
       const current = progressValueRef.current;
       const elapsed = window.performance.now() - startedAt;
       const canFinish = allReady && elapsed >= minimumLoadingDurationMs;
-      const next = Math.abs(target - current) < 0.25 ? target : current + (target - current) * 0.12;
+      const timedProgress = Math.min(0.995, elapsed / minimumLoadingDurationMs);
+      const target = canFinish ? 100 : Math.min(99, 1 + Math.pow(timedProgress, 0.82) * 98);
+      const easing = canFinish ? 0.055 : 0.045;
+      const next = Math.abs(target - current) < 0.08 ? target : current + (target - current) * easing;
 
       progressValueRef.current = next;
-      const rounded = Math.max(0, Math.min(100, Math.round(next)));
-      setLoadingProgress(canFinish ? 100 : Math.min(99, Math.max(1, rounded)));
+      const rounded = Math.max(1, Math.min(100, Math.round(next)));
+      setLoadingProgress(canFinish && next >= 99.65 ? 100 : Math.min(99, rounded));
 
-      if (!canFinish) {
+      if (!canFinish || next < 99.65) {
         animationFrameRef.current = window.requestAnimationFrame(animateProgress);
         return;
       }
@@ -485,7 +491,10 @@ function AppLayout() {
         progressTargetRef.current = 100;
         progressValueRef.current = 100;
         setLoadingProgress(100);
-        animationFrameRef.current = window.requestAnimationFrame(() => {
+        if (exitTimerRef.current !== null) {
+          window.clearTimeout(exitTimerRef.current);
+        }
+        exitTimerRef.current = window.setTimeout(() => {
           if (!cancelled) {
             setLoadingPhase("exit");
             if (exitTimerRef.current !== null) {
@@ -497,7 +506,7 @@ function AppLayout() {
               }
             }, 760);
           }
-        });
+        }, 240);
         return;
       }
 
