@@ -24,8 +24,8 @@ export function CustomCursor() {
   const [zoomType, setZoomType] = useState<ZoomType>("none");
   const [isGrabbing, setIsGrabbing] = useState(false);
   const [clickBursts, setClickBursts] = useState<ClickBurst[]>([]);
-  const scrollTimeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
-  const zoomTimeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const scrollTimeoutRef = useRef<number | null>(null);
+  const zoomTimeoutRef = useRef<number | null>(null);
   const lastScrollTop = useRef(0);
 
   const mouseX = useMotionValue(-100);

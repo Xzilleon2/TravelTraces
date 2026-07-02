@@ -149,21 +149,22 @@ function ProfileContent() {
   }, [user]);
 
   useEffect(() => {
-    if (!user) return undefined;
+    const currentUser = user;
+    if (!currentUser) return undefined;
     let cancelled = false;
     setLoading(true);
     setStatus(null);
 
     async function loadProfileData() {
       const [pinsResult, spotsResult, groupsResult] = await Promise.allSettled([
-        listPins(user.id, groupIds),
-        listTouristSpots(user.id),
-        listTravelGroups(user.id),
+        listPins(currentUser.id, groupIds),
+        listTouristSpots(currentUser.id),
+        listTravelGroups(currentUser.id),
       ]);
 
       if (cancelled) return;
       setData({
-        pins: pinsResult.status === "fulfilled" ? pinsResult.value.filter((pin) => pin.creator_id === user.id) : [],
+        pins: pinsResult.status === "fulfilled" ? pinsResult.value.filter((pin) => pin.creator_id === currentUser.id) : [],
         spots: spotsResult.status === "fulfilled" ? spotsResult.value : [],
         groups: groupsResult.status === "fulfilled" ? groupsResult.value : [],
       });

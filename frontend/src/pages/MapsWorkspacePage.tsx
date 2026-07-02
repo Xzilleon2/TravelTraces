@@ -1305,7 +1305,9 @@ function MapsWorkspaceContent() {
     });
 
     map.flyTo({ center: [draftMarkerLocation.coordinate[1], draftMarkerLocation.coordinate[0]], zoom: Math.max(map.getZoom(), 12), duration: 700 });
-    return () => marker.remove();
+    return () => {
+      marker.remove();
+    };
   }, [draftMarkerLocation, mapReady]);
 
   useEffect(() => {

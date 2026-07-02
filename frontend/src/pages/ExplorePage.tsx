@@ -246,6 +246,8 @@ const DESTINATIONS = [
   },
 ];
 
+type Destination = (typeof DESTINATIONS)[number];
+
 const travelCategories = ["All", "Hiking", "Food Place", "Hidden Gems", "Beaches", "Forest", "Culture", "More"];
 
 const TERRAIN_ICON: Record<string, React.ElementType> = {
@@ -272,11 +274,15 @@ const CATEGORY_ICON: Record<string, React.ElementType> = {
   More: Compass,
 };
 
-function destinationText(destination: typeof DESTINATIONS[number]) {
+function ProfileModalMount({ user, onClose }: { user: GamifiedUser | null; onClose: () => void }) {
+  return user ? <UserProfileModal user={user} onClose={onClose} /> : null;
+}
+
+function destinationText(destination: Destination): string {
   return `${destination.name} ${destination.region} ${destination.province} ${destination.terrain} ${destination.tags.join(" ")} ${destination.highlights.join(" ")} ${destination.desc} ${destination.longDesc}`.toLowerCase();
 }
 
-function destinationMatchesCategory(destination: typeof DESTINATIONS[number], category: string) {
+function destinationMatchesCategory(destination: Destination, category: string): boolean {
   if (category === "All") return true;
   const text = destinationText(destination);
   if (category === "Hiking") return destination.terrain === "Mountains" || destination.terrain === "Highlands" || /mountain|trek|terrace|volcano|trail|hills|ridge/.test(text);
@@ -288,7 +294,7 @@ function destinationMatchesCategory(destination: typeof DESTINATIONS[number], ca
   return !["Hiking", "Food Place", "Hidden Gems", "Beaches", "Forest", "Culture"].some((known) => destinationMatchesCategory(destination, known));
 }
 
-function destinationCategory(destination: typeof DESTINATIONS[number]) {
+function destinationCategory(destination: Destination): string {
   if (destinationMatchesCategory(destination, "Food Place")) return "Food Place";
   if (destinationMatchesCategory(destination, "Culture")) return "Culture";
   if (destinationMatchesCategory(destination, "Hiking")) return "Hiking";
@@ -300,7 +306,7 @@ function destinationCategory(destination: typeof DESTINATIONS[number]) {
 
 /* ─── Destination Guide View ──────────────────────────────── */
 
-function DestinationGuideView({ dest, onBack }: { dest: typeof DESTINATIONS[0]; onBack: () => void }) {
+function DestinationGuideView({ dest, onBack }: { dest: Destination; onBack: () => void }) {
   const navigate = useNavigate();
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [viewingProfile, setViewingProfile] = useState<GamifiedUser | null>(null);
@@ -457,7 +463,7 @@ function DestinationGuideView({ dest, onBack }: { dest: typeof DESTINATIONS[0]; 
           </section>
         </div>
       </article>
-      {viewingProfile && <UserProfileModal user={viewingProfile} onClose={() => setViewingProfile(null)} />}
+      <ProfileModalMount user={viewingProfile} onClose={() => setViewingProfile(null)} />
     </div>
   );
 
@@ -724,7 +730,7 @@ function DestinationGuideView({ dest, onBack }: { dest: typeof DESTINATIONS[0]; 
         </div>
       </div>
 
-      {viewingProfile && <UserProfileModal user={viewingProfile} onClose={() => setViewingProfile(null)} />}
+      <ProfileModalMount user={viewingProfile} onClose={() => setViewingProfile(null)} />
 
       <style>{`
         @media (max-width: 900px) {
@@ -742,7 +748,7 @@ function DestinationGuideView({ dest, onBack }: { dest: typeof DESTINATIONS[0]; 
 
 /* ─── Destination Card ──────────────────────────────────────── */
 
-function DestinationCard({ d, onClick }: { d: typeof DESTINATIONS[0]; onClick: () => void; key?: any }) {
+function DestinationCard({ d, onClick }: { d: Destination; onClick: () => void }) {
   const [hovered, setHovered] = useState(false);
   const category = destinationCategory(d);
   const CategoryIcon = CATEGORY_ICON[category] ?? Compass;

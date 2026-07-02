@@ -271,7 +271,7 @@ function MapContent() {
   const atPinLimit = privatePinsCount >= planLimit && planLimit !== Infinity;
 
   // Filter showing pins matching both Map Mode (Private/Only Me vs Public/Other Users) AND visited filter
-  const filteredPins = pins.filter((p) => {
+  const filteredPins: Pin[] = pins.filter((p: Pin): boolean => {
     const modeMatches = mapMode === "private" ? p.isPrivate : !p.isPrivate;
     const typeMatches = filter === "all" ? true : p.type === filter;
     return modeMatches && typeMatches;
@@ -637,7 +637,7 @@ function MapContent() {
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
-                    {filteredPins.map((p) => (
+                    {filteredPins.map((p: Pin) => (
                       <button
                         key={p.id}
                         onClick={() => setSelectedPin(p)}

@@ -637,7 +637,6 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                 ref={editorRef}
                 contentEditable={true}
                 onInput={handleEditorInput}
-                placeholder="Share what makes this spot memorable. Select any specific word or text to apply formatting like bold, italics, alignment, lists or blocks..."
                 style={{
                   width: "100%",
                   minHeight: "130px",
