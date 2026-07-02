@@ -2,16 +2,9 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router";
 import { ArrowRight, Clock, Heart, HelpCircle, Send } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { LANDING_IMAGE_SOURCES } from "./landingAssets";
 
-const HERO_IMG = "https://images.unsplash.com/photo-1695051702427-1c24ce3682e7?w=1600&h=900&fit=crop&auto=format";
-const PRIVATE_IMG = "https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?w=1000&h=800&fit=crop&auto=format";
-const SUPPORT_IMG = "https://images.unsplash.com/photo-1519101739220-83f6a14852ca?w=900&h=650&fit=crop&auto=format";
-const TESTIMONIAL_IMG = "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1600&h=900&fit=crop&auto=format";
-const CONTACT_IMG = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600&h=900&fit=crop&auto=format";
-const STORY1 = "https://images.unsplash.com/photo-1632307918787-8cb52566dd35?w=650&h=430&fit=crop&auto=format";
-const STORY2 = "https://images.unsplash.com/photo-1768639400843-d604ccce9c3e?w=650&h=430&fit=crop&auto=format";
-const STORY3 = "https://images.unsplash.com/photo-1609412058473-c199497c3c5d?w=650&h=430&fit=crop&auto=format";
-const STORY4 = "https://images.unsplash.com/photo-1616382093586-84ed7932c216?w=650&h=430&fit=crop&auto=format";
+const { hero: HERO_IMG, private: PRIVATE_IMG, support: SUPPORT_IMG, testimonial: TESTIMONIAL_IMG, contact: CONTACT_IMG, story1: STORY1, story2: STORY2, story3: STORY3, story4: STORY4 } = LANDING_IMAGE_SOURCES;
 
 const features = [
   { label: "Explore", desc: "Browse Southeast Asia by region, terrain, culture, and traveller activity.", detail: "Discover coastal towns, mountain routes, megacities, islands, and community-rated local gems." },

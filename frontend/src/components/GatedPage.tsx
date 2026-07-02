@@ -3,9 +3,16 @@ import { useAuth } from "../context/AuthContext";
 import { ReactNode } from "react";
 
 export function GatedPage({ children, featureName }: { children: ReactNode; featureName: string }) {
-  const { isAuthenticated, openAuthModal } = useAuth();
+  const { isAuthenticated, authReady, openAuthModal } = useAuth();
 
   if (isAuthenticated) return <>{children}</>;
+  if (!authReady) {
+    return (
+      <div style={{ minHeight: "80vh", display: "grid", placeItems: "center", padding: "3rem 1.5rem", color: "#6B5A50", fontFamily: "var(--font-ui)" }}>
+        Checking your TravelTraces session...
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "80vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "3rem 1.5rem", textAlign: "center" }}>

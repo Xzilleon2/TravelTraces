@@ -11,7 +11,7 @@ const NATURE_IMG = "https://images.unsplash.com/photo-1609412058473-c199497c3c5d
 const TEAM = [
   {
     name: "Kayeen M. Campaña",
-    role: "Founder & CEO",
+    role: "Chief Executive Officer",
     location: "Davao City",
     number: "01",
     quote: "Every Filipino deserves to see their hometown on a map — not through a tourist's eyes, but through their own.",
@@ -19,7 +19,7 @@ const TEAM = [
   },
   {
     name: "Allen Jhon Bautista",
-    role: "Chief Technology Officer",
+    role: "Chief Geospatial Officer",
     location: "Davao City",
     number: "02",
     quote: "Good technology should disappear. What remains is the story — and the person who had the courage to share it.",
@@ -27,7 +27,7 @@ const TEAM = [
   },
   {
     name: "Hershey Nicolle Tabanao",
-    role: "Marketing Strategy",
+    role: "Cheif Marketing Officer",
     location: "Davao City",
     number: "03",
     quote: "Every journey becomes more meaningful when travelers connect with local communities, cultures, and stories.",

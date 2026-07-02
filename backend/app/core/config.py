@@ -13,6 +13,15 @@ def _bool_env(name: str, default: str = "false") -> bool:
     return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _default_auth_cookie_secure() -> str:
+    return "false" if os.getenv("APP_ENV", "local").strip().lower() == "local" else "true"
+
+
+def _default_auth_cookie_name() -> str:
+    secure = _bool_env("AUTH_COOKIE_SECURE", _default_auth_cookie_secure())
+    return "__Host-travelplaces_session" if secure else "travelplaces_session"
+
+
 @dataclass(frozen=True)
 class Settings:
     app_name: str = os.getenv("APP_NAME", "TravelPlaces Mapping API")
@@ -31,8 +40,8 @@ class Settings:
     auth_secret: str = os.getenv("AUTH_SECRET", os.getenv("WS_SESSION_SECRET", "change-me-in-production"))
     auth_issuer: str = os.getenv("AUTH_ISSUER", "travelplaces-api")
     auth_audience: str = os.getenv("AUTH_AUDIENCE", "travelplaces-web")
-    auth_cookie_name: str = os.getenv("AUTH_COOKIE_NAME", "__Host-travelplaces_session")
-    auth_cookie_secure: bool = _bool_env("AUTH_COOKIE_SECURE", "true")
+    auth_cookie_name: str = os.getenv("AUTH_COOKIE_NAME", _default_auth_cookie_name())
+    auth_cookie_secure: bool = _bool_env("AUTH_COOKIE_SECURE", _default_auth_cookie_secure())
     auth_token_ttl_s: int = int(os.getenv("AUTH_TOKEN_TTL_S", "3600"))
     login_rate_limit_count: int = int(os.getenv("LOGIN_RATE_LIMIT_COUNT", "5"))
     login_rate_limit_window_s: int = int(os.getenv("LOGIN_RATE_LIMIT_WINDOW_S", "300"))

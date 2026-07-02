@@ -6,7 +6,7 @@ import { useAuth } from "../context/AuthContext";
 const PASSWORD_MIN_LENGTH = 12;
 
 export function AuthModal() {
-  const { authModalOpen, authMode, closeAuthModal, login, signup, openAuthModal } = useAuth();
+  const { authModalOpen, authMode, authError, closeAuthModal, login, signup, openAuthModal } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -31,20 +31,24 @@ export function AuthModal() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!email || !password) { setError("Please fill in all fields."); return; }
-    if (password.length < PASSWORD_MIN_LENGTH) {
+    const normalizedName = name.trim();
+    const normalizedEmail = email.trim();
+    const normalizedPassword = password.trim();
+    if (!normalizedEmail || !normalizedPassword) { setError("Please fill in all fields."); return; }
+    if (!normalizedEmail.includes("@")) { setError("Enter a valid email address."); return; }
+    if (normalizedPassword.length < PASSWORD_MIN_LENGTH) {
       setError(`Password must be at least ${PASSWORD_MIN_LENGTH} characters.`);
       return;
     }
     if (authMode === "signup") {
-      if (!name) { setError("Please enter your name."); return; }
-      const ok = await signup(name, email, password);
-      if (ok) navigate("/maps");
-      else setError("Sign up failed. Check your details and try again.");
+      if (!normalizedName) { setError("Please enter your name."); return; }
+      const result = await signup(normalizedName, normalizedEmail, normalizedPassword);
+      if (result.ok) navigate("/maps");
+      else setError(result.error ?? authError ?? "Sign up failed. Check your details and try again.");
     } else {
-      const ok = await login(email, password);
-      if (ok) navigate("/maps");
-      else setError("Sign in failed. Check your credentials and try again.");
+      const result = await login(normalizedEmail, normalizedPassword);
+      if (result.ok) navigate("/maps");
+      else setError(result.error ?? authError ?? "Sign in failed. Check your credentials and try again.");
     }
   };
 

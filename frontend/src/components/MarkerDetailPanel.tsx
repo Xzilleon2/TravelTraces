@@ -11,6 +11,8 @@ type Props = {
 export function MarkerDetailPanel({ pin, creatorName, onClose }: Props) {
   if (!pin) return null;
   const photos = photosFromPin(pin);
+  const latitude = Number.isFinite(pin.coordinate.lat) ? pin.coordinate.lat : 0;
+  const longitude = Number.isFinite(pin.coordinate.lon) ? pin.coordinate.lon : 0;
   const storyId = typeof pin.media?.storyId === "number" ? pin.media.storyId : null;
   const storyDraftId = typeof pin.media?.storyDraftId === "number" ? pin.media.storyDraftId : null;
   const storyHref = storyId ? `/stories?story=${storyId}` : storyDraftId ? `/stories?localStory=${storyDraftId}` : null;
@@ -55,7 +57,7 @@ export function MarkerDetailPanel({ pin, creatorName, onClose }: Props) {
           <div>
             <dt className="font-[var(--font-label)] text-[0.68rem] uppercase tracking-[0.08em] text-[#6B6B5A]">Location</dt>
             <dd className="m-0 text-[#1A1A1A]">
-              {pin.coordinate.lat.toFixed(5)}, {pin.coordinate.lon.toFixed(5)}
+              {latitude.toFixed(5)}, {longitude.toFixed(5)}
             </dd>
           </div>
           <div>

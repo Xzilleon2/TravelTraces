@@ -45,6 +45,10 @@ export function MarkerFormModal({ open, location, scope, onScopeChange, onClose,
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const latitude = Number.isFinite(location?.coordinate[0]) ? location?.coordinate[0] ?? 0 : 0;
+  const longitude = Number.isFinite(location?.coordinate[1]) ? location?.coordinate[1] ?? 0 : 0;
+  const coordinateKey = `${latitude},${longitude}`;
+
   useEffect(() => {
     if (!open) return;
     setPlaceName(location?.label ?? "");
@@ -54,7 +58,7 @@ export function MarkerFormModal({ open, location, scope, onScopeChange, onClose,
     setSelectedScope(scope);
     setPhotos([]);
     setError(null);
-  }, [open, location?.coordinate.join(","), location?.label, scope]);
+  }, [coordinateKey, open, location?.label, scope]);
 
   if (!open || !location) return null;
 
@@ -99,7 +103,7 @@ export function MarkerFormModal({ open, location, scope, onScopeChange, onClose,
         <div className="rounded bg-[#EDEAE0] p-3 text-sm text-[#6B6B5A]">
           <span className="block font-semibold text-[#3A2A22]">Pinned location</span>
           <span className="mt-1 block">
-            {location.coordinate[0].toFixed(5)}, {location.coordinate[1].toFixed(5)}
+            {latitude.toFixed(5)}, {longitude.toFixed(5)}
           </span>
         </div>
 

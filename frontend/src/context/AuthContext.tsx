@@ -18,6 +18,7 @@ export type User = {
   email: string;
   avatar: string;
   bio: string;
+  nationality: string;
   location: string;
   joinedDate: string;
   pinsCount: number;
@@ -40,8 +41,9 @@ type AuthContextType = {
   user: User | null;
   isAuthenticated: boolean;
   authReady: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, password: string) => Promise<boolean>;
+  authError: string | null;
+  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  signup: (name: string, email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateUser: (user: User) => void;
   authModalOpen: boolean;
@@ -57,7 +59,8 @@ const MOCK_USER: User = {
   name: "Maria Santos",
   email: "maria@traveltraces.app",
   avatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=80&h=80&fit=crop&auto=format",
-  bio: "Island hopper · Storyteller · Palawan enthusiast.",
+  bio: "Island hopper - Storyteller - Palawan enthusiast.",
+  nationality: "Filipino",
   location: "Quezon City, Metro Manila",
   joinedDate: "March 2023",
   pinsCount: 94,
@@ -135,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authReady, setAuthReady] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     void fetchCurrentUser()
@@ -144,23 +148,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setAuthReady(true));
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ ok: boolean; error?: string }> => {
     try {
+      setAuthError(null);
       const auth = await loginWithBackend(email, password);
       setUser(userFromAuth(auth));
       setAuthModalOpen(false);
-      return true;
-    } catch {
-      return false;
+      return { ok: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Sign in failed. Check your credentials and try again.";
+      setAuthError(message);
+      return { ok: false, error: message };
     }
   };
 
-  const signup = async (name: string, email: string, password: string): Promise<boolean> => {
+  const signup = async (name: string, email: string, password: string): Promise<{ ok: boolean; error?: string }> => {
     try {
+      setAuthError(null);
       const auth = await signupWithBackend(name, email, password);
       setUser(userFromAuth(auth, name));
-    } catch {
-      return false;
+      setAuthModalOpen(false);
+      return { ok: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Sign up failed. Check your details and try again.";
+      setAuthError(message);
+      return { ok: false, error: message };
     }
   };
 
@@ -171,6 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // ignore
     }
     setUser(null);
+    setAuthError(null);
   };
 
   const updateUser = (updated: User) => {
@@ -180,6 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const openAuthModal = (mode: "login" | "signup" = "login") => {
     if (user) return;
     setAuthMode(mode);
+    setAuthError(null);
     setAuthModalOpen(true);
   };
 
@@ -193,6 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isAuthenticated: !!user,
         authReady,
+        authError,
         login,
         signup,
         logout,

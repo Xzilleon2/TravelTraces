@@ -195,6 +195,28 @@ async def list_user_maps(
     return UserMapsResponse(maps=[UserMapRecord(**item) for item in maps])
 
 
+@router.get("/public/maps", response_model=UserMapsResponse)
+async def list_public_maps(
+    owner_id: str | None = Query(default=None, max_length=120),
+) -> UserMapsResponse:
+    target_owner = owner_id or "demo-user"
+    maps = [
+        item
+        for item in store.list_maps(viewer_id="demo-user", group_ids=[], owner_id=target_owner)
+        if item.get("scope") == "public"
+    ]
+    return UserMapsResponse(maps=[UserMapRecord(**item) for item in maps])
+
+
+@router.get("/public/pins", response_model=PinsResponse)
+async def list_public_pins(
+    scope: str | None = Query(default="public", pattern="^(private|group|public)$"),
+) -> PinsResponse:
+    pins = store.list_pins(viewer_id="demo-user", group_ids=[])
+    pins = [pin for pin in pins if pin.get("scope") == (scope or "public")]
+    return PinsResponse(pins=[PinRecord(**pin) for pin in pins])
+
+
 @router.post("/maps", response_model=UserMapRecord)
 async def create_user_map(
     request: UserMapCreate,

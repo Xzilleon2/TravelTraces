@@ -10,11 +10,11 @@ from app.core.config import settings
 
 CSP = (
     "default-src 'self'; "
-    "connect-src 'self' https://router.project-osrm.org https://nominatim.openstreetmap.org "
+    "connect-src 'self' https://api.maptiler.com https://*.maptiler.com https://router.project-osrm.org https://nominatim.openstreetmap.org "
     "https://photon.komoot.io https://*.tile.openstreetmap.org https://server.arcgisonline.com wss: ws:; "
-    "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://server.arcgisonline.com https://images.unsplash.com; "
+    "img-src 'self' data: blob: https://api.maptiler.com https://*.maptiler.com https://*.tile.openstreetmap.org https://server.arcgisonline.com https://images.unsplash.com; "
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-    "font-src 'self' https://fonts.gstatic.com; "
+    "font-src 'self' data: https://api.maptiler.com https://*.maptiler.com https://fonts.gstatic.com; "
     "script-src 'self'; "
     "worker-src 'self' blob:; "
     "media-src 'self' blob: data:; "

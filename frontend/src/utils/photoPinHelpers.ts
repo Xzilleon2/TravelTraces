@@ -22,12 +22,14 @@ export type PendingMarkerPhoto = {
 export async function extractPhotoLocation(file: File): Promise<{ location: ApiLocation | null; source: ApiPin["source"] }> {
   try {
     const gps = (await exifr.gps(file)) as { latitude?: number; longitude?: number } | undefined;
-    if (gps?.latitude && gps?.longitude) {
+    if (Number.isFinite(gps?.latitude) && Number.isFinite(gps?.longitude)) {
+      const latitude = gps?.latitude ?? 0;
+      const longitude = gps?.longitude ?? 0;
       return {
         source: "exif",
         location: {
-          coordinate: [gps.latitude, gps.longitude],
-          label: `${gps.latitude.toFixed(5)}, ${gps.longitude.toFixed(5)}`,
+          coordinate: [latitude, longitude],
+          label: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
           provider: "exif",
           confidence: 1,
         },
@@ -116,9 +118,8 @@ export function markerSavePayload(input: MarkerSaveInput) {
     category: input.category ?? "More",
     place_name: input.placeName ?? input.address ?? "",
   };
-  const source = input.photos.some((item) => item.source === "exif" || item.source === "gps")
-    ? input.photos.find((item) => item.source === "exif" || item.source === "gps")!.source
-    : input.source;
+  const locationPhoto = input.photos.find((item) => item.source === "exif" || item.source === "gps");
+  const source = locationPhoto?.source ?? input.source;
 
   return {
     title: input.title,

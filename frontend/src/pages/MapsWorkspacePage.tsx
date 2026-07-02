@@ -45,6 +45,7 @@ import {
   createPin,
   getDefaultMap,
   listPins,
+  listPublicPins,
   listRoutes,
   listTouristSpots,
   listTravelGroupLocations,
@@ -73,12 +74,18 @@ type WorkspaceSidePanel = TravelToolbarTool | "export" | null;
 type BoxZoomDrag = { startX: number; startY: number; currentX: number; currentY: number };
 type StoryMapHandoff = { storyId?: number; title?: string; place?: string; coordinate?: { lat: number; lon: number } };
 
-const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_KEY ?? "OxFhSEPyrURM6Iii2vm0";
-const MAPTILER_STYLES: Record<BaseLayer, string> = {
-  street: `https://api.maptiler.com/maps/streets-v4/style.json?key=${MAPTILER_KEY}`,
-  satellite: `https://api.maptiler.com/maps/hybrid/style.json?key=${MAPTILER_KEY}`,
-  terrain: `https://api.maptiler.com/maps/topo-v2/style.json?key=${MAPTILER_KEY}`,
+const MAPTILER_KEY = (import.meta.env.VITE_MAPTILER_KEY || "OxFhSEPyrURM6Iii2vm0").trim();
+const MAPTILER_STYLE_IDS: Record<BaseLayer, string> = {
+  street: "streets-v2",
+  satellite: "hybrid",
+  terrain: "topo-v2",
 };
+const MAPTILER_STYLES: Record<BaseLayer, string> = Object.fromEntries(
+  Object.entries(MAPTILER_STYLE_IDS).map(([layer, styleId]) => [
+    layer,
+    `https://api.maptiler.com/maps/${styleId}/style.json?key=${encodeURIComponent(MAPTILER_KEY)}`,
+  ]),
+) as Record<BaseLayer, string>;
 
 const DEFAULT_GROUP_IDS = ["traveltraces-circle"];
 const ROUTE_SOURCE_ID = "workspace-route";
@@ -261,14 +268,32 @@ function formatDuration(seconds?: number) {
   return hours ? `${hours}h ${minutes}m` : `${minutes}m`;
 }
 
+function finiteNumber(value: unknown, fallback = 0) {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function finiteCoordinatePair(value: unknown): [number, number] | null {
+  if (!Array.isArray(value) || value.length < 2) return null;
+  const lat = Number(value[0]);
+  const lon = Number(value[1]);
+  return Number.isFinite(lat) && Number.isFinite(lon) ? [lat, lon] : null;
+}
+
+function finitePinCoordinate(pin: ApiPin): { lat: number; lon: number } | null {
+  const lat = Number(pin.coordinate?.lat);
+  const lon = Number(pin.coordinate?.lon);
+  return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null;
+}
+
 function routeEndpointToLocation(endpoint: unknown): ApiLocation | null {
   const data = endpoint as { coordinate?: unknown; label?: unknown; provider?: unknown; confidence?: unknown };
-  if (!Array.isArray(data.coordinate) || data.coordinate.length < 2) return null;
+  const coordinate = finiteCoordinatePair(data.coordinate);
+  if (!coordinate) return null;
   return {
-    coordinate: [Number(data.coordinate[0]), Number(data.coordinate[1])],
+    coordinate,
     label: String(data.label ?? "Route point"),
     provider: String(data.provider ?? "route"),
-    confidence: Number(data.confidence ?? 1),
+    confidence: finiteNumber(Number(data.confidence), 1),
   };
 }
 
@@ -335,6 +360,11 @@ function pinStoryHref(pin: ApiPin) {
 
 function routeToGeoJson(route: ApiRoute | null): FeatureCollection<LineString> {
   if (!route?.geometry?.length) return emptyLineCollection;
+  const coordinates = route.geometry
+    .map((coordinate) => finiteCoordinatePair(coordinate))
+    .filter((coordinate): coordinate is [number, number] => Boolean(coordinate))
+    .map(([lat, lon]) => [lon, lat]);
+  if (coordinates.length < 2) return emptyLineCollection;
   return {
     type: "FeatureCollection",
     features: [
@@ -342,7 +372,7 @@ function routeToGeoJson(route: ApiRoute | null): FeatureCollection<LineString> {
         type: "Feature",
         geometry: {
           type: "LineString",
-          coordinates: route.geometry.map(([lat, lon]) => [lon, lat]),
+          coordinates,
         },
         properties: {},
       },
@@ -357,23 +387,29 @@ function pointsToGeoJson(input: {
 }): FeatureCollection<Point> {
   const features: Array<Feature<Point>> = [];
   if (input.fromLocation) {
+    const coordinate = finiteCoordinatePair(input.fromLocation.coordinate);
+    if (!coordinate) return { type: "FeatureCollection", features };
     features.push({
       type: "Feature",
-      geometry: { type: "Point", coordinates: [input.fromLocation.coordinate[1], input.fromLocation.coordinate[0]] },
+      geometry: { type: "Point", coordinates: [coordinate[1], coordinate[0]] },
       properties: { title: "From", kind: "from", color: "#3A2A22" },
     });
   }
   if (input.toLocation) {
+    const coordinate = finiteCoordinatePair(input.toLocation.coordinate);
+    if (!coordinate) return { type: "FeatureCollection", features };
     features.push({
       type: "Feature",
-      geometry: { type: "Point", coordinates: [input.toLocation.coordinate[1], input.toLocation.coordinate[0]] },
+      geometry: { type: "Point", coordinates: [coordinate[1], coordinate[0]] },
       properties: { title: "To", kind: "to", color: "#C4713A" },
     });
   }
   input.draftStops.forEach((stop, index) => {
+    const coordinate = finiteCoordinatePair(stop.coordinate);
+    if (!coordinate) return;
     features.push({
       type: "Feature",
-      geometry: { type: "Point", coordinates: [stop.coordinate[1], stop.coordinate[0]] },
+      geometry: { type: "Point", coordinates: [coordinate[1], coordinate[0]] },
       properties: { title: `Stop ${index + 1}`, kind: "stop", color: "#5C8A9E" },
     });
   });
@@ -385,11 +421,13 @@ function pinsToGeoJson(pins: ApiPin[], scope: MapScope): FeatureCollection<Point
     type: "FeatureCollection",
     features: pins
       .filter((pin) => pin.scope === scope)
+      .filter((pin) => Boolean(finitePinCoordinate(pin)))
       .map((pin) => {
+        const coordinate = finitePinCoordinate(pin) ?? { lat: 0, lon: 0 };
         const thumb = primaryPhotoUrl(pin);
         return {
           type: "Feature",
-          geometry: { type: "Point", coordinates: [pin.coordinate.lon, pin.coordinate.lat] },
+          geometry: { type: "Point", coordinates: [coordinate.lon, coordinate.lat] },
           properties: {
             pin_id: pin.pin_id,
             title: pin.title,
@@ -409,15 +447,17 @@ function pinsToGeoJson(pins: ApiPin[], scope: MapScope): FeatureCollection<Point
 function touristSpotsToGeoJson(spots: TouristSpot[]): FeatureCollection<Point> {
   return {
     type: "FeatureCollection",
-    features: spots.map((spot) => ({
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [spot.longitude, spot.latitude] },
-      properties: {
-        place_id: spot.place_id,
-        title: spot.name,
-        category: spot.category,
-      },
-    })),
+    features: spots
+      .filter((spot) => Number.isFinite(Number(spot.latitude)) && Number.isFinite(Number(spot.longitude)))
+      .map((spot) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [Number(spot.longitude), Number(spot.latitude)] },
+        properties: {
+          place_id: spot.place_id,
+          title: spot.name,
+          category: spot.category,
+        },
+      })),
   };
 }
 
@@ -428,7 +468,7 @@ function isMeetupGeometry(input: unknown): input is Geometry {
 }
 
 function circleGeometry(center: [number, number], radiusKm: number): Geometry {
-  const [lat, lon] = center;
+  const [lat, lon] = finiteCoordinatePair(center) ?? [0, 0];
   const ring: number[][] = [];
   const earthRadiusKm = 6371;
   const latRad = (lat * Math.PI) / 180;
@@ -455,9 +495,14 @@ function circleGeometry(center: [number, number], radiusKm: number): Geometry {
 
 function meetupAreaToGeoJson(plan: MeetupPlan | null): FeatureCollection<Geometry> {
   if (!plan) return emptyGeometryCollection;
+  const fallbackCenter =
+    finiteCoordinatePair(plan.suggestions[0]?.coordinate) ??
+    finiteCoordinatePair(plan.midpoint.coordinate) ??
+    finiteCoordinatePair(plan.fair_region.properties.center) ??
+    [0, 0];
   const geometry = isMeetupGeometry(plan.fair_region.geometry)
     ? plan.fair_region.geometry
-    : circleGeometry(plan.suggestions[0]?.coordinate ?? plan.midpoint.coordinate ?? plan.fair_region.properties.center, Math.max(1.5, plan.fair_region.properties.travel_time_minutes * 0.35));
+    : circleGeometry(fallbackCenter, Math.max(1.5, finiteNumber(plan.fair_region.properties.travel_time_minutes, 60) * 0.35));
 
   return {
     type: "FeatureCollection",
@@ -514,6 +559,10 @@ function createPinIcon(color: string) {
   context.fill();
 
   return context.getImageData(0, 0, size, size);
+}
+
+function createTransparentIcon() {
+  return new ImageData(1, 1);
 }
 
 function ensurePinImages(map: MapLibreMap) {
@@ -877,9 +926,9 @@ export default function MapsWorkspacePage() {
 }
 
 function MapsWorkspaceContent() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const viewerId = user!.id;
+  const viewerId = user?.id ?? "demo-user";
   const groupIds = user?.groupIds ?? DEFAULT_GROUP_IDS;
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -977,21 +1026,27 @@ function MapsWorkspaceContent() {
 
   const refreshScopedData = useCallback(async () => {
     const mapId = activeMap?.map_id;
-    const [nextPins, nextRoutes, nextTouristSpots] = await Promise.all([
-      listPins(viewerId, groupIds, mapId),
-      listRoutes(viewerId, groupIds),
-      listTouristSpots(viewerId),
-    ]);
+    const [nextPins, nextRoutes, nextTouristSpots] = isAuthenticated
+      ? await Promise.all([
+          listPins(viewerId, groupIds, mapId),
+          listRoutes(viewerId, groupIds),
+          listTouristSpots(viewerId),
+        ])
+      : await Promise.all([listPublicPins("public"), Promise.resolve([]), Promise.resolve([])]);
     setPins(nextPins);
     setSavedRouteCount(nextRoutes.length);
     setTouristSpots(nextTouristSpots);
-  }, [activeMap?.map_id, groupIds, viewerId]);
+  }, [activeMap?.map_id, groupIds, isAuthenticated, viewerId]);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      setActiveMap(null);
+      return;
+    }
     void getDefaultMap()
       .then((map) => setActiveMap(map))
       .catch(() => undefined);
-  }, [viewerId]);
+  }, [isAuthenticated, viewerId]);
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
@@ -1019,6 +1074,16 @@ function MapsWorkspaceContent() {
     map.on("style.load", () => {
       ensureWorkspaceLayers(map);
       setStyleRevision((value) => value + 1);
+    });
+    map.on("styleimagemissing", (event) => {
+      const imageId = event.id;
+      if (imageId && !map.hasImage(imageId)) {
+        try {
+          map.addImage(imageId, createTransparentIcon(), { pixelRatio: 1 });
+        } catch {
+          // MapTiler styles can request optional shield icons with unusual ids.
+        }
+      }
     });
     map.on("click", (event) => clickHandlerRef.current(event));
 
@@ -1075,25 +1140,30 @@ function MapsWorkspaceContent() {
   }, [mapReady, meetupAreaData, pinData, pointData, routeColor, routeData, routeWidth, styleRevision, touristSpotData]);
 
   useEffect(() => {
-    if (!activeMap) return;
+    if (isAuthenticated && !activeMap) return;
     void refreshScopedData().catch(() => setStatus("Map pins and saved routes could not be loaded."));
-  }, [activeMap, refreshScopedData]);
+  }, [activeMap, isAuthenticated, refreshScopedData]);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      setTravelGroups([]);
+      setActiveTravelGroupId("");
+      return;
+    }
     void listTravelGroups(viewerId)
       .then((groups) => {
         setTravelGroups(groups);
         setActiveTravelGroupId((current) => current || groups[0]?.circle_id || "");
       })
       .catch(() => undefined);
-  }, [viewerId]);
+  }, [isAuthenticated, viewerId]);
 
   useEffect(() => {
-    if (!activeTravelGroupId) return;
+    if (!isAuthenticated || !activeTravelGroupId) return;
     void listTravelGroupLocations(activeTravelGroupId)
       .then(setTravelLocations)
       .catch(() => undefined);
-  }, [activeTravelGroupId]);
+  }, [activeTravelGroupId, isAuthenticated]);
 
   useEffect(() => {
     return subscribeWorkspaceEvents((event) => {
@@ -1649,7 +1719,8 @@ function MapsWorkspaceContent() {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
-    const layers = ["workspace-pins", PHOTO_PIN_LAYER, PIN_CATEGORY_LABEL_LAYER];
+    const layers = ["workspace-pins", PHOTO_PIN_LAYER, PIN_CATEGORY_LABEL_LAYER].filter((layer) => map.getLayer(layer));
+    if (!layers.length) return;
     const onPinClick = (event: maplibregl.MapLayerMouseEvent) => {
       const feature = event.features?.[0];
       const pinId = feature?.properties?.pin_id;
@@ -2740,7 +2811,7 @@ function MapsWorkspaceContent() {
                     ? status
                     : drawingActive
                       ? "Click streets to add snapped route stops."
-                      : "Vector MapTiler workspace active."}
+                      : "MapTiler workspace active."}
               </span>
             )}
           </div>

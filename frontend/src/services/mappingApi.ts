@@ -252,6 +252,29 @@ export type TouristSpot = {
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
+export class ApiRequestError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.status = status;
+  }
+}
+
+function validationMessageFromDetail(detail: unknown, fallback: string) {
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        if (item && typeof item === "object" && "msg" in item) return String(item.msg);
+        return String(item);
+      })
+      .filter(Boolean)
+      .join(", ");
+  }
+  return typeof detail === "string" && detail.trim() ? detail : fallback;
+}
+
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
@@ -264,8 +287,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    const message = body?.detail ?? `Request failed with ${response.status}`;
-    throw new Error(Array.isArray(message) ? message.map((item) => item.msg).join(", ") : String(message));
+    throw new ApiRequestError(validationMessageFromDetail(body?.detail, `Request failed with ${response.status}`), response.status);
   }
 
   return response.json() as Promise<T>;
@@ -352,10 +374,23 @@ export async function listPins(viewerId: string, groupIds: string[], mapId?: str
   return data.pins;
 }
 
+export async function listPublicPins(scope: MapScope = "public"): Promise<ApiPin[]> {
+  const params = new URLSearchParams({ scope });
+  const data = await requestJson<{ pins: ApiPin[] }>(`/api/public/pins?${params}`);
+  return data.pins;
+}
+
 export async function listUserMaps(ownerId?: string): Promise<UserMap[]> {
   const params = new URLSearchParams();
   if (ownerId) params.set("owner_id", ownerId);
   const data = await requestJson<{ maps: UserMap[] }>(`/api/maps?${params}`);
+  return data.maps;
+}
+
+export async function listPublicUserMaps(ownerId?: string): Promise<UserMap[]> {
+  const params = new URLSearchParams();
+  if (ownerId) params.set("owner_id", ownerId);
+  const data = await requestJson<{ maps: UserMap[] }>(`/api/public/maps?${params}`);
   return data.maps;
 }
 
