@@ -1,9 +1,8 @@
 import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 import { Calendar, MapPin, Users, Clock, ArrowRight, X, CheckCircle2, Tag, Plus, Search, Compass, Camera, Mountain, Landmark } from "lucide-react";
 import { GatedPage } from "../components/GatedPage";
 import { HostTourMeetupForm, type HostTourPlace } from "../components/HostTourMeetupForm";
-import { UserProfileModal } from "../components/UserProfileModal";
-import { GAMIFIED_USERS, GamifiedUser } from "../components/gamification";
 import { listHostedTourMeetups, type HostedTourMeetupRecord } from "../services/eventsApi";
 
 const ORGANISER_KEY: Record<string, string> = {
@@ -213,12 +212,16 @@ function EventDetailModal({ event, joined, onToggleJoin, onClose }: {
   onToggleJoin: () => void;
   onClose: () => void;
 }) {
-  const [viewingProfile, setViewingProfile] = useState<GamifiedUser | null>(null);
+  const navigate = useNavigate();
   const spotsLeft = event.maxParticipants - event.participants;
   const pct = (event.participants / event.maxParticipants) * 100;
   const displayParticipants = joined
     ? [...event.joinedParticipants, { name: "You", avatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=48&h=48&fit=crop&auto=format", location: "Your location" }]
     : event.joinedParticipants;
+  const viewProfile = (name: string) => {
+    const key = ORGANISER_KEY[name];
+    if (key) navigate(`/profile/${key}`);
+  };
 
   return (
     <div
@@ -299,7 +302,7 @@ function EventDetailModal({ event, joined, onToggleJoin, onClose }: {
               {/* Organiser */}
               <div>
                 <p style={{ fontFamily: "var(--font-label)", fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#6B6B5A", marginBottom: "0.625rem" }}>Organised by</p>
-                <button onClick={() => { const k = ORGANISER_KEY[event.organiser]; if (k) setViewingProfile(GAMIFIED_USERS[k]); }} style={{ display: "flex", alignItems: "center", gap: "0.625rem", background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "left" }}>
+                <button onClick={() => viewProfile(event.organiser)} style={{ display: "flex", alignItems: "center", gap: "0.625rem", background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "left" }}>
                   <img src={event.organiserAvatar} alt={event.organiser} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} />
                   <div>
                     <p style={{ fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: "0.875rem", color: "#1A1A1A", margin: 0 }}>{event.organiser}</p>
@@ -361,7 +364,7 @@ function EventDetailModal({ event, joined, onToggleJoin, onClose }: {
                   {displayParticipants.map((p, i) => {
                     const gKey = ORGANISER_KEY[p.name];
                     return (
-                      <button key={i} onClick={() => { if (gKey) setViewingProfile(GAMIFIED_USERS[gKey]); }} style={{ display: "flex", alignItems: "center", gap: "0.625rem", background: "none", border: "none", cursor: gKey ? "pointer" : "default", padding: "0.25rem", borderRadius: "0.375rem", textAlign: "left", transition: "background 0.1s" }} onMouseEnter={(e) => { if (gKey) e.currentTarget.style.backgroundColor = "#EDEAE0"; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}>
+                      <button key={i} onClick={() => viewProfile(p.name)} style={{ display: "flex", alignItems: "center", gap: "0.625rem", background: "none", border: "none", cursor: gKey ? "pointer" : "default", padding: "0.25rem", borderRadius: "0.375rem", textAlign: "left", transition: "background 0.1s" }} onMouseEnter={(e) => { if (gKey) e.currentTarget.style.backgroundColor = "#EDEAE0"; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}>
                         <img src={p.avatar} alt={p.name} style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                         <div style={{ minWidth: 0 }}>
                           <p style={{ fontFamily: "var(--font-ui)", fontWeight: p.name === "You" ? 700 : 500, fontSize: "0.82rem", color: p.name === "You" ? "#C4713A" : "#1A1A1A", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
@@ -376,8 +379,6 @@ function EventDetailModal({ event, joined, onToggleJoin, onClose }: {
           </div>
         </div>
       </div>
-
-      {viewingProfile && <UserProfileModal user={viewingProfile} onClose={() => setViewingProfile(null)} />}
 
       <style>{`
         @media (max-width: 640px) {
@@ -495,13 +496,17 @@ function EventArticleView({ event, joined, onToggleJoin, onBack, onPrev, onNext,
   hasPrev: boolean;
   hasNext: boolean;
 }) {
-  const [viewingProfile, setViewingProfile] = useState<GamifiedUser | null>(null);
+  const navigate = useNavigate();
   const organiserKey = ORGANISER_KEY[event.organiser];
   const spotsLeft = Math.max(event.maxParticipants - event.participants, 0);
   const pct = Math.min((event.participants / event.maxParticipants) * 100, 100);
   const displayParticipants = joined
     ? [...event.joinedParticipants, { name: "You", avatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=48&h=48&fit=crop&auto=format", location: "Your location" }]
     : event.joinedParticipants;
+  const viewProfile = (name: string) => {
+    const key = ORGANISER_KEY[name];
+    if (key) navigate(`/profile/${key}`);
+  };
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#FBF7F0", padding: "2rem clamp(1rem, 4vw, 2rem) 5rem" }}>
@@ -523,7 +528,7 @@ function EventArticleView({ event, joined, onToggleJoin, onBack, onPrev, onNext,
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", borderTop: "1px solid rgba(58,42,34,0.14)", borderBottom: "1px solid rgba(58,42,34,0.14)", padding: "1rem 0", flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
-              <button disabled={!organiserKey} onClick={() => organiserKey && setViewingProfile(GAMIFIED_USERS[organiserKey])} style={{ background: "none", border: "none", cursor: organiserKey ? "pointer" : "default", padding: 0 }}>
+              <button disabled={!organiserKey} onClick={() => viewProfile(event.organiser)} style={{ background: "none", border: "none", cursor: organiserKey ? "pointer" : "default", padding: 0 }}>
                 <img src={event.organiserAvatar} alt={event.organiser} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", display: "block" }} />
               </button>
               <div>
@@ -585,15 +590,18 @@ function EventArticleView({ event, joined, onToggleJoin, onBack, onPrev, onNext,
               <div style={{ height: "100%", width: `${pct}%`, backgroundColor: pct >= 90 ? "#C4713A" : "#9E6B5C" }} />
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
-              {displayParticipants.slice(0, 10).map((person) => (
-                <div key={person.name} style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 180 }}>
+              {displayParticipants.slice(0, 10).map((person) => {
+                const profileKey = ORGANISER_KEY[person.name];
+                return (
+                <button key={person.name} type="button" onClick={() => viewProfile(person.name)} style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 180, border: "none", background: "transparent", padding: 0, cursor: profileKey ? "pointer" : "default", textAlign: "left" }}>
                   <img src={person.avatar} alt={person.name} style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover" }} />
                   <div>
                     <p style={{ margin: 0, fontFamily: "var(--font-ui)", fontSize: "0.82rem", fontWeight: 700, color: "#3A2A22" }}>{person.name}</p>
                     <p style={{ margin: 0, fontFamily: "var(--font-ui)", fontSize: "0.72rem", color: "#6B6B5A" }}>{person.location}</p>
                   </div>
-                </div>
-              ))}
+                </button>
+              );
+              })}
             </div>
           </section>
 
@@ -602,7 +610,6 @@ function EventArticleView({ event, joined, onToggleJoin, onBack, onPrev, onNext,
           </div>
         </div>
       </article>
-      {viewingProfile && <UserProfileModal user={viewingProfile} onClose={() => setViewingProfile(null)} />}
     </div>
   );
 }
@@ -667,10 +674,10 @@ function EventsContent() {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F5F0E8", padding: "3rem 1.5rem" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ marginBottom: "2.5rem" }}>
-          <p style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#9E6B5C", marginBottom: "0.5rem" }}>Meetups & adventures</p>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 600, color: "#3A2A22", marginBottom: "0.5rem" }}>Events</h1>
-          <p style={{ fontFamily: "var(--font-body)", color: "#6B6B5A", fontSize: "1rem" }}>Photography walks, island-hopping trips, cultural tours, and community meetups across the archipelago.</p>
+        <header className="mb-10">
+          <p className="mb-2 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.16em] text-[#9E6B5C]">Meetups & adventures</p>
+          <h1 className="m-0 font-[var(--font-display)] text-5xl font-semibold leading-none text-[#3A2A22] sm:text-6xl">Events</h1>
+          <p className="mt-4 max-w-3xl font-[var(--font-body)] text-lg leading-8 text-[#5B4A40]">Photography walks, island-hopping trips, cultural tours, and community meetups across the archipelago.</p>
           <button
             type="button"
             onClick={() => setHostFormOpen(true)}
@@ -679,7 +686,7 @@ function EventsContent() {
             <Plus size={16} />
             Host Tour Meetup
           </button>
-        </div>
+        </header>
 
         <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
           <div style={{ position: "relative", flex: "1 1 260px" }}>

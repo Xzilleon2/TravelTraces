@@ -8,7 +8,8 @@ import { MusicBox } from "./MusicBox";
 const memberLinks = [
   { to: "/explore", label: "Explore" },
   { to: "/stories", label: "Stories" },
-  { to: "/maps", label: "Maps", featured: true },
+  { to: "/travel-plan-stories", label: "Travel Plans" },
+  { to: "/maps", label: "Maps" },
   { to: "/community", label: "Community" },
   { to: "/events", label: "Events" },
 ];
@@ -100,15 +101,6 @@ export function Navbar() {
     transition: "color 0.15s",
   };
 
-  const mapsLinkStyle = (isActive = false): React.CSSProperties => ({
-    ...linkBaseStyle,
-    color: isActive ? "#FBF7F0" : "#3A2A22",
-    backgroundColor: isActive ? "#3A2A22" : "rgba(158,107,92,0.12)",
-    border: "1px solid rgba(58,42,34,0.18)",
-    borderRadius: "999px",
-    boxShadow: "none",
-  });
-
   return (
     <nav
       className="site-header"
@@ -145,10 +137,9 @@ export function Navbar() {
                   key={link.label}
                   to={link.to}
                   style={({ isActive }) => ({
-                    ...(link.featured ? mapsLinkStyle(isActive) : linkBaseStyle),
+                    ...linkBaseStyle,
                     color: isActive ? "#C4713A" : "#3A2A22",
                     backgroundColor: isActive ? "rgba(196,113,58,0.1)" : "transparent",
-                    ...(link.featured ? mapsLinkStyle(isActive) : {}),
                   })}
                 >
                   {link.label}
@@ -241,16 +232,6 @@ export function Navbar() {
                   fontFamily: "var(--font-label)", fontWeight: 500,
                   letterSpacing: "0.05em", textTransform: "uppercase",
                   borderBottom: "1px solid rgba(58,42,34,0.1)",
-                  ...(link.featured
-                    ? {
-                        color: isActive ? "#FBF7F0" : "#3A2A22",
-                        padding: "0.75rem 0.6rem",
-                        marginBottom: "0.35rem",
-                        border: "1px solid rgba(58,42,34,0.18)",
-                        borderRadius: "999px",
-                        backgroundColor: isActive ? "#3A2A22" : "rgba(158,107,92,0.12)",
-                      }
-                    : {}),
                 })}
               >
                 {link.label}

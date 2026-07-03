@@ -14,6 +14,9 @@ from app.core.database import TravelPlacesDatabase
 from app.core.mapping import utc_now
 
 
+REMOVED_DEFAULT_TOURIST_SPOTS = {"Samal Island", "Mount Apo", "Tinuy-an Falls"}
+
+
 class ScopedMapStore:
     def __init__(self, path: Path | None = None) -> None:
         backend_root = Path(__file__).resolve().parents[2]
@@ -102,6 +105,16 @@ class ScopedMapStore:
         data["pins"].append(record)
         self._write(data)
         return record
+
+    def delete_pin(self, pin_id: str, creator_id: str) -> bool:
+        data = self._read()
+        removed = [pin for pin in data.get("pins", []) if pin.get("pin_id") == pin_id and pin.get("creator_id") == creator_id]
+        if not removed:
+            return False
+        data["pins"] = [pin for pin in data.get("pins", []) if not (pin.get("pin_id") == pin_id and pin.get("creator_id") == creator_id)]
+        self._delete_pin_media_files(removed)
+        self._write(data)
+        return True
 
     def list_routes(self, viewer_id: str, group_ids: list[str]) -> list[dict[str, Any]]:
         data = self._read()
@@ -615,6 +628,14 @@ class ScopedMapStore:
             data.setdefault("travel_collections", [])
             data.setdefault("saved_tourist_spots", [])
             migrated = False
+            cleaned_tourist_spots = [
+                spot
+                for spot in data["saved_tourist_spots"]
+                if spot.get("name") not in REMOVED_DEFAULT_TOURIST_SPOTS
+            ]
+            if len(cleaned_tourist_spots) != len(data["saved_tourist_spots"]):
+                data["saved_tourist_spots"] = cleaned_tourist_spots
+                migrated = True
             for pin in data["pins"]:
                 if "map_id" not in pin:
                     pin["map_id"] = "legacy-default"
@@ -824,44 +845,6 @@ class ScopedMapStore:
             },
         ]
         data["travel_collections"].extend(collections)
-        if not any(spot.get("saved_by") == owner_id for spot in data["saved_tourist_spots"]):
-            data["saved_tourist_spots"].extend(
-                [
-                    {
-                        "place_id": str(uuid.uuid4()),
-                        "name": "Samal Island",
-                        "latitude": 7.0731,
-                        "longitude": 125.7089,
-                        "category": "Beach",
-                        "saved_by": owner_id,
-                        "saved_at": now,
-                        "collection_id": f"{owner_id}-best-beaches",
-                        "notes": "Island stop for future group rides and beach weekends.",
-                    },
-                    {
-                        "place_id": str(uuid.uuid4()),
-                        "name": "Mount Apo",
-                        "latitude": 6.9875,
-                        "longitude": 125.2708,
-                        "category": "Mountain",
-                        "saved_by": owner_id,
-                        "saved_at": now,
-                        "collection_id": f"{owner_id}-photo-locations",
-                        "notes": "Bucket-list hiking and landscape photography destination.",
-                    },
-                    {
-                        "place_id": str(uuid.uuid4()),
-                        "name": "Tinuy-an Falls",
-                        "latitude": 8.1708,
-                        "longitude": 126.0945,
-                        "category": "Waterfall",
-                        "saved_by": owner_id,
-                        "saved_at": now,
-                        "collection_id": f"{owner_id}-want-to-visit",
-                        "notes": "Waterfall destination for a future Mindanao itinerary.",
-                    },
-                ]
-            )
 
     def _seed_circle_defaults(self, data: dict[str, Any], circle: dict[str, Any], viewer_id: str, now: str) -> None:
         circle_id = circle["circle_id"]

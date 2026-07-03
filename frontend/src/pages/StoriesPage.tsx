@@ -1,10 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { Search, MapPin, Clock, Heart, Bookmark, Share2, ArrowLeft, ChevronLeft, ChevronRight, Send, MessageCircle, Compass, Mountain, Utensils, Gem, Waves, TreePine, Landmark } from "lucide-react";
+import { Search, MapPin, Clock, Heart, Bookmark, Share2, ArrowLeft, ChevronLeft, ChevronRight, Send, MessageCircle, Compass, Mountain, Utensils, Gem, Waves, TreePine, Landmark, BookOpen, CalendarDays, CheckCircle2, FileText, LockKeyhole, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { GatedPage } from "../components/GatedPage";
 import { useAuth } from "../context/AuthContext";
-import { UserProfileModal } from "../components/UserProfileModal";
-import { GAMIFIED_USERS, GamifiedUser } from "../components/gamification";
+import {
+  albumUnlocked,
+  canPublishTravelPlan,
+  completedDestinationCount,
+  readTravelPlanStories,
+  totalTravelDays,
+  travelPlanStatus,
+  upsertTravelPlanStory,
+  type TravelPlanDestination,
+  type TravelPlanStory,
+} from "../services/travelPlanStories";
+import { deletePin, listPins, type MapScope } from "../services/mappingApi";
 
 export const SAVED_STORIES_KEY = "traveltraces.savedStories";
 export const STORY_COLLECTIONS_KEY = "traveltraces.storyCollections";
@@ -198,6 +209,11 @@ function readLocalStories(): TravelStory[] {
   }
 }
 
+function writeLocalStories(stories: TravelStory[]) {
+  window.localStorage.setItem(LOCAL_STORIES_KEY, JSON.stringify(stories));
+  window.dispatchEvent(new CustomEvent("traveltraces:local-stories-updated"));
+}
+
 function readSavedStoryIds(): number[] {
   try {
     const parsed = JSON.parse(window.localStorage.getItem(SAVED_STORIES_KEY) ?? "[]") as number[];
@@ -209,6 +225,7 @@ function readSavedStoryIds(): number[] {
 
 function writeSavedStoryIds(ids: number[]) {
   window.localStorage.setItem(SAVED_STORIES_KEY, JSON.stringify(Array.from(new Set(ids))));
+  window.dispatchEvent(new CustomEvent("traveltraces:saved-stories-updated"));
 }
 
 export const STORY_MAP_POINTS: Record<number, { place: string; coordinate: { lat: number; lon: number } }> = {
@@ -220,19 +237,19 @@ export const STORY_MAP_POINTS: Record<number, { place: string; coordinate: { lat
   6: { place: "Hundred Islands, Pangasinan", coordinate: { lat: 16.2076, lon: 119.9706 } },
 };
 
-export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext }: {
+export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext, onDelete }: {
   story: TravelStory;
   onBack: () => void;
   onPrev: () => void;
   onNext: () => void;
   hasPrev: boolean;
   hasNext: boolean;
+  onDelete?: (story: TravelStory) => void;
 }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [viewingProfile, setViewingProfile] = useState<GamifiedUser | null>(null);
   const [comments, setComments] = useState(STORY_COMMENTS[story.id] ?? []);
   const [commentInput, setCommentInput] = useState("");
   const [likedComments, setLikedComments] = useState<Set<number>>(new Set());
@@ -247,7 +264,6 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
   useEffect(() => {
     setLiked(false);
     setSaved(readSavedStoryIds().includes(story.id));
-    setViewingProfile(null);
     setComments(STORY_COMMENTS[story.id] ?? []);
     setCommentInput("");
     setLikedComments(new Set());
@@ -305,6 +321,11 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
     navigate("/maps");
   };
 
+  const viewProfile = (name: string) => {
+    const key = AUTHOR_KEY[name];
+    if (key) navigate(`/profile/${key}`);
+  };
+
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#FBF7F0", padding: "2rem clamp(1rem, 4vw, 2rem) 5rem" }}>
       <article style={{ width: "min(100%, 1120px)", margin: "0 auto", backgroundColor: "#FBF7F0" }}>
@@ -338,11 +359,11 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", borderTop: "1px solid rgba(58,42,34,0.14)", borderBottom: "1px solid rgba(58,42,34,0.14)", padding: "1rem 0", flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
-              <button onClick={() => { const k = AUTHOR_KEY[story.author]; if (k) setViewingProfile(GAMIFIED_USERS[k]); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+              <button onClick={() => viewProfile(story.author)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
                 <img src={story.authorAvatar} alt={story.author} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", display: "block" }} />
               </button>
               <div>
-                <button onClick={() => { const k = AUTHOR_KEY[story.author]; if (k) setViewingProfile(GAMIFIED_USERS[k]); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: "0.94rem", color: "#1A1A1A" }}>{story.author}</button>
+                <button onClick={() => viewProfile(story.author)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: "0.94rem", color: "#1A1A1A" }}>{story.author}</button>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: "#6B5A50", flexWrap: "wrap", marginTop: "0.15rem" }}>
                   <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.82rem", fontFamily: "var(--font-ui)" }}><MapPin size={12} />{story.region}, Philippines</span>
                   <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.82rem", fontFamily: "var(--font-ui)" }}><Clock size={12} />Posted {story.date}</span>
@@ -361,6 +382,11 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
               <button style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid rgba(58,42,34,0.2)", borderRadius: "999px", background: "none", color: "#6B5A50", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
                 <Share2 size={14} /> Share
               </button>
+              {story.local && onDelete ? (
+                <button onClick={() => onDelete(story)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid rgba(178,59,46,0.3)", borderRadius: "999px", background: "rgba(178,59,46,0.08)", color: "#8A2F25", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
+                  <Trash2 size={14} /> Delete
+                </button>
+              ) : null}
             </div>
           </div>
         </header>
@@ -482,7 +508,7 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
                   <div style={{ flex: 1 }}>
                     <div style={{ backgroundColor: "#EDEAE0", borderRadius: "0 0.75rem 0.75rem 0.75rem", padding: "0.75rem 1rem" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
-                        <button onClick={() => { const k = AUTHOR_KEY[c.author]; if (k) setViewingProfile(GAMIFIED_USERS[k]); }} style={{ background: "none", border: "none", cursor: AUTHOR_KEY[c.author] ? "pointer" : "default", padding: 0, fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: "0.875rem", color: "#1A1A1A" }}>{c.author}</button>
+                        <button onClick={() => viewProfile(c.author)} style={{ background: "none", border: "none", cursor: AUTHOR_KEY[c.author] ? "pointer" : "default", padding: 0, fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: "0.875rem", color: "#1A1A1A" }}>{c.author}</button>
                         <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.72rem", color: "#9A9A8A" }}>{c.time}</span>
                       </div>
                       <p style={{ fontFamily: "var(--font-body)", fontSize: "0.9rem", color: "#1A1A1A", lineHeight: 1.65, margin: 0 }}>{c.text}</p>
@@ -505,16 +531,386 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
           </div>
         </div>
       </article>
-      {viewingProfile && <UserProfileModal user={viewingProfile} onClose={() => setViewingProfile(null)} />}
+    </div>
+  );
+}
+
+type VisitFormState = {
+  visibility: MapScope;
+  placeName: string;
+  category: string;
+  title: string;
+  description: string;
+  photos: string;
+  dateVisited: string;
+};
+
+const todayDate = () => new Date().toISOString().slice(0, 10);
+
+function destinationToVisitForm(destination: TravelPlanDestination): VisitFormState {
+  return {
+    visibility: destination.visibility ?? "private",
+    placeName: destination.placeName,
+    category: destination.category ?? "Hidden Gems",
+    title: destination.title ?? destination.placeName,
+    description: destination.description ?? "",
+    photos: destination.photos?.join("\n") ?? "",
+    dateVisited: destination.dateVisited ?? todayDate(),
+  };
+}
+
+function statusCopy(status: ReturnType<typeof travelPlanStatus>): string {
+  if (status === "planning") return "Planning";
+  if (status === "ongoing") return "Ongoing";
+  return "Completed";
+}
+
+function statusClass(status: ReturnType<typeof travelPlanStatus>): string {
+  if (status === "completed") return "border-[#5C8A9E]/30 bg-[#5C8A9E]/12 text-[#315568]";
+  if (status === "ongoing") return "border-[#C4713A]/30 bg-[#C4713A]/12 text-[#8A4B26]";
+  return "border-[#3A2A22]/15 bg-[#EFE7DC] text-[#3A2A22]";
+}
+
+function TravelPlanStoryView({ plan, onBack, onUpdate }: { plan: TravelPlanStory; onBack: () => void; onUpdate: (plan: TravelPlanStory) => void }) {
+  const navigate = useNavigate();
+  const [editingDestinationId, setEditingDestinationId] = useState<string | null>(null);
+  const [visitDestinationId, setVisitDestinationId] = useState<string | null>(null);
+  const [pendingDestinationDelete, setPendingDestinationDelete] = useState<TravelPlanDestination | null>(null);
+  const [visitForm, setVisitForm] = useState<VisitFormState>(() => destinationToVisitForm(plan.destinations[0] ?? {
+    id: "draft",
+    order: 1,
+    placeName: "Destination",
+    coordinate: { lat: 0, lon: 0 },
+    plannedDay: 1,
+    status: "planned",
+  }));
+  const [albumTemplate, setAlbumTemplate] = useState("Field Journal");
+
+  const status = travelPlanStatus(plan);
+  const completed = completedDestinationCount(plan);
+  const total = plan.destinations.length;
+  const progress = total ? Math.round((completed / total) * 100) : 0;
+  const groupedDays = Array.from(new Set(plan.destinations.map((destination) => destination.plannedDay))).sort((a, b) => a - b);
+  const coverImage = plan.coverImage || plan.destinations.find((destination) => destination.photos?.[0])?.photos?.[0];
+
+  const commitPlan = (next: TravelPlanStory) => {
+    const saved = upsertTravelPlanStory(next);
+    onUpdate(saved);
+  };
+
+  const updateDestination = (destinationId: string, patch: Partial<TravelPlanDestination>) => {
+    commitPlan({
+      ...plan,
+      destinations: plan.destinations.map((destination) => (destination.id === destinationId ? { ...destination, ...patch } : destination)),
+    });
+  };
+
+  const moveDestination = (destinationId: string, direction: -1 | 1) => {
+    const sorted = [...plan.destinations].sort((a, b) => a.order - b.order);
+    const index = sorted.findIndex((destination) => destination.id === destinationId);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= sorted.length) return;
+    const [item] = sorted.splice(index, 1);
+    if (!item) return;
+    sorted.splice(target, 0, item);
+    commitPlan({ ...plan, destinations: sorted.map((destination, nextIndex) => ({ ...destination, order: nextIndex + 1 })) });
+  };
+
+  const deleteDestination = (destinationId: string) => {
+    const nextDestinations = plan.destinations.filter((destination) => destination.id !== destinationId);
+    commitPlan({ ...plan, destinations: nextDestinations.map((destination, index) => ({ ...destination, order: index + 1 })) });
+    setPendingDestinationDelete(null);
+  };
+
+  const addDestination = () => {
+    const nextOrder = plan.destinations.length + 1;
+    commitPlan({
+      ...plan,
+      destinations: [
+        ...plan.destinations,
+        {
+          id: `destination-${Date.now()}`,
+          order: nextOrder,
+          placeName: `Destination ${nextOrder}`,
+          coordinate: { lat: 0, lon: 0 },
+          plannedDay: totalTravelDays(plan),
+          status: "planned",
+          notes: "",
+        },
+      ],
+    });
+  };
+
+  const startVisit = (destination: TravelPlanDestination) => {
+    setVisitDestinationId(destination.id);
+    setVisitForm(destinationToVisitForm(destination));
+  };
+
+  const saveVisit = () => {
+    if (!visitDestinationId || !visitForm.title.trim() || !visitForm.description.trim()) return;
+    updateDestination(visitDestinationId, {
+      placeName: visitForm.placeName.trim(),
+      visibility: visitForm.visibility,
+      category: visitForm.category,
+      title: visitForm.title.trim(),
+      description: visitForm.description.trim(),
+      photos: visitForm.photos
+        .split(/\n|,/)
+        .map((photo) => photo.trim())
+        .filter(Boolean),
+      dateVisited: visitForm.dateVisited,
+      status: "completed",
+    });
+    setVisitDestinationId(null);
+  };
+
+  const togglePublish = () => {
+    if (!canPublishTravelPlan(plan)) return;
+    commitPlan({ ...plan, published: !plan.published, visibility: plan.published ? "private" : "public" });
+  };
+
+  const viewDestinationOnMap = (destination: TravelPlanDestination) => {
+    window.localStorage.setItem(
+      "traveltraces.pendingStoryViewPin",
+      JSON.stringify({
+        title: destination.title ?? destination.placeName,
+        place: destination.placeName,
+        coordinate: destination.coordinate,
+      }),
+    );
+    navigate("/maps");
+  };
+
+  return (
+    <div className="min-h-screen bg-[#FBF7F0] px-4 py-8 text-[#1A1A1A] sm:px-6 lg:px-8">
+      <article className="mx-auto max-w-6xl">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+          <button type="button" onClick={onBack} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#3A2A22]/18 px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.06em] text-[#3A2A22]">
+            <ArrowLeft size={15} /> Stories
+          </button>
+          <div className="flex flex-wrap gap-2">
+            <span className={`inline-flex min-h-10 items-center rounded-full border px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.06em] ${statusClass(status)}`}>
+              {statusCopy(status)}
+            </span>
+            <button
+              type="button"
+              disabled={!canPublishTravelPlan(plan)}
+              onClick={togglePublish}
+              className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#3A2A22]/18 px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.06em] text-[#3A2A22] disabled:opacity-55"
+            >
+              {canPublishTravelPlan(plan) ? <Share2 size={14} /> : <LockKeyhole size={14} />}
+              {plan.published ? "Unpublish" : "Publish"}
+            </button>
+          </div>
+        </div>
+
+        <header className="mx-auto mb-10 max-w-3xl">
+          <p className="mb-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.16em] text-[#9E6B5C]">Travel Plan Story</p>
+          <h1 className="m-0 font-[var(--font-display)] text-5xl font-semibold leading-[0.98] text-[#1A1A1A] sm:text-7xl">{plan.travelPlanName}</h1>
+          {plan.description ? <p className="mt-6 font-[var(--font-body)] text-lg leading-8 text-[#4A4A3A]">{plan.description}</p> : null}
+          <div className="mt-6 flex flex-wrap items-center gap-4 border-y border-[#3A2A22]/14 py-4 font-[var(--font-ui)] text-sm text-[#5B4A40]">
+            <span className="inline-flex items-center gap-2"><BookOpen size={15} /> {total} destinations</span>
+            <span className="inline-flex items-center gap-2"><CalendarDays size={15} /> {totalTravelDays(plan)} travel day{totalTravelDays(plan) === 1 ? "" : "s"}</span>
+            <span className="inline-flex items-center gap-2"><CheckCircle2 size={15} /> {completed}/{total} completed</span>
+            <span>Owner: {plan.ownerName}</span>
+          </div>
+          <div className="mt-5 h-2 overflow-hidden rounded-full bg-[#EFE7DC]">
+            <div className="h-full rounded-full bg-[#C4713A]" style={{ width: `${progress}%` }} />
+          </div>
+        </header>
+
+        {coverImage ? (
+          <figure className="mb-12 overflow-hidden rounded-lg">
+            <img src={coverImage} alt="" className="h-[clamp(260px,48vw,560px)] w-full object-cover" />
+          </figure>
+        ) : (
+          <div className="mb-12 grid min-h-[260px] place-items-center rounded-lg border border-[#3A2A22]/12 bg-[#EFE7DC] text-center">
+            <div>
+              <FileText className="mx-auto mb-3 text-[#9E6B5C]" size={30} />
+              <p className="m-0 font-[var(--font-display)] text-2xl text-[#3A2A22]">Cover will appear after you add trip photos.</p>
+            </div>
+          </div>
+        )}
+
+        {total === 1 ? (
+          <div className="mb-8 rounded-xl border border-[#C4713A]/25 bg-[#C4713A]/10 p-4 text-sm leading-6 text-[#5B4A40]">
+            This plan only has one destination left. Treat it as a Drop Marker story; Album Maker and multi-stop Story mode are locked until another destination is added.
+          </div>
+        ) : null}
+
+        <section className="mx-auto max-w-4xl">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="m-0 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.14em] text-[#9E6B5C]">Itinerary</p>
+              <h2 className="m-0 mt-1 font-[var(--font-display)] text-3xl font-semibold text-[#3A2A22]">Route Order</h2>
+            </div>
+            <button type="button" onClick={addDestination} className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[#3A2A22] px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.06em] text-[#F5F0E8]">
+              <Plus size={15} /> Add Destination
+            </button>
+          </div>
+
+          <div className="space-y-8">
+            {groupedDays.map((day) => (
+              <div key={day}>
+                <h3 className="mb-3 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.14em] text-[#3A2A22]">Day {day}</h3>
+                <div className="space-y-3">
+                  {plan.destinations.filter((destination) => destination.plannedDay === day).sort((a, b) => a.order - b.order).map((destination) => {
+                    const isEditing = editingDestinationId === destination.id;
+                    const isVisitOpen = visitDestinationId === destination.id;
+                    const isPlanned = destination.status === "planned";
+                    return (
+                      <div key={destination.id} className="rounded-xl border border-[#3A2A22]/12 bg-[#EFE7DC] p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="flex min-w-0 gap-3">
+                            <span className="mt-1 inline-flex h-9 min-w-9 items-center justify-center rounded-full bg-[#3A2A22] px-2 font-[var(--font-label)] text-xs font-bold text-[#F5F0E8]">{destination.order}</span>
+                            <div className="min-w-0">
+                              {isEditing && isPlanned ? (
+                                <div className="grid gap-2">
+                                  <input value={destination.placeName} onChange={(event) => updateDestination(destination.id, { placeName: event.target.value })} className="min-h-10 rounded-lg border border-[#3A2A22]/12 bg-white px-3 text-sm outline-none focus:border-[#C4713A]" />
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <input type="number" min={1} value={destination.plannedDay} onChange={(event) => updateDestination(destination.id, { plannedDay: Math.max(1, Number(event.target.value) || 1) })} className="min-h-10 rounded-lg border border-[#3A2A22]/12 bg-white px-3 text-sm outline-none focus:border-[#C4713A]" />
+                                    <input type="time" value={destination.plannedTime ?? ""} onChange={(event) => updateDestination(destination.id, { plannedTime: event.target.value })} className="min-h-10 rounded-lg border border-[#3A2A22]/12 bg-white px-3 text-sm outline-none focus:border-[#C4713A]" />
+                                  </div>
+                                  <textarea value={destination.notes ?? ""} onChange={(event) => updateDestination(destination.id, { notes: event.target.value })} rows={2} className="resize-none rounded-lg border border-[#3A2A22]/12 bg-white px-3 py-2 text-sm outline-none focus:border-[#C4713A]" />
+                                </div>
+                              ) : (
+                                <>
+                                  <h4 className="m-0 font-[var(--font-display)] text-2xl font-semibold text-[#3A2A22]">{destination.title ?? destination.placeName}</h4>
+                                  <p className="m-0 mt-1 text-sm leading-6 text-[#5B4A40]">
+                                    {destination.placeName}
+                                    {destination.plannedTime ? ` / ${destination.plannedTime}` : ""}
+                                  </p>
+                                  {destination.notes ? <p className="m-0 mt-2 text-sm leading-6 text-[#5B4A40]">{destination.notes}</p> : null}
+                                  {destination.description ? <p className="m-0 mt-3 font-[var(--font-body)] text-base leading-7 text-[#1A1A1A]">{destination.description}</p> : null}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <span className={`rounded-full border px-3 py-1 font-[var(--font-label)] text-[0.68rem] font-bold uppercase tracking-[0.08em] ${isPlanned ? "border-[#3A2A22]/15 text-[#5B4A40]" : "border-[#5C8A9E]/30 bg-[#5C8A9E]/12 text-[#315568]"}`}>
+                            {isPlanned ? "Planned" : "Completed"}
+                          </span>
+                        </div>
+
+                        {destination.photos?.length ? (
+                          <div className="mt-4 grid grid-cols-3 gap-2">
+                            {destination.photos.slice(0, 3).map((photo) => (
+                              <img key={photo} src={photo} alt="" className="h-24 w-full rounded-lg object-cover" />
+                            ))}
+                          </div>
+                        ) : null}
+
+                        {isVisitOpen ? (
+                          <div className="mt-4 rounded-lg border border-[#C4713A]/20 bg-[#FBF7F0] p-4">
+                            <div className="grid gap-3">
+                              <div className="grid gap-2 sm:grid-cols-3">
+                                <select value={visitForm.visibility} onChange={(event) => setVisitForm((current) => ({ ...current, visibility: event.target.value as MapScope }))} className="min-h-10 rounded-lg border border-[#3A2A22]/12 bg-white px-3 text-sm">
+                                  <option value="private">Private</option>
+                                  <option value="public">Public</option>
+                                  <option value="group">Group</option>
+                                </select>
+                                <select value={visitForm.category} onChange={(event) => setVisitForm((current) => ({ ...current, category: event.target.value }))} className="min-h-10 rounded-lg border border-[#3A2A22]/12 bg-white px-3 text-sm">
+                                  {categories.filter((item) => item !== "All").map((item) => <option key={item}>{item}</option>)}
+                                </select>
+                                <input type="date" value={visitForm.dateVisited} onChange={(event) => setVisitForm((current) => ({ ...current, dateVisited: event.target.value }))} className="min-h-10 rounded-lg border border-[#3A2A22]/12 bg-white px-3 text-sm" />
+                              </div>
+                              <input value={visitForm.placeName} onChange={(event) => setVisitForm((current) => ({ ...current, placeName: event.target.value }))} className="min-h-10 rounded-lg border border-[#3A2A22]/12 bg-white px-3 text-sm" placeholder="Place name" />
+                              <input value={visitForm.title} onChange={(event) => setVisitForm((current) => ({ ...current, title: event.target.value }))} className="min-h-10 rounded-lg border border-[#3A2A22]/12 bg-white px-3 text-sm" placeholder="Story title" />
+                              <textarea value={visitForm.description} onChange={(event) => setVisitForm((current) => ({ ...current, description: event.target.value }))} rows={4} className="resize-none rounded-lg border border-[#3A2A22]/12 bg-white px-3 py-2 text-sm leading-6" placeholder="What happened when you visited?" />
+                              <textarea value={visitForm.photos} onChange={(event) => setVisitForm((current) => ({ ...current, photos: event.target.value }))} rows={2} className="resize-none rounded-lg border border-[#3A2A22]/12 bg-white px-3 py-2 text-sm leading-6" placeholder="Photo URLs, separated by comma or line break" />
+                              <div className="flex flex-wrap justify-end gap-2">
+                                <button type="button" onClick={() => setVisitDestinationId(null)} className="min-h-10 rounded-full border border-[#3A2A22]/18 px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.06em] text-[#3A2A22]">Cancel</button>
+                                <button type="button" onClick={saveVisit} className="min-h-10 rounded-full bg-[#C4713A] px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.06em] text-[#F5F0E8]">Mark Completed</button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : null}
+
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {isPlanned ? (
+                            <>
+                              <button type="button" onClick={() => setEditingDestinationId(isEditing ? null : destination.id)} className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[#3A2A22]/16 px-3 text-xs font-bold text-[#3A2A22]">{isEditing ? "Done" : "Edit Plan"}</button>
+                              <button type="button" onClick={() => moveDestination(destination.id, -1)} className="grid h-9 w-9 place-items-center rounded-full border border-[#3A2A22]/16 text-[#3A2A22]" aria-label="Move up"><ArrowUp size={14} /></button>
+                              <button type="button" onClick={() => moveDestination(destination.id, 1)} className="grid h-9 w-9 place-items-center rounded-full border border-[#3A2A22]/16 text-[#3A2A22]" aria-label="Move down"><ArrowDown size={14} /></button>
+                              <button type="button" onClick={() => setPendingDestinationDelete(destination)} className="grid h-9 w-9 place-items-center rounded-full border border-[#C4713A]/24 text-[#9E4F27]" aria-label="Delete destination"><Trash2 size={14} /></button>
+                            </>
+                          ) : null}
+                          <button type="button" onClick={() => startVisit(destination)} className="inline-flex min-h-9 items-center gap-2 rounded-full bg-[#3A2A22] px-3 text-xs font-bold text-[#F5F0E8]">
+                            <CheckCircle2 size={14} /> {isPlanned ? "Document Visit" : "Edit Visit"}
+                          </button>
+                          {destination.coordinate.lat || destination.coordinate.lon ? (
+                            <button type="button" onClick={() => viewDestinationOnMap(destination)} className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[#3A2A22]/16 px-3 text-xs font-bold text-[#3A2A22]">
+                              <MapPin size={14} /> View Pin
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mx-auto mt-14 max-w-4xl rounded-xl border border-[#3A2A22]/12 bg-[#EFE7DC] p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="m-0 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.14em] text-[#9E6B5C]">Album Maker</p>
+              <h2 className="m-0 mt-1 font-[var(--font-display)] text-3xl font-semibold text-[#3A2A22]">Printable Journey Album</h2>
+              <p className="m-0 mt-2 max-w-2xl text-sm leading-6 text-[#5B4A40]">
+                {albumUnlocked(plan) ? "All destinations are complete. Choose a template and preview the print-ready story album." : `Locked until every destination is documented. ${completed}/${total} destinations completed.`}
+              </p>
+            </div>
+            {!albumUnlocked(plan) ? <LockKeyhole className="text-[#9E6B5C]" size={28} /> : null}
+          </div>
+
+          {albumUnlocked(plan) ? (
+            <div className="mt-5 grid gap-4">
+              <div className="flex flex-wrap gap-2">
+                {["Field Journal", "Island Lookbook", "Route Chronicle"].map((template) => (
+                  <button key={template} type="button" onClick={() => setAlbumTemplate(template)} className={`min-h-10 rounded-full border px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.06em] ${albumTemplate === template ? "border-[#3A2A22] bg-[#3A2A22] text-[#F5F0E8]" : "border-[#3A2A22]/18 text-[#3A2A22]"}`}>
+                    {template}
+                  </button>
+                ))}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg bg-[#FBF7F0] p-5">
+                  <p className="font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.12em] text-[#9E6B5C]">Cover</p>
+                  <h3 className="font-[var(--font-display)] text-3xl font-semibold text-[#3A2A22]">{plan.travelPlanName}</h3>
+                  <p className="text-sm leading-6 text-[#5B4A40]">{albumTemplate} / {totalTravelDays(plan)} travel days / {total} stops</p>
+                </div>
+                {plan.destinations.map((destination) => (
+                  <div key={destination.id} className="rounded-lg bg-[#FBF7F0] p-5">
+                    <p className="font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.12em] text-[#9E6B5C]">Page {destination.order}</p>
+                    <h3 className="font-[var(--font-display)] text-2xl font-semibold text-[#3A2A22]">{destination.title}</h3>
+                    <p className="text-sm leading-6 text-[#5B4A40]">{destination.dateVisited} / Day {destination.plannedDay}</p>
+                    <p className="text-sm leading-6 text-[#1A1A1A]">{destination.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </section>
+        <ConfirmDialog
+          open={Boolean(pendingDestinationDelete)}
+          title={`Delete ${pendingDestinationDelete?.title ?? pendingDestinationDelete?.placeName ?? "this destination"}?`}
+          description={`Are you sure you want to delete "${pendingDestinationDelete?.title ?? pendingDestinationDelete?.placeName ?? "this destination"}" from this itinerary?`}
+          confirmLabel="Delete Destination"
+          onConfirm={() => pendingDestinationDelete && deleteDestination(pendingDestinationDelete.id)}
+          onCancel={() => setPendingDestinationDelete(null)}
+        />
+      </article>
     </div>
   );
 }
 
 function StoriesContent() {
   const location = useLocation();
+  const { user } = useAuth();
   const [localStories, setLocalStories] = useState<TravelStory[]>(() => readLocalStories());
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
+  const [pendingStoryDelete, setPendingStoryDelete] = useState<TravelStory | null>(null);
   const [activeStory, setActiveStory] = useState<number | null>(() => {
     const params = new URLSearchParams(location.search);
     const requestedStory = Number(params.get("story") ?? params.get("localStory"));
@@ -539,27 +935,71 @@ function StoriesContent() {
 
   const activeIndex = activeStory !== null ? filtered.findIndex((s) => s.id === activeStory) : -1;
 
+  const deletePostedStory = async (story: TravelStory) => {
+    if (!story.local) return;
+    const nextLocalStories = readLocalStories().filter((item) => item.id !== story.id);
+    writeLocalStories(nextLocalStories);
+    setLocalStories(nextLocalStories);
+    writeSavedStoryIds(readSavedStoryIds().filter((id) => id !== story.id));
+    try {
+      const collections = JSON.parse(window.localStorage.getItem(STORY_COLLECTIONS_KEY) ?? "[]") as Array<{ id: string; name: string; storyIds: number[] }>;
+      if (Array.isArray(collections)) {
+        window.localStorage.setItem(
+          STORY_COLLECTIONS_KEY,
+          JSON.stringify(collections.map((collection) => ({ ...collection, storyIds: collection.storyIds.filter((id) => id !== story.id) }))),
+        );
+      }
+    } catch {
+      window.localStorage.setItem(STORY_COLLECTIONS_KEY, "[]");
+    }
+    if (user) {
+      try {
+        const pins = await listPins(user.id, user.groupIds ?? []);
+        const matchingPin = pins.find((pin) => {
+          const media = pin.media as { storyDraftId?: unknown; storyId?: unknown } | null;
+          return Number(media?.storyDraftId ?? media?.storyId) === story.id;
+        });
+        if (matchingPin) await deletePin(matchingPin.pin_id, user.id);
+      } catch {
+        // Local prototype stories are still removed immediately; backend pin cleanup is best-effort.
+      }
+    }
+    setActiveStory(null);
+    setPendingStoryDelete(null);
+  };
+
   if (activeStory !== null && activeIndex >= 0) {
     return (
-      <StoryArticleView
-        story={filtered[activeIndex]}
-        onBack={() => setActiveStory(null)}
-        onPrev={() => setActiveStory(filtered[activeIndex - 1].id)}
-        onNext={() => setActiveStory(filtered[activeIndex + 1].id)}
-        hasPrev={activeIndex > 0}
-        hasNext={activeIndex < filtered.length - 1}
-      />
+      <>
+        <StoryArticleView
+          story={filtered[activeIndex]}
+          onBack={() => setActiveStory(null)}
+          onPrev={() => setActiveStory(filtered[activeIndex - 1].id)}
+          onNext={() => setActiveStory(filtered[activeIndex + 1].id)}
+          hasPrev={activeIndex > 0}
+          hasNext={activeIndex < filtered.length - 1}
+          onDelete={(story) => setPendingStoryDelete(story)}
+        />
+        <ConfirmDialog
+          open={Boolean(pendingStoryDelete)}
+          title={`Delete ${pendingStoryDelete?.title ?? "this story"}?`}
+          description={`Are you sure you want to delete "${pendingStoryDelete?.title ?? "this story"}"? This will also remove its map pin when one is connected.`}
+          confirmLabel="Delete Story"
+          onConfirm={() => pendingStoryDelete && void deletePostedStory(pendingStoryDelete)}
+          onCancel={() => setPendingStoryDelete(null)}
+        />
+      </>
     );
   }
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F5F0E8", padding: "3rem 1.5rem" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ marginBottom: "2.5rem" }}>
-          <p style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#9E6B5C", marginBottom: "0.5rem" }}>Travel narratives</p>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 600, color: "#3A2A22", marginBottom: "0.5rem" }}>Stories</h1>
+        <header className="mb-10 stories-page-heading">
+          <p className="mb-2 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.16em] text-[#9E6B5C]">Travel narratives</p>
+          <h1 className="m-0 font-[var(--font-display)] text-5xl font-semibold leading-none text-[#3A2A22] sm:text-6xl">Stories</h1>
           <p style={{ fontFamily: "var(--font-body)", color: "#6B6B5A", fontSize: "1rem" }}>Long-form travel narratives from the TravelTraces community — honest, personal, and unhighlighted.</p>
-        </div>
+        </header>
 
         <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
           <div style={{ position: "relative", flex: "1 1 260px" }}>
@@ -667,6 +1107,14 @@ function StoriesContent() {
       </div>
 
       <style>{`
+        .stories-page-heading p:last-child {
+          margin-top: 1rem !important;
+          max-width: 48rem !important;
+          font-family: var(--font-body) !important;
+          font-size: 1.125rem !important;
+          line-height: 2rem !important;
+          color: #5B4A40 !important;
+        }
         .category-pill:hover { background-color: rgba(58,42,34,0.08); border-color: #3A2A22; color: #3A2A22; }
         .category-pill[aria-pressed="true"]:hover { background-color: #3A2A22; border-color: #3A2A22; color: #F5F0E8; }
         @media (max-width: 640px) {

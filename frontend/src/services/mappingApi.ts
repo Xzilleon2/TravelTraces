@@ -484,6 +484,11 @@ export async function createPin(input: {
   });
 }
 
+export async function deletePin(pinId: string, creatorId: string): Promise<void> {
+  const params = new URLSearchParams({ creator_id: creatorId });
+  await requestJson<{ status: string }>(`/api/pins/${encodeURIComponent(pinId)}?${params}`, { method: "DELETE" });
+}
+
 export async function listTravelGroups(viewerId: string): Promise<TravelGroup[]> {
   const params = new URLSearchParams({ viewer_id: viewerId });
   const data = await requestJson<{ circles: TravelGroup[] }>(`/api/travel-groups?${params}`);

@@ -1,0 +1,904 @@
+Project TravelTraces {
+  database_type: "PostgreSQL"
+  Note: "Corrected ERD for TravelTraces: users, profiles, stories, travel plan stories, explore places, maps/pins, routes, groups, events, chat, saves, badges, albums, and subscriptions."
+}
+
+Enum user_role {
+  user
+  admin
+}
+
+Enum account_status {
+  active
+  suspended
+  deleted
+}
+
+Enum visibility_scope {
+  private
+  group
+  public
+}
+
+Enum story_status {
+  draft
+  published
+  archived
+  reported
+}
+
+Enum travel_plan_status {
+  planning
+  ongoing
+  completed
+  archived
+}
+
+Enum travel_plan_destination_status {
+  planned
+  visited
+  completed
+}
+
+Enum album_status {
+  locked
+  draft
+  generated
+  exported
+}
+
+Enum group_member_role {
+  owner
+  admin
+  organizer
+  traveler
+  member
+}
+
+Enum event_status {
+  draft
+  published
+  cancelled
+  completed
+}
+
+Enum conversation_type {
+  direct
+  group
+  event
+}
+
+Enum message_type {
+  text
+  image
+  pin
+  system
+}
+
+Table users {
+  user_id varchar [pk]
+  email varchar [not null, unique]
+  password_hash varchar [not null]
+  full_name varchar [not null]
+  username varchar [unique]
+  avatar_url varchar
+  cover_url varchar
+  location varchar
+  nationality varchar
+  bio text
+  role user_role [not null, default: "user"]
+  status account_status [not null, default: "active"]
+  email_verified boolean [not null, default: false]
+  government_id varchar
+  xp_points int [not null, default: 0]
+  current_level int [not null, default: 1]
+  followers_count int [not null, default: 0]
+  following_count int [not null, default: 0]
+  stories_count int [not null, default: 0]
+  travel_plans_count int [not null, default: 0]
+  pins_count int [not null, default: 0]
+  saved_places_count int [not null, default: 0]
+  joined_at timestamp [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp
+}
+
+Table user_follows {
+  follower_id varchar [not null]
+  following_id varchar [not null]
+  followed_at timestamp [not null]
+
+  indexes {
+    (follower_id, following_id) [pk]
+  }
+}
+
+Table subscriptions {
+  subscription_id varchar [pk]
+  user_id varchar [not null]
+  plan_name varchar [not null, default: "Free"]
+  status varchar [not null]
+  start_date date [not null]
+  end_date date
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table notification_preferences {
+  user_id varchar [pk]
+  meetup_arrivals boolean [not null, default: true]
+  destination_arrivals boolean [not null, default: true]
+  check_ins boolean [not null, default: true]
+  checkpoints boolean [not null, default: true]
+  group_ride_start boolean [not null, default: true]
+  event_arrivals boolean [not null, default: true]
+}
+
+Table badges {
+  badge_id varchar [pk]
+  name varchar [not null]
+  description text [not null]
+  icon varchar
+  xp_reward int [not null, default: 0]
+  rarity varchar [not null]
+}
+
+Table user_badges {
+  user_id varchar [not null]
+  badge_id varchar [not null]
+  achieved_at timestamp [not null]
+
+  indexes {
+    (user_id, badge_id) [pk]
+  }
+}
+
+Table explore_places {
+  place_id varchar [pk]
+  created_by_admin_id varchar
+  title varchar [not null]
+  slug varchar [not null, unique]
+  about text [not null]
+  province varchar
+  region varchar
+  country varchar [not null, default: "Philippines"]
+  category varchar [not null]
+  terrain varchar
+  best_months varchar
+  difficulty varchar
+  rating decimal(3,2) [not null, default: 0]
+  reviews_count int [not null, default: 0]
+  explorers_count int [not null, default: 0]
+  pins_count int [not null, default: 0]
+  latitude decimal(10,7)
+  longitude decimal(10,7)
+  hero_image_url varchar
+  created_by_admin boolean [not null, default: true]
+  is_featured boolean [not null, default: false]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table explore_place_photos {
+  photo_id varchar [pk]
+  place_id varchar [not null]
+  image_url varchar [not null]
+  caption varchar
+  sort_order int [not null, default: 0]
+  created_at timestamp [not null]
+}
+
+Table explore_place_highlights {
+  highlight_id varchar [pk]
+  place_id varchar [not null]
+  title varchar [not null]
+  sort_order int [not null, default: 0]
+}
+
+Table explore_place_tags {
+  place_id varchar [not null]
+  tag varchar [not null]
+
+  indexes {
+    (place_id, tag) [pk]
+  }
+}
+
+Table explore_place_contributors {
+  place_id varchar [not null]
+  user_id varchar [not null]
+  contributed_at timestamp [not null]
+
+  indexes {
+    (place_id, user_id) [pk]
+  }
+}
+
+Table stories {
+  story_id varchar [pk]
+  author_id varchar [not null]
+  place_id varchar
+  pin_id varchar
+  title varchar [not null]
+  subtitle varchar
+  excerpt text
+  body text [not null]
+  category varchar [not null]
+  location_name varchar
+  region varchar
+  latitude decimal(10,7)
+  longitude decimal(10,7)
+  read_time varchar
+  visibility visibility_scope [not null, default: "public"]
+  status story_status [not null, default: "published"]
+  likes_count int [not null, default: 0]
+  saves_count int [not null, default: 0]
+  comments_count int [not null, default: 0]
+  posted_at timestamp [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table story_photos {
+  photo_id varchar [pk]
+  story_id varchar [not null]
+  image_url varchar [not null]
+  caption varchar
+  sort_order int [not null, default: 0]
+  created_at timestamp [not null]
+}
+
+Table story_comments {
+  comment_id varchar [pk]
+  story_id varchar [not null]
+  user_id varchar [not null]
+  parent_comment_id varchar
+  content text [not null]
+  likes_count int [not null, default: 0]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp
+}
+
+Table story_likes {
+  story_id varchar [not null]
+  user_id varchar [not null]
+  created_at timestamp [not null]
+
+  indexes {
+    (story_id, user_id) [pk]
+  }
+}
+
+Table saved_stories {
+  story_id varchar [not null]
+  user_id varchar [not null]
+  saved_at timestamp [not null]
+
+  indexes {
+    (story_id, user_id) [pk]
+  }
+}
+
+Table story_collections {
+  collection_id varchar [pk]
+  owner_id varchar [not null]
+  name varchar [not null]
+  description text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table story_collection_items {
+  collection_id varchar [not null]
+  story_id varchar [not null]
+  added_at timestamp [not null]
+
+  indexes {
+    (collection_id, story_id) [pk]
+  }
+}
+
+Table user_maps {
+  map_id varchar [pk]
+  owner_id varchar [not null]
+  creator_id varchar [not null]
+  title varchar [not null]
+  description text
+  scope visibility_scope [not null, default: "private"]
+  is_default boolean [not null, default: false]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table user_map_groups {
+  map_id varchar [not null]
+  group_id varchar [not null]
+
+  indexes {
+    (map_id, group_id) [pk]
+  }
+}
+
+Table pins {
+  pin_id varchar [pk]
+  post_id varchar [not null]
+  map_id varchar
+  creator_id varchar [not null]
+  story_id varchar
+  place_id varchar
+  title varchar [not null]
+  note text
+  address varchar
+  latitude decimal(10,7) [not null]
+  longitude decimal(10,7) [not null]
+  category varchar
+  scope visibility_scope [not null, default: "private"]
+  source varchar [not null, default: "manual"]
+  media_json json
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table pin_photos {
+  photo_id varchar [pk]
+  pin_id varchar [not null]
+  image_url varchar [not null]
+  sort_order int [not null, default: 0]
+  created_at timestamp [not null]
+}
+
+Table pin_groups {
+  pin_id varchar [not null]
+  group_id varchar [not null]
+
+  indexes {
+    (pin_id, group_id) [pk]
+  }
+}
+
+Table routes {
+  record_id varchar [pk]
+  route_id varchar [not null]
+  session_id varchar
+  creator_id varchar [not null]
+  scope visibility_scope [not null, default: "private"]
+  engine varchar [not null, default: "osrm"]
+  route_json json [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table route_points {
+  point_id varchar [pk]
+  record_id varchar [not null]
+  point_order int [not null]
+  latitude decimal(10,7) [not null]
+  longitude decimal(10,7) [not null]
+  label varchar
+}
+
+Table route_groups {
+  record_id varchar [not null]
+  group_id varchar [not null]
+
+  indexes {
+    (record_id, group_id) [pk]
+  }
+}
+
+Table travel_plan_stories {
+  travel_plan_id varchar [pk]
+  owner_id varchar [not null]
+  route_record_id varchar
+  name varchar [not null]
+  subtitle varchar
+  cover_image_url varchar
+  description text
+  route_geometry_json json
+  visibility visibility_scope [not null, default: "private", note: "Travel plans stay private while planning or ongoing. Public visibility is allowed only after completion."]
+  status travel_plan_status [not null, default: "planning"]
+  published boolean [not null, default: false]
+  total_destinations int [not null, default: 0]
+  completed_destinations int [not null, default: 0]
+  total_travel_days int [not null, default: 1]
+  likes_count int [not null, default: 0]
+  saves_count int [not null, default: 0]
+  comments_count int [not null, default: 0]
+  album_template varchar
+  published_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  archived_at timestamp
+}
+
+Table travel_plan_groups {
+  travel_plan_id varchar [not null]
+  group_id varchar [not null]
+
+  indexes {
+    (travel_plan_id, group_id) [pk]
+  }
+}
+
+Table travel_plan_destinations {
+  destination_id varchar [pk]
+  travel_plan_id varchar [not null]
+  place_id varchar
+  destination_order int [not null]
+  place_name varchar [not null]
+  latitude decimal(10,7) [not null]
+  longitude decimal(10,7) [not null]
+  planned_day int [not null, default: 1]
+  planned_time time
+  notes text
+  status travel_plan_destination_status [not null, default: "planned"]
+  visited_at timestamp
+  completed_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (travel_plan_id, destination_order) [unique]
+  }
+}
+
+Table travel_plan_destination_documents {
+  document_id varchar [pk]
+  destination_id varchar [not null, unique]
+  pin_id varchar
+  story_id varchar
+  scope visibility_scope [not null, default: "private"]
+  place_name varchar [not null]
+  category varchar [not null]
+  title varchar [not null]
+  description text [not null]
+  date_visited date [not null]
+  publish_to_map boolean [not null, default: false]
+  publish_as_story boolean [not null, default: false]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table travel_plan_destination_photos {
+  photo_id varchar [pk]
+  document_id varchar [not null]
+  image_url varchar [not null]
+  caption varchar
+  sort_order int [not null, default: 0]
+  created_at timestamp [not null]
+}
+
+Table travel_plan_albums {
+  album_id varchar [pk]
+  travel_plan_id varchar [not null, unique]
+  template_name varchar [not null]
+  cover_title varchar
+  cover_image_url varchar
+  status album_status [not null, default: "locked"]
+  album_json json
+  printable_export_url varchar
+  generated_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table travel_plan_album_pages {
+  page_id varchar [pk]
+  album_id varchar [not null]
+  destination_id varchar
+  page_order int [not null]
+  title varchar
+  body text
+  layout varchar
+  image_url varchar
+  page_json json
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (album_id, page_order) [unique]
+  }
+}
+
+Table travel_plan_comments {
+  comment_id varchar [pk]
+  travel_plan_id varchar [not null]
+  user_id varchar [not null]
+  parent_comment_id varchar
+  content text [not null]
+  likes_count int [not null, default: 0]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp
+}
+
+Table travel_plan_likes {
+  travel_plan_id varchar [not null]
+  user_id varchar [not null]
+  created_at timestamp [not null]
+
+  indexes {
+    (travel_plan_id, user_id) [pk]
+  }
+}
+
+Table saved_travel_plans {
+  travel_plan_id varchar [not null]
+  user_id varchar [not null]
+  saved_at timestamp [not null]
+
+  indexes {
+    (travel_plan_id, user_id) [pk]
+  }
+}
+
+Table tracking_sessions {
+  session_id varchar [pk]
+  user_id varchar [not null]
+  route_id varchar
+  scope visibility_scope [not null, default: "private"]
+  status varchar [not null, default: "active"]
+  last_location_json json
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table meetup_requests {
+  request_id varchar [pk]
+  creator_id varchar [not null]
+  map_id varchar
+  scope visibility_scope [not null, default: "private"]
+  fair_region_json json
+  midpoint_json json
+  suggestions_json json
+  fallback_strategy_json json
+  scoring_weights_json json
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table meetup_participants {
+  request_id varchar [not null]
+  user_id varchar [not null]
+  start_latitude decimal(10,7)
+  start_longitude decimal(10,7)
+  travel_limit_minutes int
+
+  indexes {
+    (request_id, user_id) [pk]
+  }
+}
+
+Table travel_groups {
+  circle_id varchar [pk]
+  group_id varchar [not null, unique]
+  name varchar [not null]
+  owner_id varchar [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table travel_group_members {
+  circle_id varchar [not null]
+  user_id varchar [not null]
+  display_name varchar [not null]
+  role group_member_role [not null, default: "member"]
+  phone varchar
+  avatar varchar
+  admin boolean [not null, default: false]
+  location_sharing_enabled boolean [not null, default: true]
+  joined_at timestamp [not null]
+
+  indexes {
+    (circle_id, user_id) [pk]
+  }
+}
+
+Table circle_invites {
+  invite_id varchar [pk]
+  circle_id varchar [not null]
+  code varchar [not null, unique]
+  created_by varchar [not null]
+  created_at timestamp [not null]
+  expires_at timestamp [not null]
+  uses int [not null, default: 0]
+  expired boolean [not null, default: false]
+}
+
+Table saved_places {
+  place_id varchar [pk]
+  circle_id varchar [not null]
+  creator_id varchar [not null]
+  name varchar [not null]
+  label varchar [not null]
+  latitude decimal(10,7) [not null]
+  longitude decimal(10,7) [not null]
+  radius_m int [not null, default: 180]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table tracked_devices {
+  device_id varchar [pk]
+  circle_id varchar [not null]
+  owner_id varchar [not null]
+  name varchar [not null]
+  kind varchar [not null]
+  status varchar [not null]
+  battery_percent int
+  last_seen timestamp
+  last_coordinate_json json
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table member_locations {
+  circle_id varchar [not null]
+  user_id varchar [not null]
+  coordinate_json json
+  accuracy_m decimal
+  activity varchar [not null]
+  sharing_enabled boolean [not null]
+  visibility_scope varchar [not null]
+  event_id varchar
+  travel_group_id varchar
+  status_text varchar [not null]
+  inside_place_ids_json json
+  updated_at timestamp [not null]
+
+  indexes {
+    (circle_id, user_id) [pk]
+  }
+}
+
+Table circle_events {
+  event_id varchar [pk]
+  circle_id varchar [not null]
+  user_id varchar [not null]
+  type varchar [not null]
+  place_id varchar
+  message text [not null]
+  read_by_json json
+  created_at timestamp [not null]
+}
+
+Table events {
+  event_id varchar [pk]
+  organizer_id varchar [not null]
+  place_id varchar
+  title varchar [not null]
+  event_type varchar [not null]
+  description text [not null]
+  long_description text
+  event_date date [not null]
+  event_time time
+  location_name varchar [not null]
+  meeting_point varchar
+  is_paid boolean [not null, default: false]
+  price decimal(10,2) [not null, default: 0]
+  max_participants int [not null]
+  status event_status [not null, default: "published"]
+  hero_image_url varchar
+  tour_guide_license varchar
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table event_participants {
+  event_id varchar [not null]
+  user_id varchar [not null]
+  status varchar [not null, default: "joined"]
+  joined_at timestamp [not null]
+
+  indexes {
+    (event_id, user_id) [pk]
+  }
+}
+
+Table event_photos {
+  photo_id varchar [pk]
+  event_id varchar [not null]
+  image_url varchar [not null]
+  caption varchar
+  sort_order int [not null, default: 0]
+}
+
+Table event_schedule_items {
+  schedule_item_id varchar [pk]
+  event_id varchar [not null]
+  item_order int [not null]
+  content text [not null]
+}
+
+Table event_tags {
+  event_id varchar [not null]
+  tag varchar [not null]
+
+  indexes {
+    (event_id, tag) [pk]
+  }
+}
+
+Table conversations {
+  conversation_id varchar [pk]
+  type conversation_type [not null]
+  name varchar
+  avatar_url varchar
+  event_id varchar
+  group_id varchar
+  created_by varchar
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table conversation_users {
+  conversation_id varchar [not null]
+  user_id varchar [not null]
+  role varchar [not null, default: "member"]
+  muted boolean [not null, default: false]
+  unread_count int [not null, default: 0]
+  joined_at timestamp [not null]
+
+  indexes {
+    (conversation_id, user_id) [pk]
+  }
+}
+
+Table messages {
+  message_id varchar [pk]
+  conversation_id varchar [not null]
+  sender_id varchar
+  message_type message_type [not null, default: "text"]
+  body text [not null]
+  attachment_url varchar
+  pin_id varchar
+  read_at timestamp
+  created_at timestamp [not null]
+  deleted_at timestamp
+}
+
+Table travel_collections {
+  collection_id varchar [pk]
+  owner_id varchar [not null]
+  name varchar [not null]
+  description text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table saved_tourist_spots {
+  saved_spot_id varchar [pk]
+  place_id varchar
+  owner_id varchar [not null]
+  collection_id varchar
+  name varchar [not null]
+  category varchar [not null]
+  latitude decimal(10,7) [not null]
+  longitude decimal(10,7) [not null]
+  notes text
+  saved_at timestamp [not null]
+}
+
+Table audit_log {
+  audit_id int [pk, increment]
+  actor_id varchar
+  action varchar [not null]
+  entity_type varchar [not null]
+  entity_id varchar
+  details_json json
+  created_at timestamp [not null]
+}
+
+Ref: user_follows.follower_id > users.user_id [delete: cascade]
+Ref: user_follows.following_id > users.user_id [delete: cascade]
+Ref: subscriptions.user_id > users.user_id [delete: cascade]
+Ref: notification_preferences.user_id > users.user_id [delete: cascade]
+Ref: user_badges.user_id > users.user_id [delete: cascade]
+Ref: user_badges.badge_id > badges.badge_id [delete: cascade]
+
+Ref: explore_places.created_by_admin_id > users.user_id [delete: set null]
+Ref: explore_place_photos.place_id > explore_places.place_id [delete: cascade]
+Ref: explore_place_highlights.place_id > explore_places.place_id [delete: cascade]
+Ref: explore_place_tags.place_id > explore_places.place_id [delete: cascade]
+Ref: explore_place_contributors.place_id > explore_places.place_id [delete: cascade]
+Ref: explore_place_contributors.user_id > users.user_id [delete: cascade]
+
+Ref: stories.author_id > users.user_id [delete: cascade]
+Ref: stories.place_id > explore_places.place_id [delete: set null]
+Ref: stories.pin_id > pins.pin_id [delete: set null]
+Ref: story_photos.story_id > stories.story_id [delete: cascade]
+Ref: story_comments.story_id > stories.story_id [delete: cascade]
+Ref: story_comments.user_id > users.user_id [delete: cascade]
+Ref: story_comments.parent_comment_id > story_comments.comment_id [delete: cascade]
+Ref: story_likes.story_id > stories.story_id [delete: cascade]
+Ref: story_likes.user_id > users.user_id [delete: cascade]
+Ref: saved_stories.story_id > stories.story_id [delete: cascade]
+Ref: saved_stories.user_id > users.user_id [delete: cascade]
+Ref: story_collections.owner_id > users.user_id [delete: cascade]
+Ref: story_collection_items.collection_id > story_collections.collection_id [delete: cascade]
+Ref: story_collection_items.story_id > stories.story_id [delete: cascade]
+
+Ref: user_maps.owner_id > users.user_id [delete: cascade]
+Ref: user_maps.creator_id > users.user_id [delete: cascade]
+Ref: user_map_groups.map_id > user_maps.map_id [delete: cascade]
+Ref: user_map_groups.group_id > travel_groups.circle_id [delete: cascade]
+Ref: pins.map_id > user_maps.map_id [delete: set null]
+Ref: pins.creator_id > users.user_id [delete: cascade]
+Ref: pins.story_id > stories.story_id [delete: set null]
+Ref: pins.place_id > explore_places.place_id [delete: set null]
+Ref: pin_photos.pin_id > pins.pin_id [delete: cascade]
+Ref: pin_groups.pin_id > pins.pin_id [delete: cascade]
+Ref: pin_groups.group_id > travel_groups.circle_id [delete: cascade]
+
+Ref: routes.creator_id > users.user_id [delete: cascade]
+Ref: route_points.record_id > routes.record_id [delete: cascade]
+Ref: route_groups.record_id > routes.record_id [delete: cascade]
+Ref: route_groups.group_id > travel_groups.circle_id [delete: cascade]
+
+Ref: travel_plan_stories.owner_id > users.user_id [delete: cascade]
+Ref: travel_plan_stories.route_record_id > routes.record_id [delete: set null]
+Ref: travel_plan_groups.travel_plan_id > travel_plan_stories.travel_plan_id [delete: cascade]
+Ref: travel_plan_groups.group_id > travel_groups.circle_id [delete: cascade]
+Ref: travel_plan_destinations.travel_plan_id > travel_plan_stories.travel_plan_id [delete: cascade]
+Ref: travel_plan_destinations.place_id > explore_places.place_id [delete: set null]
+Ref: travel_plan_destination_documents.destination_id > travel_plan_destinations.destination_id [delete: cascade]
+Ref: travel_plan_destination_documents.pin_id > pins.pin_id [delete: set null]
+Ref: travel_plan_destination_documents.story_id > stories.story_id [delete: set null]
+Ref: travel_plan_destination_photos.document_id > travel_plan_destination_documents.document_id [delete: cascade]
+Ref: travel_plan_albums.travel_plan_id > travel_plan_stories.travel_plan_id [delete: cascade]
+Ref: travel_plan_album_pages.album_id > travel_plan_albums.album_id [delete: cascade]
+Ref: travel_plan_album_pages.destination_id > travel_plan_destinations.destination_id [delete: set null]
+Ref: travel_plan_comments.travel_plan_id > travel_plan_stories.travel_plan_id [delete: cascade]
+Ref: travel_plan_comments.user_id > users.user_id [delete: cascade]
+Ref: travel_plan_comments.parent_comment_id > travel_plan_comments.comment_id [delete: cascade]
+Ref: travel_plan_likes.travel_plan_id > travel_plan_stories.travel_plan_id [delete: cascade]
+Ref: travel_plan_likes.user_id > users.user_id [delete: cascade]
+Ref: saved_travel_plans.travel_plan_id > travel_plan_stories.travel_plan_id [delete: cascade]
+Ref: saved_travel_plans.user_id > users.user_id [delete: cascade]
+
+Ref: tracking_sessions.user_id > users.user_id [delete: cascade]
+Ref: tracking_sessions.route_id > routes.record_id [delete: set null]
+Ref: meetup_requests.creator_id > users.user_id [delete: cascade]
+Ref: meetup_requests.map_id > user_maps.map_id [delete: set null]
+Ref: meetup_participants.request_id > meetup_requests.request_id [delete: cascade]
+Ref: meetup_participants.user_id > users.user_id [delete: cascade]
+
+Ref: travel_groups.owner_id > users.user_id [delete: cascade]
+Ref: travel_group_members.circle_id > travel_groups.circle_id [delete: cascade]
+Ref: travel_group_members.user_id > users.user_id [delete: cascade]
+Ref: circle_invites.circle_id > travel_groups.circle_id [delete: cascade]
+Ref: circle_invites.created_by > users.user_id [delete: cascade]
+Ref: saved_places.circle_id > travel_groups.circle_id [delete: cascade]
+Ref: saved_places.creator_id > users.user_id [delete: cascade]
+Ref: tracked_devices.circle_id > travel_groups.circle_id [delete: cascade]
+Ref: tracked_devices.owner_id > users.user_id [delete: cascade]
+Ref: member_locations.circle_id > travel_groups.circle_id [delete: cascade]
+Ref: member_locations.user_id > users.user_id [delete: cascade]
+Ref: circle_events.circle_id > travel_groups.circle_id [delete: cascade]
+Ref: circle_events.user_id > users.user_id [delete: cascade]
+Ref: circle_events.place_id > saved_places.place_id [delete: set null]
+
+Ref: events.organizer_id > users.user_id [delete: cascade]
+Ref: events.place_id > explore_places.place_id [delete: set null]
+Ref: event_participants.event_id > events.event_id [delete: cascade]
+Ref: event_participants.user_id > users.user_id [delete: cascade]
+Ref: event_photos.event_id > events.event_id [delete: cascade]
+Ref: event_schedule_items.event_id > events.event_id [delete: cascade]
+Ref: event_tags.event_id > events.event_id [delete: cascade]
+
+Ref: conversations.event_id > events.event_id [delete: set null]
+Ref: conversations.group_id > travel_groups.circle_id [delete: set null]
+Ref: conversations.created_by > users.user_id [delete: set null]
+Ref: conversation_users.conversation_id > conversations.conversation_id [delete: cascade]
+Ref: conversation_users.user_id > users.user_id [delete: cascade]
+Ref: messages.conversation_id > conversations.conversation_id [delete: cascade]
+Ref: messages.sender_id > users.user_id [delete: set null]
+Ref: messages.pin_id > pins.pin_id [delete: set null]
+
+Ref: travel_collections.owner_id > users.user_id [delete: cascade]
+Ref: saved_tourist_spots.owner_id > users.user_id [delete: cascade]
+Ref: saved_tourist_spots.place_id > explore_places.place_id [delete: set null]
+Ref: saved_tourist_spots.collection_id > travel_collections.collection_id [delete: set null]
+Ref: audit_log.actor_id > users.user_id [delete: set null]

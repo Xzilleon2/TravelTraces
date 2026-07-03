@@ -1,14 +1,16 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router";
 import { MapPin, Users, Search, UserPlus } from "lucide-react";
 import { GatedPage } from "../components/GatedPage";
+import { GAMIFIED_USERS } from "../components/gamification";
 
 const TRAVELLERS = [
-  { id: 1, name: "Carlo Reyes", handle: "@carloreyes", location: "Cebu City", avatar: "https://images.unsplash.com/photo-1519101739220-83f6a14852ca?w=80&h=80&fit=crop&auto=format", pins: 142, stories: 24, followers: 3210, bio: "Freediving instructor and island hopper. Palawan-based, born in Leyte.", islands: 142, rank: 1 },
-  { id: 2, name: "Ana Villanueva", handle: "@anavillanueva", location: "Quezon City", avatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=80&h=80&fit=crop&auto=format", pins: 98, stories: 18, followers: 2140, bio: "Travel writer and photographer. Batanes is my second home.", islands: 98, rank: 2 },
-  { id: 3, name: "Ramon Dela Cruz", handle: "@ramondelacruz", location: "Baguio City", avatar: "https://images.unsplash.com/photo-1565565915331-293fd8113954?w=80&h=80&fit=crop&auto=format", pins: 87, stories: 31, followers: 1890, bio: "Cultural explorer and long-form writer. Cordillera born.", islands: 87, rank: 3 },
-  { id: 4, name: "Leila Marcos", handle: "@leilamarcos", location: "Davao City", avatar: "https://images.unsplash.com/photo-1639526473371-e68e5336df56?w=80&h=80&fit=crop&auto=format", pins: 76, stories: 14, followers: 1640, bio: "Mindanao advocate and surf coach based in Siargao.", islands: 76, rank: 4 },
-  { id: 5, name: "Marco Buenaventura", handle: "@marcobuen", location: "Manila", avatar: "https://images.unsplash.com/photo-1672933354004-3cbd9874f099?w=80&h=80&fit=crop&auto=format", pins: 63, stories: 22, followers: 1320, bio: "Food and travel. Pampanga to Mindanao, one meal at a time.", islands: 63, rank: 5 },
-  { id: 6, name: "Sofia Reyes", handle: "@sofiareyes", location: "Iloilo City", avatar: "https://images.unsplash.com/photo-1688541197205-02bd8c71074d?w=80&h=80&fit=crop&auto=format", pins: 54, stories: 9, followers: 980, bio: "Hidden gems specialist. Visayas-based, always planning the next escape.", islands: 54, rank: 6 },
+  { id: 1, profileKey: "carlo", name: "Carlo Reyes", handle: "@carloreyes", location: "Cebu City", avatar: "https://images.unsplash.com/photo-1519101739220-83f6a14852ca?w=80&h=80&fit=crop&auto=format", pins: 142, stories: 24, followers: 3210, bio: "Freediving instructor and island hopper. Palawan-based, born in Leyte.", islands: 142, rank: 1 },
+  { id: 2, profileKey: "ana", name: "Ana Villanueva", handle: "@anavillanueva", location: "Quezon City", avatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=80&h=80&fit=crop&auto=format", pins: 98, stories: 18, followers: 2140, bio: "Travel writer and photographer. Batanes is my second home.", islands: 98, rank: 2 },
+  { id: 3, profileKey: "ramon", name: "Ramon Dela Cruz", handle: "@ramondelacruz", location: "Baguio City", avatar: "https://images.unsplash.com/photo-1565565915331-293fd8113954?w=80&h=80&fit=crop&auto=format", pins: 87, stories: 31, followers: 1890, bio: "Cultural explorer and long-form writer. Cordillera born.", islands: 87, rank: 3 },
+  { id: 4, profileKey: "leila", name: "Leila Marcos", handle: "@leilamarcos", location: "Davao City", avatar: "https://images.unsplash.com/photo-1639526473371-e68e5336df56?w=80&h=80&fit=crop&auto=format", pins: 76, stories: 14, followers: 1640, bio: "Mindanao advocate and surf coach based in Siargao.", islands: 76, rank: 4 },
+  { id: 5, profileKey: "marco", name: "Marco Buenaventura", handle: "@marcobuen", location: "Manila", avatar: "https://images.unsplash.com/photo-1672933354004-3cbd9874f099?w=80&h=80&fit=crop&auto=format", pins: 63, stories: 22, followers: 1320, bio: "Food and travel. Pampanga to Mindanao, one meal at a time.", islands: 63, rank: 5 },
+  { id: 6, profileKey: "sofia", name: "Sofia Reyes", handle: "@sofiareyes", location: "Iloilo City", avatar: "https://images.unsplash.com/photo-1688541197205-02bd8c71074d?w=80&h=80&fit=crop&auto=format", pins: 54, stories: 9, followers: 980, bio: "Hidden gems specialist. Visayas-based, always planning the next escape.", islands: 54, rank: 6 },
 ];
 
 const CHALLENGES = [
@@ -20,7 +22,7 @@ const CHALLENGES = [
 
 const tabs = ["Travellers", "Rankings", "Challenges"];
 
-function TravellerCard({ t }: { t: typeof TRAVELLERS[0]; key?: any }) {
+function TravellerCard({ t, onViewProfile }: { t: typeof TRAVELLERS[0]; onViewProfile: (profileKey: string) => void }) {
   const [following, setFollowing] = useState(false);
   return (
     <div style={{ backgroundColor: "#EDEAE0", borderRadius: "0.25rem", padding: "1.5rem", display: "flex", gap: "1.25rem" }}>
@@ -33,11 +35,14 @@ function TravellerCard({ t }: { t: typeof TRAVELLERS[0]; key?: any }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
-            <p style={{ fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: "0.95rem", color: "#1A1A1A" }}>{t.name}</p>
+            <button type="button" onClick={() => onViewProfile(t.profileKey)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: "0.95rem", color: "#1A1A1A", textAlign: "left" }}>{t.name}</button>
             <p style={{ fontFamily: "var(--font-ui)", fontSize: "0.8rem", color: "#9E6B5C" }}>{t.handle}</p>
           </div>
           <button
-            onClick={() => setFollowing((v) => !v)}
+            onClick={(event) => {
+              event.stopPropagation();
+              setFollowing((v) => !v);
+            }}
             style={{
               display: "flex", alignItems: "center", gap: "0.35rem",
               padding: "0.4rem 0.875rem", borderRadius: "0.25rem",
@@ -64,6 +69,9 @@ function TravellerCard({ t }: { t: typeof TRAVELLERS[0]; key?: any }) {
             </div>
           ))}
         </div>
+        <button type="button" onClick={() => onViewProfile(t.profileKey)} style={{ marginTop: "1rem", border: "1px solid rgba(58,42,34,0.18)", background: "#F5F0E8", color: "#3A2A22", borderRadius: "999px", padding: "0.5rem 0.9rem", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          View profile
+        </button>
       </div>
     </div>
   );
@@ -72,6 +80,11 @@ function TravellerCard({ t }: { t: typeof TRAVELLERS[0]; key?: any }) {
 function CommunityContent() {
   const [activeTab, setActiveTab] = useState("Travellers");
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
+
+  const viewProfile = (profileKey: string) => {
+    if (GAMIFIED_USERS[profileKey]) navigate(`/profile/${profileKey}`);
+  };
 
   const filtered = TRAVELLERS.filter((t) =>
     t.name.toLowerCase().includes(search.toLowerCase()) || t.handle.toLowerCase().includes(search.toLowerCase())
@@ -80,11 +93,11 @@ function CommunityContent() {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F5F0E8", padding: "3rem 1.5rem" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ marginBottom: "2.5rem" }}>
-          <p style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#9E6B5C", marginBottom: "0.5rem" }}>Traveller network</p>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 600, color: "#3A2A22", marginBottom: "0.5rem" }}>Community</h1>
-          <p style={{ fontFamily: "var(--font-body)", color: "#6B6B5A", fontSize: "1rem" }}>Connect with fellow explorers, browse active travellers, and climb the TravelTraces rankings.</p>
-        </div>
+        <header className="mb-10">
+          <p className="mb-2 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.16em] text-[#9E6B5C]">Traveller network</p>
+          <h1 className="m-0 font-[var(--font-display)] text-5xl font-semibold leading-none text-[#3A2A22] sm:text-6xl">Community</h1>
+          <p className="mt-4 max-w-3xl font-[var(--font-body)] text-lg leading-8 text-[#5B4A40]">Connect with fellow explorers, browse active travellers, and climb the TravelTraces rankings.</p>
+        </header>
 
         {/* Tabs */}
         <div style={{ display: "flex", borderBottom: "1px solid rgba(58,42,34,0.15)", marginBottom: "2rem", gap: "0", overflowX: "auto" }}>
@@ -102,7 +115,7 @@ function CommunityContent() {
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search travellers…" style={{ width: "100%", padding: "0.75rem 1rem 0.75rem 2.5rem", backgroundColor: "#EDEAE0", border: "1px solid rgba(58,42,34,0.15)", borderRadius: "0.25rem", fontSize: "0.9rem", color: "#1A1A1A", fontFamily: "var(--font-ui)", outline: "none", boxSizing: "border-box" }} />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 400px), 1fr))", gap: "1rem" }}>
-              {filtered.map((t) => <TravellerCard key={t.id} t={t} />)}
+              {filtered.map((t) => <TravellerCard key={t.id} t={t} onViewProfile={viewProfile} />)}
             </div>
           </>
         )}
@@ -123,9 +136,11 @@ function CommunityContent() {
                     <span style={{ fontFamily: "var(--font-label)", fontWeight: 700, fontSize: "0.8rem", color: t.rank <= 3 ? "#F5F0E8" : "#6B6B5A" }}>{t.rank}</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                    <img src={t.avatar} alt={t.name} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover" }} />
+                    <button type="button" onClick={() => viewProfile(t.profileKey)} style={{ border: "none", background: "none", padding: 0, cursor: "pointer" }}>
+                      <img src={t.avatar} alt={t.name} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover" }} />
+                    </button>
                     <div>
-                      <p style={{ fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: "0.875rem", color: "#1A1A1A" }}>{t.name}</p>
+                      <button type="button" onClick={() => viewProfile(t.profileKey)} style={{ border: "none", background: "none", padding: 0, cursor: "pointer", fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: "0.875rem", color: "#1A1A1A", textAlign: "left" }}>{t.name}</button>
                       <p style={{ fontFamily: "var(--font-ui)", fontSize: "0.75rem", color: "#6B6B5A" }}>{t.location}</p>
                     </div>
                   </div>

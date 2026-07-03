@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bell, Check, Copy, LocateFixed, Plus, Trash2, UserPlus, WifiOff } from "lucide-react";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { GatedPage } from "../components/GatedPage";
 import { useAuth } from "../context/AuthContext";
 import { WorkspaceButton } from "../components/workspace/WorkspaceButton";
@@ -55,6 +56,7 @@ function TravelGroupsContent() {
   const [visibility, setVisibility] = useState<LocationVisibility>("travel_group");
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pendingNotificationDelete, setPendingNotificationDelete] = useState<TravelNotification | null>(null);
   const getPosition = useCurrentPosition();
 
   const activeGroup = useMemo(() => groups.find((group) => group.circle_id === activeId) ?? groups[0] ?? null, [activeId, groups]);
@@ -143,6 +145,13 @@ function TravelGroupsContent() {
     setPreferences(await updateNotificationPreferences(next));
   };
 
+  const confirmDeleteNotification = async () => {
+    if (!pendingNotificationDelete) return;
+    await deleteTravelNotification(pendingNotificationDelete.circle_id, pendingNotificationDelete.event_id, viewerId);
+    setPendingNotificationDelete(null);
+    await refresh(activeId);
+  };
+
   return (
     <section className="min-h-screen bg-[#F5F0E8] px-4 py-8 font-[var(--font-ui)] text-[#1A1A1A]">
       <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[1fr_1fr]">
@@ -196,7 +205,7 @@ function TravelGroupsContent() {
                     <div className="font-semibold">{item.message}</div>
                     <div className="mt-2 flex gap-2">
                       <button onClick={() => void markTravelNotificationRead(item.circle_id, item.event_id, viewerId).then(() => refresh(activeId))} className="text-xs font-semibold uppercase text-[#3A2A22]">Mark read</button>
-                      <button onClick={() => void deleteTravelNotification(item.circle_id, item.event_id, viewerId).then(() => refresh(activeId))} className="inline-flex items-center gap-1 text-xs font-semibold uppercase text-[#C0392B]"><Trash2 size={12} />Delete</button>
+                      <button onClick={() => setPendingNotificationDelete(item)} className="inline-flex items-center gap-1 text-xs font-semibold uppercase text-[#C0392B]"><Trash2 size={12} />Delete</button>
                     </div>
                   </div>
                 );
@@ -217,6 +226,14 @@ function TravelGroupsContent() {
           {status && <div className="rounded-lg border border-[#C4713A]/25 bg-[#C4713A]/10 p-4 text-sm text-[#8a4b26]">{status}</div>}
         </div>
       </div>
+      <ConfirmDialog
+        open={Boolean(pendingNotificationDelete)}
+        title="Delete this notification?"
+        description={`Are you sure you want to delete "${pendingNotificationDelete?.message ?? "this notification"}"?`}
+        confirmLabel="Delete Notification"
+        onConfirm={() => void confirmDeleteNotification()}
+        onCancel={() => setPendingNotificationDelete(null)}
+      />
     </section>
   );
 }

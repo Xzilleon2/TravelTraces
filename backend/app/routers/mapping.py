@@ -318,6 +318,19 @@ async def create_pin(
     return PinRecord(**record)
 
 
+@router.delete("/pins/{pin_id}")
+async def delete_pin(
+    pin_id: str,
+    creator_id: str = Query(..., min_length=1, max_length=120),
+    actor: RequestActor = Depends(require_authenticated_actor),
+) -> dict[str, str]:
+    owner_id = effective_user_id(actor, creator_id)
+    deleted = store.delete_pin(pin_id, owner_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Pin was not found or does not belong to this user.")
+    return {"status": "deleted"}
+
+
 @router.get("/routes", response_model=RoutesResponse)
 async def list_routes(
     viewer_id: str = Query(default="demo-user", min_length=1, max_length=120),

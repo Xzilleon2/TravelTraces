@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Coffee, MapPin, RefreshCw, Search, Sparkles, UserPlus, Users, X } from "lucide-react";
+import { ConfirmDialog } from "./ConfirmDialog";
 import type { ConnectionProfile } from "../context/AuthContext";
 import type { ApiLocation, MapScope, MeetupParticipantInput, MeetupPlan, MeetupSuggestion, ParticipantSource } from "../services/mappingApi";
 import { autocompleteLocations, suggestMeetup } from "../services/mappingApi";
@@ -286,6 +287,7 @@ export function SmartMeetupPlanner({
   const [excluded, setExcluded] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingParticipantRemove, setPendingParticipantRemove] = useState<PlannerParticipant | null>(null);
 
   const connectionOptions = pickerMode === "friend" ? friends : followers;
   const activeParticipants = useMemo(() => participants.map(participantPayload).filter(Boolean) as MeetupParticipantInput[], [participants]);
@@ -310,6 +312,7 @@ export function SmartMeetupPlanner({
 
   const removeParticipant = (localId: string) => {
     setParticipants((current) => (current.length <= 2 ? current : current.filter((item) => item.localId !== localId)));
+    setPendingParticipantRemove(null);
   };
 
   const startConnectionPicker = (mode: "friend" | "follower") => {
@@ -463,7 +466,7 @@ export function SmartMeetupPlanner({
               </div>
               <button
                 type="button"
-                onClick={() => removeParticipant(participant.localId)}
+                onClick={() => setPendingParticipantRemove(participant)}
                 disabled={participants.length <= 2}
                 className="flex h-8 w-8 items-center justify-center rounded border border-[#3A2A22]/15 text-[#6B6B5A] disabled:opacity-35"
                 aria-label={`Remove ${participant.displayName}`}
@@ -554,6 +557,14 @@ export function SmartMeetupPlanner({
           ))}
         </div>
       )}
+      <ConfirmDialog
+        open={Boolean(pendingParticipantRemove)}
+        title={`Remove ${pendingParticipantRemove?.displayName ?? "this participant"}?`}
+        description={`Are you sure you want to remove "${pendingParticipantRemove?.displayName ?? "this participant"}" from this meetup plan?`}
+        confirmLabel="Remove Participant"
+        onConfirm={() => pendingParticipantRemove && removeParticipant(pendingParticipantRemove.localId)}
+        onCancel={() => setPendingParticipantRemove(null)}
+      />
     </div>
   );
 }

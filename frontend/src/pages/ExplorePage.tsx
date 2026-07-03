@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router";
 import { Search, MapPin, Star, ArrowLeft, BookOpen, Pin, Users, Camera, Clock, ChevronLeft, ChevronRight, ExternalLink, Compass, Mountain, Waves, Building2, TreePine, Droplets, Anchor, Gem, Landmark, Utensils } from "lucide-react";
 import { GatedPage } from "../components/GatedPage";
-import { UserProfileModal } from "../components/UserProfileModal";
-import { GAMIFIED_USERS, GamifiedUser, getLevelFromXp } from "../components/gamification";
+import { GAMIFIED_USERS, getLevelFromXp } from "../components/gamification";
 import { STORIES, StoryArticleView, type TravelStory } from "./StoriesPage";
 
 /* ─── Data ─────────────────────────────────────────────────── */
@@ -274,10 +273,6 @@ const CATEGORY_ICON: Record<string, React.ElementType> = {
   More: Compass,
 };
 
-function ProfileModalMount({ user, onClose }: { user: GamifiedUser | null; onClose: () => void }) {
-  return user ? <UserProfileModal user={user} onClose={onClose} /> : null;
-}
-
 function destinationText(destination: Destination): string {
   return `${destination.name} ${destination.region} ${destination.province} ${destination.terrain} ${destination.tags.join(" ")} ${destination.highlights.join(" ")} ${destination.desc} ${destination.longDesc}`.toLowerCase();
 }
@@ -309,7 +304,6 @@ function destinationCategory(destination: Destination): string {
 function DestinationGuideView({ dest, onBack }: { dest: Destination; onBack: () => void }) {
   const navigate = useNavigate();
   const [galleryIndex, setGalleryIndex] = useState(0);
-  const [viewingProfile, setViewingProfile] = useState<GamifiedUser | null>(null);
   const [selectedStory, setSelectedStory] = useState<TravelStory | null>(null);
 
   const allImages = [dest.img, ...dest.gallery];
@@ -463,7 +457,6 @@ function DestinationGuideView({ dest, onBack }: { dest: Destination; onBack: () 
           </section>
         </div>
       </article>
-      <ProfileModalMount user={viewingProfile} onClose={() => setViewingProfile(null)} />
     </div>
   );
 
@@ -616,7 +609,7 @@ function DestinationGuideView({ dest, onBack }: { dest: Destination; onBack: () 
                         }}
                         style={{ display: "flex", gap: "0.875rem", padding: "1rem", backgroundColor: "#EDEAE0", borderRadius: "0.5rem", alignItems: "flex-start", cursor: linkedStory ? "pointer" : "default" }}
                       >
-                        <button onClick={(event) => { event.stopPropagation(); gu && setViewingProfile(gu); }} style={{ background: "none", border: "none", cursor: gu ? "pointer" : "default", padding: 0, flexShrink: 0 }}>
+                        <button onClick={(event) => { event.stopPropagation(); if (gu) navigate(`/profile/${s.authorKey}`); }} style={{ background: "none", border: "none", cursor: gu ? "pointer" : "default", padding: 0, flexShrink: 0 }}>
                           {gu ? (
                             <div style={{ position: "relative" }}>
                               <img src={gu.avatar} alt={gu.name} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", border: `2px solid ${lv?.color ?? "#9E6B5C"}` }} />
@@ -631,7 +624,7 @@ function DestinationGuideView({ dest, onBack }: { dest: Destination; onBack: () 
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontFamily: "var(--font-display)", fontSize: "0.975rem", fontWeight: 600, color: "#3A2A22", lineHeight: 1.3, margin: "0 0 0.4rem" }}>{s.title}</p>
                           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                            <button onClick={(event) => { event.stopPropagation(); gu && setViewingProfile(gu); }} style={{ background: "none", border: "none", cursor: gu ? "pointer" : "default", padding: 0, fontFamily: "var(--font-ui)", fontSize: "0.78rem", fontWeight: 600, color: "#3A3A2A" }}>{s.author}</button>
+                            <button onClick={(event) => { event.stopPropagation(); if (gu) navigate(`/profile/${s.authorKey}`); }} style={{ background: "none", border: "none", cursor: gu ? "pointer" : "default", padding: 0, fontFamily: "var(--font-ui)", fontSize: "0.78rem", fontWeight: 600, color: "#3A3A2A" }}>{s.author}</button>
                             <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.72rem", color: "#6B6B5A" }}>·</span>
                             <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.72rem", color: "#6B6B5A" }}>{s.date}</span>
                             <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.72rem", color: "#6B6B5A" }}>· ♥ {s.likes}</span>
@@ -692,7 +685,7 @@ function DestinationGuideView({ dest, onBack }: { dest: Destination; onBack: () 
                     if (!gu) return null;
                     const lv = getLevelFromXp(gu.xp);
                     return (
-                      <button key={key} onClick={() => setViewingProfile(gu)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, marginLeft: i > 0 ? -10 : 0, position: "relative", zIndex: dest.contributors.length - i }}>
+                      <button key={key} onClick={() => navigate(`/profile/${key}`)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, marginLeft: i > 0 ? -10 : 0, position: "relative", zIndex: dest.contributors.length - i }}>
                         <img src={gu.avatar} alt={gu.name} title={gu.name} style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: `2.5px solid ${lv.color}`, boxShadow: "0 1px 4px rgba(0,0,0,0.18)" }} />
                       </button>
                     );
@@ -707,7 +700,7 @@ function DestinationGuideView({ dest, onBack }: { dest: Destination; onBack: () 
                     if (!gu) return null;
                     const lv = getLevelFromXp(gu.xp);
                     return (
-                      <button key={key} onClick={() => setViewingProfile(gu)} style={{ display: "flex", alignItems: "center", gap: "0.625rem", padding: "0.625rem 0.75rem", backgroundColor: "#F5F0E8", borderRadius: "0.5rem", border: "none", cursor: "pointer", textAlign: "left", transition: "background 0.12s" }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#D8D4C8")} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#F5F0E8")}>
+                      <button key={key} onClick={() => navigate(`/profile/${key}`)} style={{ display: "flex", alignItems: "center", gap: "0.625rem", padding: "0.625rem 0.75rem", backgroundColor: "#F5F0E8", borderRadius: "0.5rem", border: "none", cursor: "pointer", textAlign: "left", transition: "background 0.12s" }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#D8D4C8")} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#F5F0E8")}>
                         <div style={{ position: "relative", flexShrink: 0 }}>
                           <img src={gu.avatar} alt={gu.name} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", border: `2px solid ${lv.color}` }} />
                           <div style={{ position: "absolute", bottom: -4, left: "50%", transform: "translateX(-50%)", backgroundColor: lv.color, color: "#F5F0E8", fontFamily: "var(--font-label)", fontSize: "0.45rem", fontWeight: 800, padding: "0.06rem 0.28rem", borderRadius: "2rem", whiteSpace: "nowrap" }}>LV{lv.level}</div>
@@ -729,8 +722,6 @@ function DestinationGuideView({ dest, onBack }: { dest: Destination; onBack: () 
           </div>
         </div>
       </div>
-
-      <ProfileModalMount user={viewingProfile} onClose={() => setViewingProfile(null)} />
 
       <style>{`
         @media (max-width: 900px) {
@@ -847,11 +838,11 @@ function ExploreContent() {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#FBF7F0", padding: "3rem 1.5rem" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ marginBottom: "2.5rem" }}>
-          <p style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#9E6B5C", marginBottom: "0.5rem" }}>Destination browser</p>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 600, color: "#2C211C", marginBottom: "0.5rem" }}>Explore</h1>
-          <p style={{ fontFamily: "var(--font-body)", color: "#6B5A50", fontSize: "1rem" }}>Browse beaches, hikes, food places, forests, hidden gems, and culture-rich destinations from the TravelTraces community.</p>
-        </div>
+        <header className="mb-10">
+          <p className="mb-2 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.16em] text-[#9E6B5C]">Destination browser</p>
+          <h1 className="m-0 font-[var(--font-display)] text-5xl font-semibold leading-none text-[#3A2A22] sm:text-6xl">Explore</h1>
+          <p className="mt-4 max-w-3xl font-[var(--font-body)] text-lg leading-8 text-[#5B4A40]">Browse beaches, hikes, food places, forests, hidden gems, and culture-rich destinations from the TravelTraces community.</p>
+        </header>
 
         <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
           <div style={{ position: "relative", flex: "1 1 260px" }}>

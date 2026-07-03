@@ -1,18 +1,21 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { NavLink } from "react-router";
+import { NavLink, useNavigate } from "react-router";
 import {
   Award,
   Bookmark,
   Calendar,
-  Camera,
+  CalendarDays,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
   Edit3,
   Gem,
   Globe2,
-  Mail,
+  Lock,
   MapPin,
   Pin,
   Save,
-  Settings,
   ShieldCheck,
   Sparkles,
   Trash2,
@@ -21,13 +24,15 @@ import {
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { GatedPage } from "../components/GatedPage";
 import { useAuth, type User } from "../context/AuthContext";
 import type { ApiPin, TouristSpot, TravelGroup } from "../services/mappingApi";
-import { listPins, listTouristSpots, listTravelGroups } from "../services/mappingApi";
+import { deleteTouristSpot, listPins, listTouristSpots, listTravelGroups } from "../services/mappingApi";
+import { readTravelPlanStories, totalTravelDays, travelPlanStatus, type TravelPlanDestination, type TravelPlanStory } from "../services/travelPlanStories";
 import { LOCAL_STORIES_KEY, SAVED_STORIES_KEY } from "./StoriesPage";
 
-const tabs = ["Overview", "Badges", "Saved Places", "Travel Groups", "Settings"] as const;
+const tabs = ["Overview", "Achievements", "Saved Places", "Travel Groups", "Calendar", "Settings"] as const;
 type ProfileTab = (typeof tabs)[number];
 
 type ProfileData = {
@@ -36,15 +41,15 @@ type ProfileData = {
   groups: TravelGroup[];
 };
 
+type ProfileForm = Pick<User, "name" | "email" | "avatar" | "location" | "joinedDate" | "bio" | "nationality">;
+
 const emptyProfileData: ProfileData = {
   pins: [],
   spots: [],
   groups: [],
 };
 
-type ProfileForm = Pick<User, "name" | "email" | "avatar" | "location" | "joinedDate" | "bio" | "nationality">;
-
-function readStorageCount(key: string) {
+function readStorageCount(key: string): number {
   try {
     const parsed = JSON.parse(window.localStorage.getItem(key) ?? "[]") as unknown[];
     return Array.isArray(parsed) ? parsed.length : 0;
@@ -53,11 +58,22 @@ function readStorageCount(key: string) {
   }
 }
 
-function formatDate(value?: string | number | null) {
+function formatDate(value?: string | number | null): string {
   if (!value) return "Recently";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
   return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
+function formatPlan(plan: User["plan"]): string {
+  return plan.charAt(0).toUpperCase() + plan.slice(1);
+}
+
+function maskEmail(email: string): string {
+  const [name, domain] = email.split("@");
+  if (!name || !domain) return "Private";
+  const visible = name.slice(0, Math.min(2, name.length));
+  return `${visible}${"*".repeat(Math.max(3, name.length - visible.length))}@${domain}`;
 }
 
 function calculateLevel(input: { pins: number; stories: number; savedPlaces: number; groups: number }) {
@@ -71,36 +87,22 @@ function calculateLevel(input: { pins: number; stories: number; savedPlaces: num
 
 function buildBadges(input: { pins: number; stories: number; savedPlaces: number; followers: number; groups: number }) {
   return [
-    { title: "First Trace", detail: "Created a travel pin", unlocked: input.pins > 0, icon: Pin },
-    { title: "Story Keeper", detail: "Posted 3 or more stories", unlocked: input.stories >= 3, icon: Sparkles },
-    { title: "Trail Curator", detail: "Saved 5 travel places or stories", unlocked: input.savedPlaces >= 5, icon: Bookmark },
-    { title: "Community Signal", detail: "Reached 100 followers", unlocked: input.followers >= 100, icon: Users },
-    { title: "Group Traveler", detail: "Joined a travel group", unlocked: input.groups > 0, icon: ShieldCheck },
-    { title: "Hidden Gem Hunter", detail: "Built a rich travel profile", unlocked: input.pins + input.stories >= 10, icon: Gem },
+    { title: "First Trace", detail: "Create your first travel pin.", unlocked: input.pins > 0, icon: Pin },
+    { title: "Story Keeper", detail: "Post 3 or more travel stories.", unlocked: input.stories >= 3, icon: Sparkles },
+    { title: "Trail Curator", detail: "Save 5 places or stories.", unlocked: input.savedPlaces >= 5, icon: Bookmark },
+    { title: "Community Signal", detail: "Reach 100 followers.", unlocked: input.followers >= 100, icon: Users },
+    { title: "Group Traveler", detail: "Join a travel group.", unlocked: input.groups > 0, icon: ShieldCheck },
+    { title: "Hidden Gem Hunter", detail: "Build 10 combined pins and stories.", unlocked: input.pins + input.stories >= 10, icon: Gem },
   ];
 }
 
-function StatTile({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: ReactNode }) {
+function Panel({ title, eyebrow, children, action }: { title: string; eyebrow?: string; children: ReactNode; action?: ReactNode }) {
   return (
-    <div className="rounded border border-[#3A2A22]/10 bg-[#FBF7F0] p-4 shadow-[0_14px_34px_rgba(58,42,34,0.08)]">
-      <div className="flex items-start justify-between gap-3">
-        <span className="grid h-10 w-10 place-items-center rounded bg-[#EFE7DC] text-[#C4713A]">
-          <Icon size={18} />
-        </span>
-        <strong className="font-[var(--font-display)] text-3xl font-semibold leading-none text-[#2C211C]">{value}</strong>
-      </div>
-      <p className="m-0 mt-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] text-[#6B5A50]">{label}</p>
-    </div>
-  );
-}
-
-function SectionPanel({ title, icon: Icon, children, action }: { title: string; icon: LucideIcon; children: ReactNode; action?: ReactNode }) {
-  return (
-    <section className="rounded border border-[#3A2A22]/10 bg-[#EFE7DC] p-5 shadow-[0_18px_44px_rgba(58,42,34,0.08)]">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Icon size={19} className="text-[#C4713A]" />
-          <h2 className="m-0 font-[var(--font-display)] text-2xl font-semibold text-[#2C211C]">{title}</h2>
+    <section className="rounded-lg border border-[#3A2A22]/10 bg-[#FFF9F0] p-6 shadow-[0_18px_42px_rgba(58,42,34,0.07)]">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          {eyebrow ? <p className="m-0 font-[var(--font-label)] text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#7A4B32]">{eyebrow}</p> : null}
+          <h2 className="m-0 mt-1 font-[var(--font-display)] text-2xl font-semibold leading-tight text-[#2C211C]">{title}</h2>
         </div>
         {action}
       </div>
@@ -109,12 +111,291 @@ function SectionPanel({ title, icon: Icon, children, action }: { title: string; 
   );
 }
 
-function EmptyState({ icon: Icon, title }: { icon: LucideIcon; title: string }) {
+function StatCard({ label, value, supporting }: { label: string; value: ReactNode; supporting?: string }) {
   return (
-    <div className="rounded border border-dashed border-[#3A2A22]/20 bg-[#FBF7F0] p-6 text-center text-[#6B5A50]">
-      <Icon className="mx-auto mb-3 text-[#C4713A]" size={26} />
-      <p className="m-0 text-sm">{title}</p>
+    <div className="rounded-lg border border-[#3A2A22]/10 bg-[#FFF9F0] p-5">
+      <p className="m-0 font-[var(--font-label)] text-[0.7rem] font-bold uppercase tracking-[0.1em] text-[#5E4B40]">{label}</p>
+      <strong className="mt-2 block font-[var(--font-display)] text-3xl font-semibold leading-none text-[#2C211C]">{value}</strong>
+      {supporting ? <p className="m-0 mt-2 text-sm leading-5 text-[#625247]">{supporting}</p> : null}
     </div>
+  );
+}
+
+function FirstPinPrompt() {
+  return (
+    <div className="rounded-lg border border-[#C4713A]/35 bg-[#FFF4E8] p-5">
+      <p className="m-0 font-[var(--font-label)] text-[0.7rem] font-bold uppercase tracking-[0.1em] text-[#7A4B32]">Pins Created</p>
+      <h3 className="m-0 mt-2 font-[var(--font-display)] text-2xl font-semibold text-[#2C211C]">Create your first pin</h3>
+      <p className="m-0 mt-2 text-sm leading-6 text-[#5E4B40]">
+        Start your map with a place you have visited, want to remember, or plan to explore next.
+      </p>
+      <NavLink
+        to="/maps"
+        className="mt-4 inline-flex min-h-10 items-center justify-center rounded-full bg-[#3A2A22] px-4 font-[var(--font-label)] text-[0.72rem] font-bold uppercase tracking-[0.08em] text-[#FFF9F0] transition hover:bg-[#2C211C]"
+      >
+        Drop a pin
+      </NavLink>
+    </div>
+  );
+}
+
+function BadgeCard({ badge }: { badge: ReturnType<typeof buildBadges>[number] }) {
+  const Icon = badge.icon;
+  return (
+    <article className={`rounded-lg border p-4 transition ${badge.unlocked ? "border-[#C4713A]/35 bg-[#FFF9F0]" : "border-[#3A2A22]/10 bg-[#EFE7DC]/70"}`}>
+      <div className="flex items-start gap-3">
+        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${badge.unlocked ? "bg-[#C4713A] text-[#FFF9F0]" : "bg-[#D8D0C2] text-[#5E4B40]"}`}>
+          {badge.unlocked ? <Icon size={18} /> : <Lock size={16} />}
+        </span>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="m-0 font-[var(--font-display)] text-lg font-semibold leading-tight text-[#2C211C]">{badge.title}</h3>
+            {badge.unlocked ? <CheckCircle2 size={15} className="text-[#7A4B32]" aria-label="Unlocked" /> : null}
+          </div>
+          <p className="m-0 mt-1 text-sm leading-5 text-[#5E4B40]">{badge.detail}</p>
+          <p className={`m-0 mt-3 font-[var(--font-label)] text-[0.66rem] font-bold uppercase tracking-[0.1em] ${badge.unlocked ? "text-[#7A4B32]" : "text-[#5E4B40]"}`}>
+            {badge.unlocked ? "Unlocked" : "Locked"}
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function EmptyState({ icon: Icon, title, copy }: { icon: LucideIcon; title: string; copy: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-[#3A2A22]/20 bg-[#FFF9F0] p-6 text-center">
+      <Icon className="mx-auto mb-3 text-[#7A4B32]" size={26} />
+      <h3 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2C211C]">{title}</h3>
+      <p className="m-0 mx-auto mt-2 max-w-md text-sm leading-6 text-[#5E4B40]">{copy}</p>
+    </div>
+  );
+}
+
+const calendarWeekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+type TravelCalendarEntry = {
+  id: string;
+  planId: string;
+  planName: string;
+  destination: TravelPlanDestination;
+  dateKey: string;
+  date: Date;
+  colorClass: string;
+};
+
+function toDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseDateKey(dateKey: string): Date {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(year || new Date().getFullYear(), (month || 1) - 1, day || 1);
+}
+
+function addCalendarDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function destinationDateKey(plan: TravelPlanStory, destination: TravelPlanDestination): string {
+  if (destination.plannedDate) return destination.plannedDate;
+  if (destination.dateVisited) return destination.dateVisited;
+  const startDate = new Date(plan.createdAt);
+  return toDateKey(addCalendarDays(Number.isNaN(startDate.getTime()) ? new Date() : startDate, Math.max(0, destination.plannedDay - 1)));
+}
+
+function monthGridDays(month: Date): Date[] {
+  const firstOfMonth = new Date(month.getFullYear(), month.getMonth(), 1);
+  const mondayOffset = (firstOfMonth.getDay() + 6) % 7;
+  const gridStart = addCalendarDays(firstOfMonth, -mondayOffset);
+  return Array.from({ length: 42 }, (_, index) => addCalendarDays(gridStart, index));
+}
+
+function TravelPlanCalendar({ plans, ownerId }: { plans: TravelPlanStory[]; ownerId: string }) {
+  const navigate = useNavigate();
+  const entries = useMemo<TravelCalendarEntry[]>(() => {
+    const colors = ["bg-[#C4713A]", "bg-[#5C8A9E]", "bg-[#8066B3]", "bg-[#B85E78]", "bg-[#6F7D4E]"];
+    return plans
+      .filter((plan) => plan.ownerId === ownerId)
+      .flatMap((plan) =>
+        plan.destinations.map((destination, index) => {
+          const dateKey = destinationDateKey(plan, destination);
+          return {
+            id: `${plan.id}-${destination.id}`,
+            planId: plan.id,
+            planName: plan.travelPlanName,
+            destination,
+            dateKey,
+            date: parseDateKey(dateKey),
+            colorClass: colors[index % colors.length] ?? "bg-[#C4713A]",
+          };
+        }),
+      )
+      .sort((a, b) => a.date.getTime() - b.date.getTime() || a.destination.order - b.destination.order);
+  }, [ownerId, plans]);
+
+  const firstEntryDate = entries[0]?.date;
+  const [visibleMonth, setVisibleMonth] = useState<Date>(() => firstEntryDate ?? new Date());
+
+  const days = useMemo(() => monthGridDays(visibleMonth), [visibleMonth]);
+  const entriesByDate = useMemo(() => {
+    const map = new Map<string, TravelCalendarEntry[]>();
+    entries.forEach((entry) => {
+      map.set(entry.dateKey, [...(map.get(entry.dateKey) ?? []), entry]);
+    });
+    return map;
+  }, [entries]);
+
+  const monthPlans = useMemo(() => {
+    const planIds = new Set(
+      entries
+        .filter((entry) => entry.date.getFullYear() === visibleMonth.getFullYear() && entry.date.getMonth() === visibleMonth.getMonth())
+        .map((entry) => entry.planId),
+    );
+    return plans.filter((plan) => planIds.has(plan.id));
+  }, [entries, plans, visibleMonth]);
+
+  const monthLabel = visibleMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const todayKey = toDateKey(new Date());
+
+  return (
+    <section className="grid gap-6">
+      <div className="overflow-hidden rounded-[1.35rem] border border-[#3A2A22]/12 bg-[#241B17] shadow-[0_28px_70px_rgba(58,42,34,0.18)]">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#FBF7F0]/10 px-5 py-5 sm:px-7">
+          <div>
+            <p className="m-0 font-[var(--font-label)] text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#D9A37C]">Travel Plan Calendar</p>
+            <h2 className="m-0 mt-2 font-[var(--font-display)] text-4xl font-semibold leading-none text-[#FBF7F0] sm:text-5xl">{monthLabel}</h2>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <button type="button" onClick={() => setVisibleMonth((current) => new Date(current.getFullYear() - 1, current.getMonth(), 1))} className="min-h-11 rounded-full border border-[#FBF7F0]/15 bg-[#FBF7F0]/8 px-3 font-[var(--font-label)] text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[#FBF7F0]">
+              Year -
+            </button>
+            <button type="button" onClick={() => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))} className="grid h-11 w-11 place-items-center rounded-full border border-[#FBF7F0]/15 bg-[#FBF7F0]/8 text-[#FBF7F0]" aria-label="Previous month">
+              <ChevronLeft size={18} />
+            </button>
+            <input
+              type="number"
+              min={1900}
+              max={2200}
+              value={visibleMonth.getFullYear()}
+              onChange={(event) => {
+                const year = Number(event.target.value);
+                if (Number.isFinite(year) && year >= 1900 && year <= 2200) setVisibleMonth((current) => new Date(year, current.getMonth(), 1));
+              }}
+              className="h-11 w-24 rounded-full border border-[#FBF7F0]/15 bg-[#FBF7F0]/8 px-3 text-center text-sm font-bold text-[#FBF7F0] outline-none focus:border-[#D9A37C]"
+              aria-label="Calendar year"
+            />
+            <button type="button" onClick={() => setVisibleMonth(new Date())} className="min-h-11 rounded-full bg-[#FBF7F0] px-4 font-[var(--font-label)] text-[0.7rem] font-bold uppercase tracking-[0.08em] text-[#3A2A22]">
+              Today
+            </button>
+            <button type="button" onClick={() => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))} className="grid h-11 w-11 place-items-center rounded-full border border-[#FBF7F0]/15 bg-[#FBF7F0]/8 text-[#FBF7F0]" aria-label="Next month">
+              <ChevronRight size={18} />
+            </button>
+            <button type="button" onClick={() => setVisibleMonth((current) => new Date(current.getFullYear() + 1, current.getMonth(), 1))} className="min-h-11 rounded-full border border-[#FBF7F0]/15 bg-[#FBF7F0]/8 px-3 font-[var(--font-label)] text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[#FBF7F0]">
+              Year +
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <div className="min-w-[920px] p-4 sm:p-6">
+            <div className="grid grid-cols-7 border-b border-[#FBF7F0]/8 pb-3">
+              {calendarWeekdays.map((day) => (
+                <div key={day} className="px-3 font-[var(--font-label)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#E8DACB]/70">
+                  {day}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7">
+              {days.map((day) => {
+                const dateKey = toDateKey(day);
+                const dayEntries = entriesByDate.get(dateKey) ?? [];
+                const isCurrentMonth = day.getMonth() === visibleMonth.getMonth();
+                const isToday = dateKey === todayKey;
+                return (
+                  <div key={dateKey} className={`min-h-32 border-r border-t border-[#FBF7F0]/8 p-3 ${isCurrentMonth ? "bg-[#241B17]" : "bg-[#1C1613]"} ${day.getDay() === 0 || day.getDay() === 6 ? "bg-[#2B211D]" : ""}`}>
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className={`grid h-8 w-8 place-items-center rounded-full text-sm font-semibold ${isToday ? "bg-[#FBF7F0] text-[#3A2A22]" : isCurrentMonth ? "text-[#FBF7F0]" : "text-[#FBF7F0]/35"}`}>
+                        {day.getDate()}
+                      </span>
+                      {dayEntries.length ? <span className="rounded-full bg-[#FBF7F0]/10 px-2 py-0.5 text-[0.62rem] font-bold text-[#FBF7F0]/75">{dayEntries.length}</span> : null}
+                    </div>
+                    <div className="space-y-2">
+                      {dayEntries.slice(0, 3).map((entry) => (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          onClick={() => navigate(`/travel-plan-stories?plan=${encodeURIComponent(entry.planId)}`)}
+                          className={`block w-full rounded-full px-3 py-2 text-left text-xs font-bold leading-tight text-white shadow-[0_10px_20px_rgba(0,0,0,0.18)] transition hover:scale-[1.01] ${entry.colorClass}`}
+                          title={`${entry.planName}: ${entry.destination.placeName}`}
+                        >
+                          <span className="block truncate">{entry.destination.plannedTime ? `${entry.destination.plannedTime} ` : ""}{entry.destination.placeName}</span>
+                        </button>
+                      ))}
+                      {dayEntries.length > 3 ? <p className="m-0 text-xs font-semibold text-[#E8DACB]/65">+{dayEntries.length - 3} more stops</p> : null}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {entries.length ? (
+        <div className="grid gap-4 lg:grid-cols-[1fr_0.75fr]">
+          <Panel title="This Month's Routes" eyebrow="Calendar Summary">
+            <div className="grid gap-3">
+              {monthPlans.length ? monthPlans.map((plan) => {
+                const status = travelPlanStatus(plan);
+                return (
+                  <button key={plan.id} type="button" onClick={() => navigate(`/travel-plan-stories?plan=${encodeURIComponent(plan.id)}`)} className="rounded-lg border border-[#3A2A22]/10 bg-[#F5F0E8] p-4 text-left transition hover:border-[#C4713A]/50 hover:bg-[#FFF4E8]">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <h3 className="m-0 font-[var(--font-display)] text-2xl font-semibold text-[#2C211C]">{plan.travelPlanName}</h3>
+                      <span className="rounded-full bg-[#3A2A22] px-3 py-1 font-[var(--font-label)] text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[#FFF9F0]">{status}</span>
+                    </div>
+                    <p className="m-0 mt-2 text-sm leading-6 text-[#5E4B40]">{plan.destinations.length} stops / {totalTravelDays(plan)} travel day{totalTravelDays(plan) === 1 ? "" : "s"}</p>
+                  </button>
+                );
+              }) : <EmptyState icon={CalendarDays} title="No plans this month" copy="Use the month controls to browse scheduled travel plan stops." />}
+            </div>
+          </Panel>
+
+          <Panel title="Upcoming Stops" eyebrow="Next Destinations">
+            <div className="grid gap-3">
+              {entries.filter((entry) => entry.dateKey >= todayKey).slice(0, 5).map((entry) => (
+                <button key={entry.id} type="button" onClick={() => navigate(`/travel-plan-stories?plan=${encodeURIComponent(entry.planId)}`)} className="grid grid-cols-[auto_1fr] gap-3 rounded-lg bg-[#F5F0E8] p-3 text-left">
+                  <span className="grid h-12 w-12 place-items-center rounded-full bg-[#C4713A] text-[#FFF9F0]"><Clock3 size={18} /></span>
+                  <span>
+                    <span className="block font-semibold text-[#2C211C]">{entry.destination.placeName}</span>
+                    <span className="block text-sm leading-5 text-[#5E4B40]">{formatDate(entry.dateKey)}{entry.destination.plannedTime ? ` at ${entry.destination.plannedTime}` : ""}</span>
+                    <span className="block font-[var(--font-label)] text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[#7A4B32]">{entry.planName}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </Panel>
+        </div>
+      ) : (
+        <Panel title="No Travel Plans Scheduled" eyebrow="Calendar">
+          <div className="rounded-lg border border-dashed border-[#3A2A22]/20 bg-[#F5F0E8] p-8 text-center">
+            <CalendarDays className="mx-auto mb-3 text-[#7A4B32]" size={30} />
+            <h3 className="m-0 font-[var(--font-display)] text-2xl font-semibold text-[#2C211C]">Create a route from the map</h3>
+            <p className="m-0 mx-auto mt-2 max-w-xl text-sm leading-6 text-[#5E4B40]">
+              Draw Route turns multiple destinations into a Travel Plan. Once you add planned dates, every stop appears here as a calendar event.
+            </p>
+            <NavLink to="/maps" className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-[#3A2A22] px-5 font-[var(--font-label)] text-[0.72rem] font-bold uppercase tracking-[0.08em] text-[#FFF9F0]">
+              Open maps
+            </NavLink>
+          </div>
+        </Panel>
+      )}
+    </section>
   );
 }
 
@@ -126,13 +407,37 @@ function ProfileContent() {
   const [status, setStatus] = useState<string | null>(null);
   const [savedStoriesCount, setSavedStoriesCount] = useState(0);
   const [localStoriesCount, setLocalStoriesCount] = useState(0);
+  const [travelPlans, setTravelPlans] = useState<TravelPlanStory[]>([]);
+  const [pendingSavedPlaceDelete, setPendingSavedPlaceDelete] = useState<TouristSpot | null>(null);
   const [form, setForm] = useState<ProfileForm | null>(null);
 
   const groupIds = useMemo(() => user?.groupIds ?? [], [user?.groupIds]);
 
   useEffect(() => {
-    setSavedStoriesCount(readStorageCount(SAVED_STORIES_KEY));
-    setLocalStoriesCount(readStorageCount(LOCAL_STORIES_KEY));
+    const refreshStoryCounts = () => {
+      setSavedStoriesCount(readStorageCount(SAVED_STORIES_KEY));
+      setLocalStoriesCount(readStorageCount(LOCAL_STORIES_KEY));
+    };
+    refreshStoryCounts();
+    window.addEventListener("traveltraces:saved-stories-updated", refreshStoryCounts);
+    window.addEventListener("traveltraces:local-stories-updated", refreshStoryCounts);
+    window.addEventListener("storage", refreshStoryCounts);
+    return () => {
+      window.removeEventListener("traveltraces:saved-stories-updated", refreshStoryCounts);
+      window.removeEventListener("traveltraces:local-stories-updated", refreshStoryCounts);
+      window.removeEventListener("storage", refreshStoryCounts);
+    };
+  }, []);
+
+  useEffect(() => {
+    const refreshTravelPlans = () => setTravelPlans(readTravelPlanStories());
+    refreshTravelPlans();
+    window.addEventListener("traveltraces:travel-plan-stories-updated", refreshTravelPlans);
+    window.addEventListener("storage", refreshTravelPlans);
+    return () => {
+      window.removeEventListener("traveltraces:travel-plan-stories-updated", refreshTravelPlans);
+      window.removeEventListener("storage", refreshTravelPlans);
+    };
   }, []);
 
   useEffect(() => {
@@ -194,14 +499,11 @@ function ProfileContent() {
   const savedPlaces = data.spots.length + savedStoriesCount;
   const travelGroups = data.groups.length;
   const level = calculateLevel({ pins: pinsCreated, stories: storiesPosted, savedPlaces, groups: travelGroups });
-  const badges = buildBadges({
-    pins: pinsCreated,
-    stories: storiesPosted,
-    savedPlaces,
-    followers: user.followersCount,
-    groups: travelGroups,
-  });
+  const badges = buildBadges({ pins: pinsCreated, stories: storiesPosted, savedPlaces, followers: user.followersCount, groups: travelGroups });
   const unlockedBadges = badges.filter((badge) => badge.unlocked).length;
+  const profileCompletion = Math.round(
+    ([user.avatar, user.bio, user.location, user.nationality, user.joinedDate].filter(Boolean).length / 5) * 100,
+  );
 
   const handleFormChange = (field: keyof ProfileForm, value: string) => {
     setForm((current) => (current ? { ...current, [field]: value } : current));
@@ -223,210 +525,182 @@ function ProfileContent() {
     setActiveTab("Overview");
   };
 
-  const overviewStats = [
-    { label: "Pins Created", value: pinsCreated, icon: Pin },
-    { label: "Followers", value: user.followersCount.toLocaleString(), icon: Users },
-    { label: "Following", value: user.followingCount.toLocaleString(), icon: UserRound },
-    { label: "Stories Posted", value: storiesPosted, icon: Sparkles },
-    { label: "Saved Places", value: savedPlaces, icon: Bookmark },
-    { label: "Travel Groups", value: travelGroups, icon: Globe2 },
-  ];
+  const handleDeleteSavedPlace = async (placeId: string) => {
+    setData((current) => ({ ...current, spots: current.spots.filter((spot) => spot.place_id !== placeId) }));
+    try {
+      await deleteTouristSpot(placeId, user.id);
+      setStatus("Saved place deleted.");
+    } catch {
+      setStatus("Saved place was removed from this view, but the database delete could not be confirmed.");
+    } finally {
+      setPendingSavedPlaceDelete(null);
+    }
+  };
 
   return (
     <section className="min-h-screen bg-[#F5F0E8] font-[var(--font-ui)] text-[#2C211C]">
-      <div className="bg-[#2C211C] px-4 py-9 text-[#FBF7F0] sm:px-6">
-        <div className="mx-auto grid max-w-6xl gap-7 lg:grid-cols-[1fr_22rem] lg:items-end">
-          <div className="flex flex-col gap-6 md:flex-row md:items-end">
-            <div className="relative w-fit shrink-0">
-              <img
-                src={user.avatar}
-                alt={`${user.name} profile`}
-                className="h-32 w-32 rounded-full border-4 border-[#FBF7F0]/35 object-cover shadow-[0_24px_50px_rgba(0,0,0,0.24)]"
-              />
-              <span className="absolute bottom-2 right-2 grid h-9 w-9 place-items-center rounded-full border-2 border-[#2C211C] bg-[#C4713A]">
-                <Camera size={16} />
-              </span>
-            </div>
-
+      <div className="border-b border-[#3A2A22]/10 bg-[#FBF7F0] px-4 py-10 sm:px-6">
+        <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1fr_20rem] lg:items-center">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center">
+            <img
+              src={user.avatar}
+              alt={`${user.name} profile`}
+              className="h-32 w-32 rounded-full border-4 border-[#EFE7DC] object-cover shadow-[0_18px_34px_rgba(58,42,34,0.16)]"
+            />
             <div className="min-w-0">
-              <p className="m-0 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.16em] text-[#CFA68A]">Traveler Profile</p>
-              <h1 className="m-0 mt-2 font-[var(--font-display)] text-[clamp(2.2rem,7vw,4rem)] font-semibold leading-none">{user.name}</h1>
-              <div className="mt-4 grid gap-2 text-sm text-[#EFE7DC]/82 sm:grid-cols-2">
-                <span className="inline-flex items-center gap-2"><Mail size={15} />{user.email}</span>
-                <span className="inline-flex items-center gap-2"><MapPin size={15} />{user.location || "No home location added"}</span>
-                <span className="inline-flex items-center gap-2"><Calendar size={15} />Joined {user.joinedDate || "recently"}</span>
+              <p className="m-0 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.16em] text-[#7A4B32]">Traveler Profile</p>
+              <h1 className="m-0 mt-2 font-[var(--font-display)] text-[clamp(2.4rem,7vw,4.5rem)] font-semibold leading-none text-[#2C211C]">{user.name}</h1>
+              <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-[#5E4B40]">
+                <span className="inline-flex items-center gap-2"><MapPin size={15} />{user.location || "Location not set"}</span>
                 <span className="inline-flex items-center gap-2"><Globe2 size={15} />{user.nationality || "Nationality not set"}</span>
+                <span className="inline-flex items-center gap-2"><Calendar size={15} />Joined {user.joinedDate || "recently"}</span>
               </div>
-              <p className="m-0 mt-5 max-w-3xl font-[var(--font-body)] text-base leading-7 text-[#FBF7F0]/86">
+              <p className="m-0 mt-5 max-w-3xl font-[var(--font-body)] text-base leading-7 text-[#4D4038]">
                 {user.bio || "No bio added yet."}
               </p>
             </div>
           </div>
 
-          <div className="rounded border border-[#FBF7F0]/12 bg-[#FBF7F0]/8 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.2)] backdrop-blur">
-            <div className="flex items-center justify-between gap-3">
+          <aside className="rounded-lg border border-[#3A2A22]/10 bg-[#EFE7DC] p-5">
+            <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="m-0 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.12em] text-[#CFA68A]">Current Level</p>
-                <p className="m-0 mt-1 font-[var(--font-display)] text-4xl font-semibold">Level {level.level}</p>
+                <p className="m-0 font-[var(--font-label)] text-[0.7rem] font-bold uppercase tracking-[0.12em] text-[#5E4B40]">Current Level</p>
+                <p className="m-0 mt-1 font-[var(--font-display)] text-4xl font-semibold text-[#2C211C]">Level {level.level}</p>
               </div>
-              <Trophy size={38} className="text-[#C4713A]" />
+              <Trophy size={34} className="text-[#9A4F2B]" />
             </div>
-            <div className="mt-5 h-3 overflow-hidden rounded-full bg-[#FBF7F0]/14">
+            <div className="mt-5 h-3 overflow-hidden rounded-full bg-[#D8D0C2]">
               <div className="h-full rounded-full bg-[#C4713A]" style={{ width: `${level.progress}%` }} />
             </div>
-            <p className="m-0 mt-3 text-xs leading-5 text-[#EFE7DC]/75">
-              {level.points} travel points. {level.nextLevelPoints - level.points} points until Level {level.level + 1}.
+            <p className="m-0 mt-3 text-sm leading-6 text-[#5E4B40]">
+              {level.points} travel points. {Math.max(0, level.nextLevelPoints - level.points)} points until Level {level.level + 1}.
             </p>
-          </div>
+          </aside>
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        <div className="no-scrollbar mb-6 flex gap-2 overflow-x-auto rounded border border-[#3A2A22]/10 bg-[#FBF7F0]/85 p-2 shadow-[0_12px_34px_rgba(58,42,34,0.08)]">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        <nav aria-label="Profile sections" className="no-scrollbar mb-8 flex gap-2 overflow-x-auto rounded-full border border-[#3A2A22]/10 bg-[#FFF9F0] p-1.5 shadow-[0_12px_28px_rgba(58,42,34,0.06)]">
           {tabs.map((tab) => (
             <button
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`min-h-11 shrink-0 rounded px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] transition ${
-                activeTab === tab ? "bg-[#3A2A22] text-[#FBF7F0]" : "text-[#3A2A22] hover:bg-[#EFE7DC]"
+              className={`min-h-10 shrink-0 rounded-full px-4 font-[var(--font-label)] text-[0.72rem] font-bold uppercase tracking-[0.08em] transition ${
+                activeTab === tab ? "bg-[#3A2A22] text-[#FFF9F0]" : "text-[#3A2A22] hover:bg-[#EFE7DC]"
               }`}
             >
               {tab}
             </button>
           ))}
-        </div>
+        </nav>
 
-        {status ? <div className="mb-5 rounded border border-[#C4713A]/25 bg-[#C4713A]/10 p-4 text-sm text-[#7A3E1E]">{status}</div> : null}
+        {status ? <div className="mb-6 rounded-lg border border-[#C4713A]/30 bg-[#FFF4E8] p-4 text-sm font-semibold text-[#7A4B32]">{status}</div> : null}
 
         {activeTab === "Overview" ? (
           <div className="grid gap-6">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {overviewStats.map((stat) => (
-                <div key={stat.label}>
-                  <StatTile icon={stat.icon} label={stat.label} value={stat.value} />
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => setActiveTab("Settings")}
-                className="rounded border border-[#3A2A22]/10 bg-[#3A2A22] p-4 text-left text-[#FBF7F0] shadow-[0_14px_34px_rgba(58,42,34,0.12)] transition hover:bg-[#2C211C]"
-              >
-                <span className="grid h-10 w-10 place-items-center rounded bg-[#FBF7F0]/12 text-[#CFA68A]">
-                  <Settings size={18} />
-                </span>
-                <strong className="mt-4 block font-[var(--font-display)] text-3xl font-semibold leading-none">Settings</strong>
-                <span className="mt-2 block font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] text-[#EFE7DC]/78">Edit profile and account</span>
-              </button>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {pinsCreated > 0 ? <StatCard label="Pins Created" value={pinsCreated} supporting="Places mapped from your travels." /> : <FirstPinPrompt />}
+              <StatCard label="Stories Posted" value={storiesPosted} supporting="Travel notes shared with the community." />
+              <StatCard label="Saved Places" value={savedPlaces} supporting="Stories and destinations saved for later." />
+              <StatCard label="Followers" value={user.followersCount.toLocaleString()} />
+              <StatCard label="Following" value={user.followingCount.toLocaleString()} />
+              <StatCard label="Travel Groups" value={travelGroups} />
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-              <SectionPanel title="Profile Details" icon={UserRound}>
-                <dl className="grid gap-3 text-sm sm:grid-cols-2">
+            <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+              <Panel title="Account & Privacy" eyebrow="Owner View">
+                <dl className="grid gap-3 text-sm">
                   {[
-                    ["Full Name", user.name],
-                    ["Email", user.email],
-                    ["Lives In", user.location || "Not set"],
-                    ["Joined", user.joinedDate || "Recently"],
-                    ["Nationality", user.nationality || "Not set"],
-                    ["Plan", user.plan],
+                    ["Plan", formatPlan(user.plan)],
+                    ["Public contact", maskEmail(user.email)],
+                    ["Profile completion", `${profileCompletion}%`],
                   ].map(([label, value]) => (
-                    <div key={label} className="rounded bg-[#FBF7F0] p-3">
-                      <dt className="font-[var(--font-label)] text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[#9E6B5C]">{label}</dt>
-                      <dd className="m-0 mt-1 font-semibold text-[#2C211C]">{value}</dd>
+                    <div key={label} className="flex items-center justify-between gap-4 rounded-lg bg-[#F5F0E8] p-4">
+                      <dt className="font-[var(--font-label)] text-[0.7rem] font-bold uppercase tracking-[0.1em] text-[#5E4B40]">{label}</dt>
+                      <dd className="m-0 text-right font-semibold text-[#2C211C]">{value}</dd>
                     </div>
                   ))}
                 </dl>
-              </SectionPanel>
+                <p className="m-0 mt-4 text-sm leading-6 text-[#5E4B40]">
+                  Email is masked on profile surfaces by default. Edit private account information from Settings.
+                </p>
+              </Panel>
 
-              <SectionPanel title="Achievements" icon={Award}>
-                <div className="mb-4 flex items-center justify-between rounded bg-[#FBF7F0] p-3">
-                  <span className="text-sm font-semibold text-[#6B5A50]">Unlocked badges</span>
-                  <strong className="font-[var(--font-display)] text-2xl text-[#2C211C]">{unlockedBadges}/{badges.length}</strong>
+              <Panel
+                title="Achievements"
+                eyebrow={`${unlockedBadges}/${badges.length} unlocked`}
+                action={<button type="button" onClick={() => setActiveTab("Achievements")} className="text-sm font-bold text-[#7A4B32]">View all</button>}
+              >
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {badges.map((badge) => (
+                    <BadgeCard key={badge.title} badge={badge} />
+                  ))}
                 </div>
-                <div className="grid gap-3">
-                  {badges.slice(0, 3).map((badge) => {
-                    const Icon = badge.icon;
-                    return (
-                      <div key={badge.title} className={`flex items-center gap-3 rounded p-3 ${badge.unlocked ? "bg-[#FBF7F0]" : "bg-[#D8D0C2]/50 opacity-70"}`}>
-                        <span className="grid h-9 w-9 place-items-center rounded bg-[#EFE7DC] text-[#C4713A]"><Icon size={17} /></span>
-                        <div>
-                          <p className="m-0 font-semibold text-[#2C211C]">{badge.title}</p>
-                          <p className="m-0 mt-0.5 text-xs text-[#6B5A50]">{badge.detail}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </SectionPanel>
+              </Panel>
             </div>
           </div>
         ) : null}
 
-        {activeTab === "Badges" ? (
-          <SectionPanel title="Badges / Achievements" icon={Award}>
+        {activeTab === "Achievements" ? (
+          <Panel title="Badges / Achievements" eyebrow={`${unlockedBadges}/${badges.length} unlocked`}>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {badges.map((badge) => {
-                const Icon = badge.icon;
-                return (
-                  <article key={badge.title} className={`rounded border p-5 ${badge.unlocked ? "border-[#C4713A]/25 bg-[#FBF7F0]" : "border-[#3A2A22]/8 bg-[#D8D0C2]/45"}`}>
-                    <div className="mb-5 flex items-center justify-between gap-3">
-                      <span className={`grid h-12 w-12 place-items-center rounded ${badge.unlocked ? "bg-[#C4713A] text-[#FBF7F0]" : "bg-[#EFE7DC] text-[#9A8C7C]"}`}>
-                        <Icon size={22} />
-                      </span>
-                      <span className={`rounded-full px-3 py-1 text-[0.66rem] font-bold uppercase tracking-[0.08em] ${badge.unlocked ? "bg-[#C4713A]/12 text-[#7A3E1E]" : "bg-[#3A2A22]/8 text-[#6B5A50]"}`}>
-                        {badge.unlocked ? "Unlocked" : "Locked"}
-                      </span>
-                    </div>
-                    <h3 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2C211C]">{badge.title}</h3>
-                    <p className="m-0 mt-2 text-sm leading-6 text-[#6B5A50]">{badge.detail}</p>
-                  </article>
-                );
-              })}
+              {badges.map((badge) => (
+                <BadgeCard key={badge.title} badge={badge} />
+              ))}
             </div>
-          </SectionPanel>
+          </Panel>
         ) : null}
 
         {activeTab === "Saved Places" ? (
-          <SectionPanel title="Saved Places" icon={Bookmark} action={<NavLink to="/saved-places" className="text-sm font-bold text-[#9E6B5C]">Open saved page</NavLink>}>
+          <Panel title="Saved Places" eyebrow="Collection" action={<NavLink to="/saved-places" className="text-sm font-bold text-[#7A4B32]">Open saved page</NavLink>}>
             <div className="grid gap-4 md:grid-cols-2">
               {data.spots.map((spot) => (
-                <article key={spot.place_id} className="rounded bg-[#FBF7F0] p-4">
-                  <h3 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2C211C]">{spot.name}</h3>
-                  <p className="m-0 mt-1 text-sm font-semibold text-[#9E6B5C]">{spot.category}</p>
-                  <p className="mt-3 text-sm leading-6 text-[#6B5A50]">{spot.notes || "No notes yet."}</p>
-                  <div className="mt-4 text-xs text-[#6B6B5A]">Saved {formatDate(spot.saved_at)}</div>
+                <article key={spot.place_id} className="rounded-lg border border-[#3A2A22]/10 bg-[#F5F0E8] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2C211C]">{spot.name}</h3>
+                    <button type="button" onClick={() => setPendingSavedPlaceDelete(spot)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#B23B2E]/25 text-[#8A2F25] hover:bg-[#B23B2E]/10" aria-label={`Delete ${spot.name}`}>
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <p className="m-0 mt-1 font-[var(--font-label)] text-[0.7rem] font-bold uppercase tracking-[0.1em] text-[#7A4B32]">{spot.category}</p>
+                  <p className="m-0 mt-3 text-sm leading-6 text-[#5E4B40]">{spot.notes || "No notes yet."}</p>
+                  <div className="mt-4 text-xs font-semibold text-[#5E4B40]">Saved {formatDate(spot.saved_at)}</div>
                 </article>
               ))}
-              {!data.spots.length ? <EmptyState icon={Bookmark} title="Saved stories and tourist spots will appear here." /> : null}
+              {!data.spots.length ? <EmptyState icon={Bookmark} title="No saved places yet" copy="Saved stories and tourist spots will appear here once you begin collecting places." /> : null}
             </div>
-          </SectionPanel>
+          </Panel>
         ) : null}
 
         {activeTab === "Travel Groups" ? (
-          <SectionPanel title="Travel Groups" icon={Users} action={<NavLink to="/travel-groups" className="text-sm font-bold text-[#9E6B5C]">Manage groups</NavLink>}>
+          <Panel title="Travel Groups" eyebrow="Community" action={<NavLink to="/travel-groups" className="text-sm font-bold text-[#7A4B32]">Manage groups</NavLink>}>
             <div className="grid gap-4 md:grid-cols-2">
               {data.groups.map((group) => (
-                <article key={group.circle_id} className="rounded bg-[#FBF7F0] p-4">
+                <article key={group.circle_id} className="rounded-lg border border-[#3A2A22]/10 bg-[#F5F0E8] p-4">
                   <h3 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2C211C]">{group.name}</h3>
-                  <p className="m-0 mt-1 text-sm text-[#6B5A50]">{group.members.length} member{group.members.length === 1 ? "" : "s"}</p>
+                  <p className="m-0 mt-1 text-sm text-[#5E4B40]">{group.members.length} member{group.members.length === 1 ? "" : "s"}</p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {group.members.slice(0, 5).map((member) => (
-                      <span key={member.user_id} className="rounded-full bg-[#EFE7DC] px-3 py-1 text-xs font-semibold text-[#9E6B5C]">
+                      <span key={member.user_id} className="rounded-full bg-[#FFF9F0] px-3 py-1 text-xs font-semibold text-[#5E4B40]">
                         {member.display_name || member.user_id}
                       </span>
                     ))}
                   </div>
                 </article>
               ))}
-              {!data.groups.length ? <EmptyState icon={Users} title="No travel groups joined yet." /> : null}
+              {!data.groups.length ? <EmptyState icon={Users} title="No travel groups yet" copy="Groups you join or create will appear here for quick access." /> : null}
             </div>
-          </SectionPanel>
+          </Panel>
+        ) : null}
+
+        {activeTab === "Calendar" ? (
+          <TravelPlanCalendar plans={travelPlans} ownerId={user.id} />
         ) : null}
 
         {activeTab === "Settings" ? (
           <div className="grid gap-6 lg:grid-cols-[1fr_0.85fr]">
-            <SectionPanel title="Edit Profile Information" icon={Edit3}>
+            <Panel title="Edit Profile Information" eyebrow="Private Settings">
               <form onSubmit={handleSaveProfile} className="grid gap-4">
                 {[
                   ["Full Name", "name"],
@@ -437,46 +711,54 @@ function ProfileContent() {
                   ["Profile Picture URL", "avatar"],
                 ].map(([label, field]) => (
                   <label key={field} className="grid gap-2">
-                    <span className="font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] text-[#6B5A50]">{label}</span>
+                    <span className="font-[var(--font-label)] text-[0.7rem] font-bold uppercase tracking-[0.1em] text-[#5E4B40]">{label}</span>
                     <input
                       value={form[field as keyof ProfileForm]}
                       onChange={(event) => handleFormChange(field as keyof ProfileForm, event.target.value)}
-                      className="min-h-11 rounded border border-[#3A2A22]/15 bg-[#FBF7F0] px-3 text-sm outline-none transition focus:border-[#C4713A]"
+                      className="min-h-11 rounded-lg border border-[#3A2A22]/15 bg-[#FFF9F0] px-3 text-sm text-[#2C211C] outline-none transition focus:border-[#C4713A] focus:ring-2 focus:ring-[#C4713A]/20"
                     />
                   </label>
                 ))}
                 <label className="grid gap-2">
-                  <span className="font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] text-[#6B5A50]">Bio</span>
+                  <span className="font-[var(--font-label)] text-[0.7rem] font-bold uppercase tracking-[0.1em] text-[#5E4B40]">Bio</span>
                   <textarea
                     value={form.bio}
                     onChange={(event) => handleFormChange("bio", event.target.value)}
                     rows={5}
-                    className="resize-none rounded border border-[#3A2A22]/15 bg-[#FBF7F0] px-3 py-2 text-sm leading-6 outline-none transition focus:border-[#C4713A]"
+                    className="resize-none rounded-lg border border-[#3A2A22]/15 bg-[#FFF9F0] px-3 py-2 text-sm leading-6 text-[#2C211C] outline-none transition focus:border-[#C4713A] focus:ring-2 focus:ring-[#C4713A]/20"
                   />
                 </label>
-                <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-[#3A2A22] px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] text-[#FBF7F0] transition hover:bg-[#2C211C]">
+                <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#3A2A22] px-5 font-[var(--font-label)] text-[0.72rem] font-bold uppercase tracking-[0.08em] text-[#FFF9F0] transition hover:bg-[#2C211C]">
                   <Save size={15} /> Save Profile
                 </button>
               </form>
-            </SectionPanel>
+            </Panel>
 
-            <SectionPanel title="Settings" icon={Settings}>
-              <div className="grid gap-4">
-                <div className="rounded bg-[#FBF7F0] p-4">
-                  <p className="m-0 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] text-[#9E6B5C]">Account</p>
-                  <p className="m-0 mt-2 text-sm leading-6 text-[#6B5A50]">Manage your public information, account safety, and permanent account deletion.</p>
-                </div>
-                <NavLink
-                  to="/account/delete"
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded border border-[#C0392B]/30 bg-[#C0392B]/10 px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] text-[#C0392B] transition hover:bg-[#C0392B]/15"
-                >
-                  <Trash2 size={16} /> Delete Account
-                </NavLink>
+            <Panel title="Account Safety" eyebrow="Permanent Actions">
+              <div className="rounded-lg bg-[#F5F0E8] p-4">
+                <p className="m-0 font-semibold text-[#2C211C]">Delete account</p>
+                <p className="m-0 mt-2 text-sm leading-6 text-[#5E4B40]">
+                  This removes your account data, profile information, and private map records.
+                </p>
               </div>
-            </SectionPanel>
+              <NavLink
+                to="/account/delete"
+                className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#B23B2E]/35 bg-[#B23B2E]/10 px-4 font-[var(--font-label)] text-[0.72rem] font-bold uppercase tracking-[0.08em] text-[#9B2F25] transition hover:bg-[#B23B2E]/15"
+              >
+                <Trash2 size={16} /> Delete Account
+              </NavLink>
+            </Panel>
           </div>
         ) : null}
       </div>
+      <ConfirmDialog
+        open={Boolean(pendingSavedPlaceDelete)}
+        title={`Delete ${pendingSavedPlaceDelete?.name ?? "this saved place"}?`}
+        description={`Are you sure you want to delete "${pendingSavedPlaceDelete?.name ?? "this saved place"}" from your saved places?`}
+        confirmLabel="Delete Saved Place"
+        onConfirm={() => pendingSavedPlaceDelete && void handleDeleteSavedPlace(pendingSavedPlaceDelete.place_id)}
+        onCancel={() => setPendingSavedPlaceDelete(null)}
+      />
     </section>
   );
 }

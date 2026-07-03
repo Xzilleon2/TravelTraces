@@ -29,6 +29,7 @@ import { GatedPage } from "../components/GatedPage";
 import { MarkerFormModal } from "../components/MarkerFormModal";
 import { MarkerDetailPanel } from "../components/MarkerDetailPanel";
 import { SmartMeetupPlanner } from "../components/SmartMeetupPlanner";
+import { TravelPlanStoryForm } from "../components/TravelPlanStoryForm";
 import { WorkspaceButton } from "../components/workspace/WorkspaceButton";
 import { WorkspaceToggleGroup } from "../components/workspace/WorkspaceToggleGroup";
 import {
@@ -56,6 +57,7 @@ import {
 } from "../services/mappingApi";
 import { publishWorkspaceEvent, subscribeWorkspaceEvents } from "../utils/workspaceSync";
 import { markerSavePayload, primaryPhotoUrl, type PendingMarkerPhoto } from "../utils/photoPinHelpers";
+import { createTravelPlanStory } from "../services/travelPlanStories";
 import { SEA_BOUNDS } from "../utils/seaBounds";
 import { LOCAL_STORIES_KEY, STORIES, STORY_MAP_POINTS, STORY_PHOTOS, type TravelStory } from "./StoriesPage";
 import drawRouteIcon from "../assets/icons/draw-route.png";
@@ -95,6 +97,7 @@ const TOURIST_SPOT_SOURCE_ID = "workspace-tourist-spots";
 const MEETUP_AREA_SOURCE_ID = "workspace-meetup-area";
 const PHOTO_PIN_LAYER = "workspace-photo-pins";
 const PIN_CATEGORY_LABEL_LAYER = "workspace-pin-category-labels";
+const REMOVED_DEFAULT_TOURIST_SPOTS = new Set(["Samal Island", "Mount Apo", "Tinuy-an Falls"]);
 const PIN_ICON_IDS = {
   private: "workspace-pin-private",
   public: "workspace-pin-public",
@@ -448,7 +451,12 @@ function touristSpotsToGeoJson(spots: TouristSpot[]): FeatureCollection<Point> {
   return {
     type: "FeatureCollection",
     features: spots
-      .filter((spot) => Number.isFinite(Number(spot.latitude)) && Number.isFinite(Number(spot.longitude)))
+      .filter(
+        (spot) =>
+          !REMOVED_DEFAULT_TOURIST_SPOTS.has(spot.name) &&
+          Number.isFinite(Number(spot.latitude)) &&
+          Number.isFinite(Number(spot.longitude)),
+      )
       .map((spot) => ({
         type: "Feature",
         geometry: { type: "Point", coordinates: [Number(spot.longitude), Number(spot.latitude)] },
@@ -961,6 +969,7 @@ function MapsWorkspaceContent() {
   const [routeWidth, setRouteWidth] = useState(5);
   const [draftMarkerLocation, setDraftMarkerLocation] = useState<ApiLocation | null>(null);
   const [markerModalLocation, setMarkerModalLocation] = useState<ApiLocation | null>(null);
+  const [travelPlanFormOpen, setTravelPlanFormOpen] = useState(false);
   const [selectedPin, setSelectedPin] = useState<ApiPin | null>(null);
   const [activeMap, setActiveMap] = useState<UserMap | null>(null);
   const [placementPreview, setPlacementPreview] = useState<string | null>(null);
@@ -1035,7 +1044,7 @@ function MapsWorkspaceContent() {
       : await Promise.all([listPublicPins("public"), Promise.resolve([]), Promise.resolve([])]);
     setPins(nextPins);
     setSavedRouteCount(nextRoutes.length);
-    setTouristSpots(nextTouristSpots);
+    setTouristSpots(nextTouristSpots.filter((spot) => !REMOVED_DEFAULT_TOURIST_SPOTS.has(spot.name)));
   }, [activeMap?.map_id, groupIds, isAuthenticated, viewerId]);
 
   useEffect(() => {
@@ -1174,6 +1183,16 @@ function MapsWorkspaceContent() {
         setRoute(event.route);
       }
     });
+  }, []);
+
+  useEffect(() => {
+    const refreshLocalMapStories = () => setLocalMapStories(readLocalMapStories());
+    window.addEventListener("traveltraces:local-stories-updated", refreshLocalMapStories);
+    window.addEventListener("storage", refreshLocalMapStories);
+    return () => {
+      window.removeEventListener("traveltraces:local-stories-updated", refreshLocalMapStories);
+      window.removeEventListener("storage", refreshLocalMapStories);
+    };
   }, []);
 
   useEffect(() => {
@@ -1552,6 +1571,8 @@ function MapsWorkspaceContent() {
               if (nextRoute) {
                 if (next.length >= drawTargetPointCount) {
                   setDrawingActive(false);
+                  setActiveSidePanel(null);
+                  setTravelPlanFormOpen(true);
                   setStatus(`Route completed with ${drawTargetPointCount} points in travel order.`);
                 } else {
                   setStatus(`Point ${next.length} added. Add ${drawTargetPointCount - next.length} more point${drawTargetPointCount - next.length === 1 ? "" : "s"} to finish this route.`);
@@ -1832,6 +1853,7 @@ function MapsWorkspaceContent() {
   const handleClearDraw = useCallback(() => {
     setDraftStops([]);
     setRoute(null);
+    setTravelPlanFormOpen(false);
   }, []);
 
   const handleDropMarkerClick = useCallback(() => {
@@ -2374,6 +2396,21 @@ function MapsWorkspaceContent() {
       <div className="rounded-lg bg-[#F5F0E8] p-3 text-sm leading-6 text-[#6B6B5A]">
         {draftStops.length} drawn point{draftStops.length === 1 ? "" : "s"}. {drawRouteInputMode === "click" ? `Click ${drawTargetPointCount} points in order. The route connects 1 to 2, 2 to 3, and so on without skipping points.` : "Drag one segment at a time. Each new drag must start from the latest point, so point 1 only connects to point 2, point 2 to point 3, and so on."}
       </div>
+      {draftStops.length >= 2 ? (
+        <WorkspaceButton
+          variant="primary"
+          icon={BookOpen}
+          disabled={busy}
+          onClick={() => {
+            setActiveToolbarMenu(null);
+            setActiveSidePanel(null);
+            setDrawingActive(false);
+            setTravelPlanFormOpen(true);
+          }}
+        >
+          Create Travel Plan Story
+        </WorkspaceButton>
+      ) : null}
     </div>
   );
 
@@ -2828,6 +2865,35 @@ function MapsWorkspaceContent() {
         busy={busy}
         onClose={handleCloseMarkerModal}
         onSave={saveMarkerFromModal}
+      />
+      <TravelPlanStoryForm
+        open={travelPlanFormOpen}
+        stops={draftStops}
+        routeGeometry={route?.geometry}
+        busy={busy}
+        onClose={() => setTravelPlanFormOpen(false)}
+        onConvertToMarker={(location) => {
+          setTravelPlanFormOpen(false);
+          setDraftStops([]);
+          setRoute(null);
+          openMarkerAtLocation(location, "Only one destination remains, so this journey became a Drop Marker.");
+        }}
+        onSave={(input) => {
+          const plan = createTravelPlanStory({
+            ownerId: viewerId,
+            ownerName: user?.name ?? "You",
+            travelPlanName: input.travelPlanName,
+            coverImage: input.coverImage,
+            description: input.description,
+            stops: input.stops,
+            routeGeometry: route?.geometry,
+          });
+          setTravelPlanFormOpen(false);
+          setDraftStops([]);
+          setRoute(null);
+          setStatus(`Travel Plan Story "${plan.travelPlanName}" saved privately. Open Stories to track the journey.`);
+          navigate(`/travel-plan-stories?plan=${encodeURIComponent(plan.id)}`);
+        }}
       />
     </section>
   );

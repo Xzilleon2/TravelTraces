@@ -13,6 +13,7 @@ import { LANDING_IMAGE_LIST } from "./pages/landingAssets";
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const ExplorePage = lazy(() => import("./pages/ExplorePage"));
 const StoriesPage = lazy(() => import("./pages/StoriesPage"));
+const TravelPlanStoriesPage = lazy(() => import("./pages/TravelPlanStoriesPage"));
 const MapPage = lazy(() => import("./pages/MapPage"));
 const MappingLayerPage = lazy(() => import("./pages/MappingLayerPage"));
 const MapsWorkspacePage = lazy(() => import("./pages/MapsWorkspacePage"));
@@ -23,6 +24,7 @@ const AccountDeletionPage = lazy(() => import("./pages/AccountDeletionPage"));
 const CommunityPage = lazy(() => import("./pages/CommunityPage"));
 const EventsPage = lazy(() => import("./pages/EventsPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const PublicProfilePage = lazy(() => import("./pages/PublicProfilePage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
@@ -325,7 +327,7 @@ function AppLayout() {
   const location = useLocation();
   const { isAuthenticated, authReady } = useAuth();
   const isImmersiveMap = location.pathname === "/maps";
-  const showScrollTop = ["/explore", "/stories"].includes(location.pathname);
+  const showScrollTop = ["/explore", "/stories", "/travel-plan-stories", "/community", "/events"].includes(location.pathname);
   const wordmark = "TravelTraces";
   const minimumLoadingDurationMs = 5000 + wordmark.length * 125;
   const [isAtTop, setIsAtTop] = useState(true);
@@ -365,6 +367,10 @@ function AppLayout() {
   const exitTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [location.pathname]);
+
+  useEffect(() => {
     document.querySelectorAll("img").forEach((image) => {
       image.loading = "lazy";
       image.decoding = "async";
@@ -385,7 +391,7 @@ function AppLayout() {
       return undefined;
     }
 
-    const update = () => setIsAtTop(window.scrollY < 360);
+    const update = () => setIsAtTop(window.scrollY < 24);
     update();
     window.addEventListener("scroll", update, { passive: true });
     return () => window.removeEventListener("scroll", update);
@@ -551,6 +557,7 @@ function AppLayout() {
 
             <Route path="/explore" element={<ExplorePage />} />
             <Route path="/stories" element={<StoriesPage />} />
+            <Route path="/travel-plan-stories" element={<TravelPlanStoriesPage />} />
             <Route path="/map" element={<MapPage />} />
             <Route path="/map/layers" element={<MappingLayerPage />} />
             <Route path="/geo-photos" element={<GeoreferencedPhotosPage />} />
@@ -559,6 +566,7 @@ function AppLayout() {
             <Route path="/community" element={<CommunityPage />} />
             <Route path="/events" element={<EventsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/profile/:userId" element={<PublicProfilePage />} />
             <Route path="/account/delete" element={<AccountDeletionPage />} />
 
             <Route path="*" element={<LandingPage />} />

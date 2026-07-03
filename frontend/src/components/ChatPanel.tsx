@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router";
 import { ArrowLeft, BellOff, MessageSquare, MoreHorizontal, Plus, Search, Send, SquarePen, Users, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { GAMIFIED_USERS, getLevelFromXp } from "./gamification";
-import { UserProfileModal } from "./UserProfileModal";
 
 type Msg = {
   id: number;
@@ -286,11 +286,11 @@ function MessageThreadView({
 
 export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conv[]>(INITIAL_CONVERSATIONS);
   const [activeTab, setActiveTab] = useState<"Friends" | "Events" | "Unread">("Events");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeConvId, setActiveConvId] = useState<number | null>(null);
-  const [selectedProfileKey, setSelectedProfileKey] = useState<string | null>(null);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
   const [groupName, setGroupName] = useState("");
@@ -306,8 +306,6 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
     if (activeTab === "Events") return !!conv.isGroup;
     return conv.unread;
   });
-  const viewingProfile = selectedProfileKey ? GAMIFIED_USERS[selectedProfileKey] : null;
-
   const handleSelectConv = (conv: Conv) => {
     setActiveConvId(conv.id);
     if (conv.unread) {
@@ -363,7 +361,11 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
             conv={activeConv}
             onBack={() => setActiveConvId(null)}
             onUpdateConversation={handleUpdateConversation}
-            onViewProfile={() => setSelectedProfileKey(activeConv.gamifiedKey ?? null)}
+            onViewProfile={() => {
+              if (!activeConv.gamifiedKey) return;
+              onClose();
+              navigate(`/profile/${activeConv.gamifiedKey}`);
+            }}
           />
         ) : (
           <>
@@ -522,7 +524,6 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
           </form>
         </div>
       ) : null}
-      {viewingProfile ? <UserProfileModal user={viewingProfile} onClose={() => setSelectedProfileKey(null)} /> : null}
       {!user ? <span className="sr-only">Chat preview mode</span> : null}
     </>,
     document.body,

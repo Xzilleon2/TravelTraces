@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Bookmark, Clock, Compass, Gem, Heart, Landmark, MapPin, Mountain, Plus, Search, Trash2, TreePine, Utensils, Waves } from "lucide-react";
 import { useNavigate } from "react-router";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { GatedPage } from "../components/GatedPage";
 import { LOCAL_STORIES_KEY, SAVED_STORIES_KEY, STORIES, STORY_COLLECTIONS_KEY, type TravelStory } from "./StoriesPage";
 
@@ -50,10 +51,12 @@ function readCollections(): StoryCollection[] {
 
 function writeSavedStoryIds(ids: number[]) {
   window.localStorage.setItem(SAVED_STORIES_KEY, JSON.stringify(Array.from(new Set(ids))));
+  window.dispatchEvent(new CustomEvent("traveltraces:saved-stories-updated"));
 }
 
 function writeCollections(collections: StoryCollection[]) {
   window.localStorage.setItem(STORY_COLLECTIONS_KEY, JSON.stringify(collections));
+  window.dispatchEvent(new CustomEvent("traveltraces:story-collections-updated"));
 }
 
 function SavedStoryCard({
@@ -121,6 +124,8 @@ function SavedStoriesContent() {
   const [newCollection, setNewCollection] = useState("");
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
+  const [pendingStoryDelete, setPendingStoryDelete] = useState<TravelStory | null>(null);
+  const [pendingCollectionDelete, setPendingCollectionDelete] = useState<StoryCollection | null>(null);
 
   const allStories = useMemo<TravelStory[]>(() => [...readLocalStories(), ...STORIES], []);
   const savedStories = allStories.filter((story) => savedIds.includes(story.id));
@@ -144,6 +149,14 @@ function SavedStoriesContent() {
     setNewCollection("");
   };
 
+  const deleteCollection = (collectionId: string) => {
+    const next = collections.filter((collection) => collection.id !== collectionId);
+    setCollections(next);
+    writeCollections(next);
+    if (activeCollectionId === collectionId) setActiveCollectionId("all");
+    setPendingCollectionDelete(null);
+  };
+
   const removeSavedStory = (storyId: number) => {
     const nextSavedIds = savedIds.filter((id) => id !== storyId);
     const nextCollections = collections.map((collection) => ({ ...collection, storyIds: collection.storyIds.filter((id) => id !== storyId) }));
@@ -151,6 +164,7 @@ function SavedStoriesContent() {
     setCollections(nextCollections);
     writeSavedStoryIds(nextSavedIds);
     writeCollections(nextCollections);
+    setPendingStoryDelete(null);
   };
 
   const addToCollection = (storyId: number, collectionId: string) => {
@@ -175,9 +189,14 @@ function SavedStoriesContent() {
             All saved
           </button>
           {collections.map((collection) => (
-            <button key={collection.id} type="button" onClick={() => setActiveCollectionId(collection.id)} className={`min-h-11 rounded-full px-5 text-sm font-bold ${activeCollectionId === collection.id ? "bg-[#3A2A22] text-[#F5F0E8]" : "border border-[#3A2A22]/15 text-[#3A2A22]"}`}>
-              {collection.name}
-            </button>
+            <span key={collection.id} className={`inline-flex min-h-11 items-center overflow-hidden rounded-full border ${activeCollectionId === collection.id ? "border-[#3A2A22] bg-[#3A2A22] text-[#F5F0E8]" : "border-[#3A2A22]/15 text-[#3A2A22]"}`}>
+              <button type="button" onClick={() => setActiveCollectionId(collection.id)} className="min-h-11 px-5 text-sm font-bold">
+                {collection.name}
+              </button>
+              <button type="button" onClick={() => setPendingCollectionDelete(collection)} className="grid h-11 w-10 place-items-center border-l border-current/15" aria-label={`Delete ${collection.name}`}>
+                <Trash2 size={13} />
+              </button>
+            </span>
           ))}
           <div className="flex min-w-[260px] flex-1 gap-2 sm:flex-none">
             <input value={newCollection} onChange={(event) => setNewCollection(event.target.value)} className="min-h-11 min-w-0 flex-1 rounded-full border border-[#3A2A22]/15 bg-[#FBF7F0] px-4 text-sm text-[#1A1A1A] outline-none" placeholder="New story collection" />
@@ -232,7 +251,7 @@ function SavedStoriesContent() {
                   onOpen={() => {
                     void navigate(`/stories?${story.local ? "localStory" : "story"}=${story.id}`);
                   }}
-                  onRemove={() => removeSavedStory(story.id)}
+                  onRemove={() => setPendingStoryDelete(story)}
                   onAddToCollection={(collectionId) => addToCollection(story.id, collectionId)}
                 />
               </div>
@@ -249,6 +268,28 @@ function SavedStoriesContent() {
         .category-pill:hover { background-color: rgba(58,42,34,0.08) !important; border-color: #3A2A22 !important; color: #3A2A22 !important; }
         .category-pill[aria-pressed="true"]:hover { background-color: #3A2A22 !important; border-color: #3A2A22 !important; color: #F5F0E8 !important; }
       `}</style>
+      <ConfirmDialog
+        open={Boolean(pendingStoryDelete)}
+        title="Delete this story?"
+        description="You are about to remove the saved story shown below from your library."
+        itemPreview={pendingStoryDelete ? {
+          title: pendingStoryDelete.title,
+          subtitle: `${pendingStoryDelete.author} / ${pendingStoryDelete.region}`,
+          image: pendingStoryDelete.img,
+        } : undefined}
+        safetyText="This only removes it from Saved Stories. The original story stays available, and you can save it again later."
+        confirmLabel="Delete Saved Story"
+        onConfirm={() => pendingStoryDelete && removeSavedStory(pendingStoryDelete.id)}
+        onCancel={() => setPendingStoryDelete(null)}
+      />
+      <ConfirmDialog
+        open={Boolean(pendingCollectionDelete)}
+        title={`Delete ${pendingCollectionDelete?.name ?? "this collection"}?`}
+        description={`Are you sure you want to delete "${pendingCollectionDelete?.name ?? "this collection"}"? Stories inside it will stay saved.`}
+        confirmLabel="Delete Collection"
+        onConfirm={() => pendingCollectionDelete && deleteCollection(pendingCollectionDelete.id)}
+        onCancel={() => setPendingCollectionDelete(null)}
+      />
     </div>
   );
 }
