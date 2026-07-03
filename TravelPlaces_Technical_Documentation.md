@@ -216,7 +216,6 @@ TravelPlaces/
 | frontend/src/components/MapCustomForm.tsx | Rich text pin/story composer for the classic map, including formatting, image selection, and sanitization. | Users could not create the formatted map notes/pins UI. |
 | frontend/src/components/Navbar.tsx | Primary navigation with public/member link sets, profile menu, chat launcher, and auth controls. | The app would lose its global navigation shell. |
 | frontend/src/components/UpgradeModal.tsx | Plan-upgrade call-to-action shown when free-tier limits are reached. | Free-tier limit prompts would not appear. |
-| frontend/src/components/UserProfileModal.tsx | Profile popover with XP, badges, rarity styling, and follow actions. | Community/story profile cards would lose their detailed overlay. |
 | frontend/src/components/gamification.ts | Static XP/level/badge rules and sample gamified users. | Gamification-driven UI would lose its data model. |
 | frontend/src/components/maps/LayerMapInterface.tsx | Leaflet-based layer map with georeferenced media, route lines, pin rendering, and live tracking integration. | The layered map page would have no interactive map engine. |
 
@@ -259,9 +258,9 @@ TravelPlaces/
 | frontend/.env.example | Frontend environment template. | Documents Vite API base/proxy settings. |
 | frontend/public/favicon.svg | Site favicon asset. | Used by index.html. |
 | frontend/public/data/philippines-municipal-boundaries.geojson | GeoJSON boundary dataset for the map layer. | Consumed by the layered map UI. |
-| frontend/imports/Allen.jpg | Team portrait asset. | Used on the About page. |
-| frontend/imports/Hershey.jpg | Team portrait asset. | Used on the About page. |
-| frontend/imports/Kayeen.jpg | Team portrait asset. | Used on the About page. |
+| frontend/public/creator-profiles/Allen.jpg | Team portrait asset. | Used on the About page. |
+| frontend/public/creator-profiles/Hershey.jpg | Team portrait asset. | Used on the About page. |
+| frontend/public/creator-profiles/Kayeen.jpg | Team portrait asset. | Used on the About page. |
 | run.cmd | Windows bootstrap script to install dependencies and run backend/frontend/website stacks. | Convenience launcher for local development. |
 
 ## 5. Dependency mapping
@@ -381,7 +380,7 @@ flowchart LR
 
 ### Stories, events, profiles, and community
 
-- **Files involved:** `frontend/src/pages/StoriesPage.tsx`, `frontend/src/pages/EventsPage.tsx`, `frontend/src/pages/ProfilePage.tsx`, `frontend/src/pages/CommunityPage.tsx`, `frontend/src/components/UserProfileModal.tsx`, `frontend/src/components/gamification.ts`
+- **Files involved:** `frontend/src/pages/StoriesPage.tsx`, `frontend/src/pages/EventsPage.tsx`, `frontend/src/pages/ProfilePage.tsx`, `frontend/src/pages/CommunityPage.tsx`, `frontend/src/pages/PublicProfilePage.tsx`, `frontend/src/components/gamification.ts`
 - **Behavior:** social content is largely static/mock data driven in the current codebase, designed to showcase the product story and interaction patterns
 
 ### Live tracking
