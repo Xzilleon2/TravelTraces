@@ -5,10 +5,10 @@ import { GatedPage } from "../components/GatedPage";
 import { GAMIFIED_USERS } from "../components/gamification";
 
 const TRAVELLERS = [
-  { id: 1, profileKey: "carlo", name: "Carlo Reyes", handle: "@carloreyes", location: "Cebu City", avatar: "https://images.unsplash.com/photo-1519101739220-83f6a14852ca?w=80&h=80&fit=crop&auto=format", pins: 142, stories: 24, followers: 3210, bio: "Freediving instructor and island hopper. Palawan-based, born in Leyte.", islands: 142, rank: 1 },
-  { id: 2, profileKey: "ana", name: "Ana Villanueva", handle: "@anavillanueva", location: "Quezon City", avatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=80&h=80&fit=crop&auto=format", pins: 98, stories: 18, followers: 2140, bio: "Travel writer and photographer. Batanes is my second home.", islands: 98, rank: 2 },
-  { id: 3, profileKey: "ramon", name: "Ramon Dela Cruz", handle: "@ramondelacruz", location: "Baguio City", avatar: "https://images.unsplash.com/photo-1565565915331-293fd8113954?w=80&h=80&fit=crop&auto=format", pins: 87, stories: 31, followers: 1890, bio: "Cultural explorer and long-form writer. Cordillera born.", islands: 87, rank: 3 },
-  { id: 4, profileKey: "leila", name: "Leila Marcos", handle: "@leilamarcos", location: "Davao City", avatar: "https://images.unsplash.com/photo-1639526473371-e68e5336df56?w=80&h=80&fit=crop&auto=format", pins: 76, stories: 14, followers: 1640, bio: "Mindanao advocate and surf coach based in Siargao.", islands: 76, rank: 4 },
+  { id: 1, profileKey: "carlo", name: "Allen John Bautista", handle: "@allenbautista", location: "Cebu City", avatar: "https://images.unsplash.com/photo-1519101739220-83f6a14852ca?w=80&h=80&fit=crop&auto=format", pins: 142, stories: 24, followers: 3210, bio: "Freediving instructor and island hopper. Palawan-based, born in Leyte.", islands: 142, rank: 1 },
+  { id: 2, profileKey: "ana", name: "Hershey Nicolle Tabanao", handle: "@hersheytabanao", location: "Davao City", avatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=80&h=80&fit=crop&auto=format", pins: 98, stories: 18, followers: 2140, bio: "Travel writer and photographer. Batanes is my second home.", islands: 98, rank: 2 },
+  { id: 3, profileKey: "ramon", name: "Richard Redera Layar", handle: "@richardlayar", location: "Baguio City", avatar: "https://images.unsplash.com/photo-1565565915331-293fd8113954?w=80&h=80&fit=crop&auto=format", pins: 87, stories: 31, followers: 1890, bio: "Cultural explorer and long-form writer. Cordillera born.", islands: 87, rank: 3 },
+  { id: 4, profileKey: "leila", name: "Jenny Mae Velarde", handle: "@jennyvelarde", location: "Davao City", avatar: "https://images.unsplash.com/photo-1639526473371-e68e5336df56?w=80&h=80&fit=crop&auto=format", pins: 76, stories: 14, followers: 1640, bio: "Mindanao advocate and surf coach based in Siargao.", islands: 76, rank: 4 },
   { id: 5, profileKey: "marco", name: "Marco Buenaventura", handle: "@marcobuen", location: "Manila", avatar: "https://images.unsplash.com/photo-1672933354004-3cbd9874f099?w=80&h=80&fit=crop&auto=format", pins: 63, stories: 22, followers: 1320, bio: "Food and travel. Pampanga to Mindanao, one meal at a time.", islands: 63, rank: 5 },
   { id: 6, profileKey: "sofia", name: "Sofia Reyes", handle: "@sofiareyes", location: "Iloilo City", avatar: "https://images.unsplash.com/photo-1688541197205-02bd8c71074d?w=80&h=80&fit=crop&auto=format", pins: 54, stories: 9, followers: 980, bio: "Hidden gems specialist. Visayas-based, always planning the next escape.", islands: 54, rank: 6 },
 ];
@@ -26,12 +26,9 @@ function TravellerCard({ t, onViewProfile }: { t: typeof TRAVELLERS[0]; onViewPr
   const [following, setFollowing] = useState(false);
   return (
     <div style={{ backgroundColor: "#EDEAE0", borderRadius: "0.25rem", padding: "1.5rem", display: "flex", gap: "1.25rem" }}>
-      <div style={{ position: "relative", flexShrink: 0 }}>
+      <button type="button" onClick={() => onViewProfile(t.profileKey)} style={{ border: "none", background: "none", padding: 0, cursor: "pointer", flexShrink: 0 }}>
         <img src={t.avatar} alt={t.name} style={{ width: 60, height: 60, borderRadius: "50%", objectFit: "cover" }} />
-        <div style={{ position: "absolute", bottom: 0, right: 0, width: 20, height: 20, backgroundColor: "#3A2A22", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #EDEAE0" }}>
-          <span style={{ fontFamily: "var(--font-label)", fontSize: "0.6rem", color: "#F5F0E8", fontWeight: 700 }}>{t.rank}</span>
-        </div>
-      </div>
+      </button>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
@@ -69,9 +66,6 @@ function TravellerCard({ t, onViewProfile }: { t: typeof TRAVELLERS[0]; onViewPr
             </div>
           ))}
         </div>
-        <button type="button" onClick={() => onViewProfile(t.profileKey)} style={{ marginTop: "1rem", border: "1px solid rgba(58,42,34,0.18)", background: "#F5F0E8", color: "#3A2A22", borderRadius: "999px", padding: "0.5rem 0.9rem", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-          View profile
-        </button>
       </div>
     </div>
   );

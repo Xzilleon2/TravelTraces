@@ -13,8 +13,7 @@ const TEAM = [
     name: "Kayeen M. Campaña",
     role: "Chief Executive Officer",
     location: "Davao City",
-    number: "01",
-    quote: "Every Filipino deserves to see their hometown on a map — not through a tourist's eyes, but through their own.",
+    number: "01", 
     portrait: kayeenImg,
   },
   {
@@ -22,7 +21,6 @@ const TEAM = [
     role: "Chief Geospatial Officer",
     location: "Davao City",
     number: "02",
-    quote: "Good technology should disappear. What remains is the story — and the person who had the courage to share it.",
     portrait: allenImg,
   },
   {
@@ -30,7 +28,6 @@ const TEAM = [
     role: "Cheif Marketing Officer",
     location: "Davao City",
     number: "03",
-    quote: "Every journey becomes more meaningful when travelers connect with local communities, cultures, and stories.",
     portrait: hersheyImg,
   },
 ];
@@ -243,7 +240,6 @@ export default function AboutPage() {
                     paddingLeft: "1rem",
                     fontStyle: "italic",
                   }}>
-                    "{member.quote}"
                   </blockquote>
                 </div>
               </div>
