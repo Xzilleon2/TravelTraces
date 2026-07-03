@@ -20,8 +20,7 @@ const publicLinks = [
   { label: "Featured Stories", hash: "featured-stories" },
   { label: "How it Works", hash: "how-it-works" },
   { label: "Pricing", hash: "pricing-route" },
-  { label: "Help", hash: "help-route" },
-  { label: "Contact", hash: "contact-section" },
+  { label: "About", hash: "about-route" },
 ];
 
 export function Navbar() {
@@ -59,8 +58,8 @@ export function Navbar() {
 
   const handlePublicLinkClick = (hash: string) => {
     setMobileOpen(false);
-    if (hash === "help-route") { navigate("/help"); return; }
     if (hash === "pricing-route") { navigate("/pricing"); return; }
+    if (hash === "about-route") { navigate("/about"); return; }
     if (hash === "") {
       navigate("/");
       setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 30);
