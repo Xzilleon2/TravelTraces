@@ -123,12 +123,10 @@ export function Navbar() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
 
           {/* Logo */}
-          <NavLink to="/" aria-label="TravelTraces home" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
-            <img
-              src="/logo/Logo%201.png"
-              alt="TravelTraces"
-              style={{ display: "block", width: "auto", height: "clamp(2rem, 6vw, 2.7rem)", objectFit: "contain" }}
-            />
+          <NavLink to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+            <span style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.18rem, 4.8vw, 1.5rem)", fontWeight: 600, color: isPublicHeader ? "#3A2A22" : "#F5F0E8", letterSpacing: isPublicHeader ? "0.18em" : "0.02em", whiteSpace: "nowrap", textTransform: isPublicHeader ? "uppercase" : "none" }}>
+              TravelTraces
+            </span>
           </NavLink>
 
           {/* Desktop nav */}
