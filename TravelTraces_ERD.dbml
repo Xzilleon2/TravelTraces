@@ -1,6 +1,6 @@
 Project TravelTraces {
   database_type: "PostgreSQL"
-  Note: "Corrected ERD for TravelTraces: users, profiles, stories, travel plan stories, explore places, maps/pins, routes, groups, events, chat, saves, badges, albums, and subscriptions."
+  Note: "Corrected ERD for TravelTraces based on the current website: authentication/session state, public and owner-safe profiles, explore places, stories, map pins, Draw Route travel plan drafts, published travel plan stories, calendar items, saved story/place collections, groups, events, chat, badges, albums, and account deletion/audit flows."
 }
 
 Enum user_role {
@@ -98,25 +98,67 @@ Table users {
   username varchar [unique]
   avatar_url varchar
   cover_url varchar
+  tagline varchar
   location varchar
   nationality varchar
   bio text
   role user_role [not null, default: "user"]
   status account_status [not null, default: "active"]
+  profile_visibility visibility_scope [not null, default: "public"]
+  email_public boolean [not null, default: false, note: "Public/visitor profiles must mask or omit email unless the owner explicitly exposes it."]
   email_verified boolean [not null, default: false]
   government_id varchar
+  current_plan_name varchar [not null, default: "Free", note: "Profile/settings display value. Billing history remains in subscriptions."]
   xp_points int [not null, default: 0]
   current_level int [not null, default: 1]
   followers_count int [not null, default: 0]
   following_count int [not null, default: 0]
   stories_count int [not null, default: 0]
   travel_plans_count int [not null, default: 0]
+  travel_groups_count int [not null, default: 0]
   pins_count int [not null, default: 0]
   saved_places_count int [not null, default: 0]
+  calendar_timezone varchar [not null, default: "Asia/Manila"]
   joined_at timestamp [not null]
+  last_login_at timestamp
   created_at timestamp [not null]
   updated_at timestamp [not null]
   deleted_at timestamp
+}
+
+Table auth_sessions {
+  session_id varchar [pk]
+  user_id varchar [not null]
+  session_token_hash varchar [not null, unique]
+  token_expires_at timestamp [not null]
+  revoked_at timestamp
+  last_seen_at timestamp
+  user_agent varchar
+  ip_address varchar
+  created_at timestamp [not null]
+}
+
+Table account_deletion_requests {
+  deletion_request_id varchar [pk]
+  user_id varchar [not null]
+  requested_at timestamp [not null]
+  final_confirmation varchar [not null]
+  status varchar [not null, default: "pending"]
+  deleted_counts_json json [note: "Counts returned to the frontend after stories, pins, plans, saves, groups, sessions, and related records are removed or anonymized."]
+  residual_access_removed boolean [not null, default: false]
+  completed_at timestamp
+}
+
+Table user_reports {
+  report_id varchar [pk]
+  reported_user_id varchar [not null]
+  reporter_id varchar [not null]
+  reason varchar [not null]
+  details text
+  status varchar [not null, default: "open"]
+  created_at timestamp [not null]
+  reviewed_at timestamp
+  reviewed_by varchar
 }
 
 Table user_follows {
@@ -157,6 +199,8 @@ Table badges {
   icon varchar
   xp_reward int [not null, default: 0]
   rarity varchar [not null]
+  unlock_rule_json json
+  sort_order int [not null, default: 0]
 }
 
 Table user_badges {
@@ -166,6 +210,34 @@ Table user_badges {
 
   indexes {
     (user_id, badge_id) [pk]
+  }
+}
+
+Table community_challenges {
+  challenge_id varchar [pk]
+  title varchar [not null]
+  description text [not null]
+  category varchar
+  xp_reward int [not null, default: 0]
+  badge_id varchar
+  starts_at timestamp
+  ends_at timestamp
+  active boolean [not null, default: true]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table user_challenge_progress {
+  challenge_id varchar [not null]
+  user_id varchar [not null]
+  progress_count int [not null, default: 0]
+  target_count int [not null, default: 1]
+  completed boolean [not null, default: false]
+  completed_at timestamp
+  updated_at timestamp [not null]
+
+  indexes {
+    (challenge_id, user_id) [pk]
   }
 }
 
@@ -244,6 +316,7 @@ Table stories {
   region varchar
   latitude decimal(10,7)
   longitude decimal(10,7)
+  cover_image_url varchar
   read_time varchar
   visibility visibility_scope [not null, default: "public"]
   status story_status [not null, default: "published"]
@@ -352,7 +425,9 @@ Table pins {
   source_entity_type source_entity_type [not null, default: "manual"]
   source_entity_id varchar
   title varchar [not null]
+  subtitle varchar
   note text
+  description text
   address varchar
   latitude decimal(10,7) [not null]
   longitude decimal(10,7) [not null]
@@ -393,6 +468,9 @@ Table routes {
   travel_plan_id varchar
   scope visibility_scope [not null, default: "private"]
   engine varchar [not null, default: "osrm"]
+  input_mode varchar [note: "Draw Route supports click-points and drag-line input. Points connect sequentially: 1 to 2, 2 to 3, and so on."]
+  requested_point_count int
+  snapped_to_route boolean [not null, default: false]
   route_json json [not null]
   distance_m decimal(12,2)
   duration_s int
@@ -429,6 +507,7 @@ Table travel_plan_stories {
   route_record_id varchar
   name varchar [not null]
   subtitle varchar
+  owner_name_snapshot varchar [note: "Stored for card/article display while still keeping owner_id as the relationship source of truth."]
   cover_image_url varchar [note: "Drafts may start without a cover. A completed Travel Plan cannot be published until the owner chooses or uploads this cover image."]
   description text
   route_geometry_json json
@@ -444,6 +523,7 @@ Table travel_plan_stories {
   likes_count int [not null, default: 0, note: "Engagement is shown only after the plan is published publicly."]
   saves_count int [not null, default: 0, note: "Saves are available only for published completed plans."]
   comments_count int [not null, default: 0, note: "Comments are enabled only for published completed plans."]
+  comments_enabled boolean [not null, default: false, note: "Turns true only after documentation is complete and the owner publishes the plan."]
   album_template varchar
   album_unlocked boolean [not null, default: false]
   owner_can_print_album boolean [not null, default: false, note: "Print Album is an owner-only action. Public viewers can view completed routes but cannot print another user's album from the detail page."]
@@ -479,8 +559,8 @@ Table travel_plan_destinations {
   planned_day int [not null, default: 1]
   planned_date date [not null]
   planned_time time
-  planned_description text [note: "Draft article copy for this point. It can be edited inline before final documentation."]
-  notes text
+  planned_description text [note: "Maps to the frontend destination.description field. This is the inline article copy shown as TYPE HERE before the visit can be documented."]
+  notes text [note: "Inline route note for this point, edited directly in the article-style draft."]
   status travel_plan_destination_status [not null, default: "planned"]
   documentable_after timestamp [not null, note: "Destination can be documented only after this scheduled date/time has arrived."]
   reordered_at timestamp [note: "Updated when the owner drags this destination to a new ordered position."]
@@ -505,11 +585,13 @@ Table travel_plan_destination_documents {
   place_name varchar [not null]
   category varchar [not null]
   title varchar [not null]
+  subtitle varchar
   description text [not null]
   date_visited date [not null]
   publish_to_map boolean [not null, default: false]
   publish_as_story boolean [not null, default: false]
   documented_after_schedule boolean [not null, default: true]
+  documented_at timestamp [not null]
   created_at timestamp [not null]
   updated_at timestamp [not null]
   deleted_at timestamp
@@ -583,7 +665,9 @@ Table travel_plan_likes {
 Table saved_travel_plans {
   travel_plan_id varchar [not null]
   user_id varchar [not null]
+  collection_id varchar
   saved_at timestamp [not null]
+  deletion_status deletion_status [not null, default: "active"]
   deleted_at timestamp
 
   indexes {
@@ -742,7 +826,10 @@ Table circle_events {
 Table events {
   event_id varchar [pk]
   organizer_id varchar [not null]
+  organizer_name_snapshot varchar
   place_id varchar
+  destination_title varchar
+  province varchar
   title varchar [not null]
   event_type varchar [not null]
   description text [not null]
@@ -757,6 +844,7 @@ Table events {
   status event_status [not null, default: "published"]
   hero_image_url varchar
   tour_guide_license varchar
+  hosted_tour_source varchar [not null, default: "event_page"]
   created_at timestamp [not null]
   updated_at timestamp [not null]
 }
@@ -839,12 +927,16 @@ Table travel_collections {
   owner_id varchar [not null]
   name varchar [not null]
   description text
+  collection_type varchar [not null, default: "saved_stories", note: "Supports saved story playlists and saved destinations/travel plans from the profile/saved library."]
   created_at timestamp [not null]
   updated_at timestamp [not null]
+  deleted_at timestamp
 }
 
 Table saved_tourist_spots {
   saved_spot_id varchar [pk]
+  source_entity_type source_entity_type [not null, default: "story", note: "Saved Places library can save stories, travel plans, individual pins, or explore places."]
+  source_entity_id varchar
   place_id varchar
   story_id varchar
   travel_plan_id varchar
@@ -852,10 +944,13 @@ Table saved_tourist_spots {
   owner_id varchar [not null]
   collection_id varchar
   name varchar [not null]
+  subtitle varchar
   category varchar [not null]
+  cover_image_url varchar
   latitude decimal(10,7) [not null]
   longitude decimal(10,7) [not null]
   notes text
+  deletion_status deletion_status [not null, default: "active"]
   saved_at timestamp [not null]
   deleted_at timestamp
 }
@@ -872,10 +967,18 @@ Table audit_log {
 
 Ref: user_follows.follower_id > users.user_id [delete: cascade]
 Ref: user_follows.following_id > users.user_id [delete: cascade]
+Ref: auth_sessions.user_id > users.user_id [delete: cascade]
+Ref: account_deletion_requests.user_id > users.user_id [delete: cascade]
+Ref: user_reports.reported_user_id > users.user_id [delete: cascade]
+Ref: user_reports.reporter_id > users.user_id [delete: cascade]
+Ref: user_reports.reviewed_by > users.user_id [delete: set null]
 Ref: subscriptions.user_id > users.user_id [delete: cascade]
 Ref: notification_preferences.user_id > users.user_id [delete: cascade]
 Ref: user_badges.user_id > users.user_id [delete: cascade]
 Ref: user_badges.badge_id > badges.badge_id [delete: cascade]
+Ref: community_challenges.badge_id > badges.badge_id [delete: set null]
+Ref: user_challenge_progress.challenge_id > community_challenges.challenge_id [delete: cascade]
+Ref: user_challenge_progress.user_id > users.user_id [delete: cascade]
 
 Ref: explore_places.created_by_admin_id > users.user_id [delete: set null]
 Ref: explore_place_photos.place_id > explore_places.place_id [delete: cascade]
@@ -943,6 +1046,7 @@ Ref: travel_plan_likes.travel_plan_id > travel_plan_stories.travel_plan_id [dele
 Ref: travel_plan_likes.user_id > users.user_id [delete: cascade]
 Ref: saved_travel_plans.travel_plan_id > travel_plan_stories.travel_plan_id [delete: cascade]
 Ref: saved_travel_plans.user_id > users.user_id [delete: cascade]
+Ref: saved_travel_plans.collection_id > travel_collections.collection_id [delete: set null]
 Ref: user_calendar_items.user_id > users.user_id [delete: cascade]
 Ref: user_calendar_items.travel_plan_id > travel_plan_stories.travel_plan_id [delete: cascade]
 Ref: user_calendar_items.destination_id > travel_plan_destinations.destination_id [delete: cascade]

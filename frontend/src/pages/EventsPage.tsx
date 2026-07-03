@@ -677,15 +677,17 @@ function EventsContent() {
         <header className="mb-10">
           <p className="mb-2 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.16em] text-[#9E6B5C]">Meetups & adventures</p>
           <h1 className="m-0 font-[var(--font-display)] text-5xl font-semibold leading-none text-[#3A2A22] sm:text-6xl">Events</h1>
-          <p className="mt-4 max-w-3xl font-[var(--font-body)] text-lg leading-8 text-[#5B4A40]">Photography walks, island-hopping trips, cultural tours, and community meetups across the archipelago.</p>
-          <button
-            type="button"
-            onClick={() => setHostFormOpen(true)}
-            style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", minHeight: 44, marginTop: "1.25rem", border: "none", borderRadius: "0.25rem", backgroundColor: "#12212E", color: "#ECE7DC", padding: "0.75rem 1rem", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}
-          >
-            <Plus size={16} />
-            Host Tour Meetup
-          </button>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap", marginTop: "1rem" }}>
+            <p className="mt-4 max-w-3xl font-[var(--font-body)] text-lg leading-8 text-[#5B4A40]">Photography walks, island-hopping trips, cultural tours, and community meetups across the archipelago.</p>
+            <button
+              type="button"
+              onClick={() => setHostFormOpen(true)}
+              style={{ display: "inline-flex", minHeight: 44, alignItems: "center", justifyContent: "center", gap: "0.45rem", borderRadius: "999px", border: "1px solid #3A2A22", backgroundColor: "#3A2A22", color: "#FBF7F0", padding: "0.65rem 1rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer", boxShadow: "0 10px 24px rgba(58,42,34,0.16)" }}
+            >
+              <Plus size={14} />
+              Host Tour Meetup
+            </button>
+          </div>
         </header>
 
         <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>

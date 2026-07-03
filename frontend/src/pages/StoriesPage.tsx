@@ -1005,7 +1005,7 @@ function StoriesContent() {
         <header className="mb-10 stories-page-heading">
           <p className="mb-2 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.16em] text-[#9E6B5C]">Travel narratives</p>
           <h1 className="m-0 font-[var(--font-display)] text-5xl font-semibold leading-none text-[#3A2A22] sm:text-6xl">Stories</h1>
-          <p style={{ fontFamily: "var(--font-body)", color: "#6B6B5A", fontSize: "1rem" }}>Long-form travel narratives from the TravelTraces community — honest, personal, and unhighlighted.</p>
+          <p className="mt-4 max-w-3xl font-[var(--font-body)] text-lg leading-8 text-[#5B4A40]">Long-form travel narratives from the TravelTraces community — honest, personal, and unhighlighted.</p>
         </header>
 
         <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
@@ -1120,14 +1120,6 @@ function StoriesContent() {
       </div>
 
       <style>{`
-        .stories-page-heading p:last-child {
-          margin-top: 1rem !important;
-          max-width: 48rem !important;
-          font-family: var(--font-body) !important;
-          font-size: 1.125rem !important;
-          line-height: 2rem !important;
-          color: #5B4A40 !important;
-        }
         .category-pill:hover { background-color: rgba(58,42,34,0.08); border-color: #3A2A22; color: #3A2A22; }
         .category-pill[aria-pressed="true"]:hover { background-color: #3A2A22; border-color: #3A2A22; color: #F5F0E8; }
         @media (max-width: 640px) {

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router";
-import { MapPin, Users, Search, UserPlus } from "lucide-react";
+import { Award, BookOpen, CheckCircle2, Compass, Lock, MapPin, Mountain, Search, ShieldCheck, UserPlus, Users } from "lucide-react";
 import { GatedPage } from "../components/GatedPage";
 import { GAMIFIED_USERS } from "../components/gamification";
 
@@ -19,6 +19,12 @@ const CHALLENGES = [
   { id: 3, title: "7 Island Groups", desc: "Visit at least one island in each of the 7 major island groups.", progress: 5, total: 7, participants: 2100, badge: "🗺️" },
   { id: 4, title: "Story Teller", desc: "Publish 10 long-form travel narratives.", progress: 18, total: 10, participants: 1560, badge: "✍️", completed: true },
 ];
+const CHALLENGE_ICONS: Record<number, typeof Award> = {
+  1: MapPin,
+  2: Mountain,
+  3: Compass,
+  4: BookOpen,
+};
 
 const tabs = ["Travellers", "Rankings", "Challenges"];
 
@@ -149,29 +155,42 @@ function CommunityContent() {
 
         {activeTab === "Challenges" && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap: "1.25rem" }}>
-            {CHALLENGES.map((c) => (
-              <div key={c.id} style={{ backgroundColor: "#EDEAE0", borderRadius: "0.25rem", padding: "1.5rem" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
-                  <span style={{ fontSize: "2rem" }}>{c.badge}</span>
-                  {c.completed && <span style={{ padding: "0.2rem 0.6rem", backgroundColor: "rgba(158,107,92,0.15)", color: "#3A2A22", borderRadius: "2rem", fontSize: "0.7rem", fontFamily: "var(--font-label)", letterSpacing: "0.06em" }}>COMPLETED</span>}
-                </div>
-                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 600, color: "#3A2A22", marginBottom: "0.5rem" }}>{c.title}</h3>
-                <p style={{ fontFamily: "var(--font-ui)", fontSize: "0.875rem", color: "#6B6B5A", lineHeight: 1.6, marginBottom: "1rem" }}>{c.desc}</p>
-                <div style={{ marginBottom: "0.75rem" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
-                    <span style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", color: "#6B6B5A" }}>Progress</span>
-                    <span style={{ fontFamily: "var(--font-label)", fontSize: "0.75rem", color: "#3A2A22", fontWeight: 600 }}>{Math.min(c.progress, c.total)}/{c.total}</span>
+            {CHALLENGES.map((c) => {
+              const unlocked = Boolean(c.completed) || c.progress >= c.total;
+              const Icon = CHALLENGE_ICONS[c.id] ?? ShieldCheck;
+              return (
+                <article key={c.id} className={`rounded-lg border p-4 transition ${unlocked ? "border-[#C4713A]/35 bg-[#FFF9F0]" : "border-[#3A2A22]/10 bg-[#EFE7DC]/70"}`}>
+                  <div className="flex items-start gap-3">
+                    <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${unlocked ? "bg-[#C4713A] text-[#FFF9F0]" : "bg-[#D8D0C2] text-[#5E4B40]"}`}>
+                      {unlocked ? <Icon size={18} /> : <Lock size={16} />}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="m-0 font-[var(--font-display)] text-lg font-semibold leading-tight text-[#2C211C]">{c.title}</h3>
+                        {unlocked ? <CheckCircle2 size={15} className="text-[#7A4B32]" aria-label="Unlocked" /> : null}
+                      </div>
+                      <p className="m-0 mt-1 text-sm leading-5 text-[#5E4B40]">{c.desc}</p>
+                      <div className="mt-4">
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                          <span className="font-[var(--font-label)] text-[0.66rem] font-bold uppercase tracking-[0.1em] text-[#5E4B40]">Progress</span>
+                          <span className="font-[var(--font-label)] text-[0.66rem] font-bold uppercase tracking-[0.1em] text-[#2C211C]">{Math.min(c.progress, c.total)}/{c.total}</span>
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-[#D8D0C2]">
+                          <div className="h-full rounded-full bg-[#C4713A]" style={{ width: `${Math.min((c.progress / c.total) * 100, 100)}%` }} />
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center gap-2 text-[#5E4B40]">
+                        <Users size={13} />
+                        <span className="font-[var(--font-ui)] text-xs font-semibold">{c.participants.toLocaleString()} participants</span>
+                      </div>
+                      <p className={`m-0 mt-3 font-[var(--font-label)] text-[0.66rem] font-bold uppercase tracking-[0.1em] ${unlocked ? "text-[#7A4B32]" : "text-[#5E4B40]"}`}>
+                        {unlocked ? "Unlocked" : "Locked"}
+                      </p>
+                    </div>
                   </div>
-                  <div style={{ height: 6, backgroundColor: "#D8D4C8", borderRadius: "3px", overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${Math.min((c.progress / c.total) * 100, 100)}%`, backgroundColor: c.completed ? "#9E6B5C" : "#3A2A22", borderRadius: "3px", transition: "width 0.3s" }} />
-                  </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: "#6B6B5A" }}>
-                  <Users size={13} />
-                  <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.78rem" }}>{c.participants.toLocaleString()} participants</span>
-                </div>
-              </div>
-            ))}
+                </article>
+              );
+            })}
           </div>
         )}
 

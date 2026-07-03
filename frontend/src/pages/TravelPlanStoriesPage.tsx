@@ -9,11 +9,17 @@ import {
   Clock,
   Compass,
   Heart,
+  Landmark,
   MapPin,
   MessageCircle,
+  Mountain,
   Search,
   Send,
   Share2,
+  TreePine,
+  Utensils,
+  Waves,
+  Gem,
 } from "lucide-react";
 import { GatedPage } from "../components/GatedPage";
 import { useAuth } from "../context/AuthContext";
@@ -28,6 +34,15 @@ import {
 } from "../services/travelPlanStories";
 
 const planCategories = ["All", "Hiking", "Food Place", "Hidden Gems", "Beaches", "Forest", "Culture", "More"];
+const PLAN_CATEGORY_ICON: Record<string, typeof Compass> = {
+  Hiking: Mountain,
+  "Food Place": Utensils,
+  "Hidden Gems": Gem,
+  Beaches: Waves,
+  Forest: TreePine,
+  Culture: Landmark,
+  More: Compass,
+};
 
 type TravelPlanComment = {
   id: number;
@@ -805,8 +820,8 @@ function TravelPlanStoriesContent() {
         <header className="mb-10 travel-plan-page-heading">
           <p className="mb-2 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.16em] text-[#9E6B5C]">Travel plan narratives</p>
           <h1 className="m-0 font-[var(--font-display)] text-5xl font-semibold leading-none text-[#3A2A22] sm:text-6xl">Travel Plans</h1>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap", marginTop: "1rem" }}>
-            <p style={{ maxWidth: "48rem", margin: 0, fontFamily: "var(--font-body)", color: "#5B4A40", fontSize: "1.125rem", lineHeight: "2rem" }}>Multi-destination journeys from TravelTraces routes, saved as one readable itinerary story.</p>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+            <p className="mt-4 max-w-3xl font-[var(--font-body)] text-lg leading-8 text-[#5B4A40]">Multi-destination journeys from TravelTraces routes, saved as one readable itinerary story.</p>
             <button type="button" onClick={() => navigate("/maps")} style={{ display: "inline-flex", minHeight: 44, alignItems: "center", justifyContent: "center", gap: "0.45rem", borderRadius: "999px", border: "1px solid #3A2A22", backgroundColor: "#3A2A22", color: "#FBF7F0", padding: "0.65rem 1rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer", boxShadow: "0 10px 24px rgba(58,42,34,0.16)" }}>
               <MapPin size={14} /> Create with Draw Route
             </button>
@@ -825,6 +840,7 @@ function TravelPlanStoriesContent() {
           </div>
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
             {planCategories.map((item) => {
+              const Icon = PLAN_CATEGORY_ICON[item] ?? Compass;
               const isActive = category === item;
               const isAll = item === "All";
               return (
@@ -853,6 +869,7 @@ function TravelPlanStoriesContent() {
                   }}
                   aria-pressed={isActive}
                 >
+                  {!isAll && <Icon size={14} color={isActive ? "#F5F0E8" : "#9E6B5C"} style={{ flexShrink: 0 }} />}
                   <span>{item}</span>
                 </button>
               );

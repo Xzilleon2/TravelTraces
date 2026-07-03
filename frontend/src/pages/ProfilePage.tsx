@@ -182,16 +182,19 @@ function DraftPlanCard({ plan, onOpen }: { plan: TravelPlanStory; onOpen: () => 
   const status = travelPlanStatus(plan);
   const completed = plan.destinations.filter((destination) => destination.status !== "planned").length;
   const total = plan.destinations.length;
-  const progress = total ? Math.round((completed / total) * 100) : 0;
   const cover = draftPlanCover(plan);
   const statusLabel = status === "completed" ? (cover ? "Ready to publish" : "Cover required") : status === "ongoing" ? "Ongoing draft" : "Planning draft";
 
   return (
-    <article className="overflow-hidden rounded-lg border border-[#3A2A22]/10 bg-[#F5F0E8] shadow-[0_14px_34px_rgba(58,42,34,0.07)]">
+    <article
+      onClick={onOpen}
+      className="overflow-hidden rounded-[0.25rem] bg-[#EDEAE0] transition hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(0,0,0,0.1)]"
+      style={{ cursor: "pointer" }}
+    >
       {cover ? (
-        <img src={cover} alt="" className="h-44 w-full object-cover" />
+        <img src={cover} alt="" className="block h-[180px] w-full object-cover" />
       ) : (
-        <div className="grid h-44 place-items-center border-b border-[#3A2A22]/10 bg-gradient-to-br from-[#EFE7DC] to-[#FFF9F0]">
+        <div className="grid h-[180px] place-items-center border-b border-[#3A2A22]/10 bg-gradient-to-br from-[#EFE7DC] to-[#FBF7F0]">
           <div className="text-center">
             <BookOpen className="mx-auto mb-2 text-[#9E6B5C]" size={28} />
             <p className="m-0 font-[var(--font-label)] text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#7A4B32]">{status === "completed" ? "Cover required" : "Draft cover pending"}</p>
@@ -199,38 +202,19 @@ function DraftPlanCard({ plan, onOpen }: { plan: TravelPlanStory; onOpen: () => 
         </div>
       )}
       <div className="p-5">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <span className="rounded-full border border-[#C4713A]/28 bg-[#C4713A]/10 px-3 py-1 font-[var(--font-label)] text-[0.66rem] font-bold uppercase tracking-[0.1em] text-[#7A4B32]">
-            {statusLabel}
-          </span>
-          <span className="font-[var(--font-ui)] text-xs font-semibold text-[#5E4B40]">Updated {formatDate(plan.updatedAt)}</span>
-        </div>
-        <h3 className="m-0 font-[var(--font-display)] text-2xl font-semibold leading-tight text-[#2C211C]">{plan.travelPlanName}</h3>
-        <p className="m-0 mt-2 text-sm leading-6 text-[#5E4B40]">{plan.subtitle || plan.description || `${total} destination route created from Draw Route.`}</p>
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          <div className="rounded-lg bg-[#FFF9F0] p-3">
-            <p className="m-0 font-[var(--font-label)] text-[0.64rem] font-bold uppercase tracking-[0.08em] text-[#5E4B40]">Points</p>
-            <strong className="font-[var(--font-display)] text-2xl text-[#2C211C]">{total}</strong>
+        <span className="font-[var(--font-label)] text-[0.68rem] uppercase tracking-[0.1em] text-[#C4713A]">{statusLabel}</span>
+        <h3 className="mb-3 mt-2 font-[var(--font-display)] text-[1.15rem] font-semibold leading-[1.35] text-[#3A2A22]">{plan.travelPlanName}</h3>
+        <p className="mb-4 font-[var(--font-body)] text-sm leading-6 text-[#4A4A3A]">{(plan.subtitle || plan.description || `${total} destination route created from Draw Route.`).slice(0, 120)}...</p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="m-0 font-[var(--font-ui)] text-[0.8rem] font-semibold text-[#1A1A1A]">{plan.ownerName}</p>
+            <p className="m-0 font-[var(--font-ui)] text-xs text-[#6B6B5A]">Updated {formatDate(plan.updatedAt)}</p>
           </div>
-          <div className="rounded-lg bg-[#FFF9F0] p-3">
-            <p className="m-0 font-[var(--font-label)] text-[0.64rem] font-bold uppercase tracking-[0.08em] text-[#5E4B40]">Days</p>
-            <strong className="font-[var(--font-display)] text-2xl text-[#2C211C]">{totalTravelDays(plan)}</strong>
-          </div>
-          <div className="rounded-lg bg-[#FFF9F0] p-3">
-            <p className="m-0 font-[var(--font-label)] text-[0.64rem] font-bold uppercase tracking-[0.08em] text-[#5E4B40]">Done</p>
-            <strong className="font-[var(--font-display)] text-2xl text-[#2C211C]">{completed}/{total}</strong>
+          <div className="flex items-center gap-3 text-[#6B6B5A]">
+            <span className="inline-flex items-center gap-1 font-[var(--font-ui)] text-xs"><BookOpen size={12} /> {total} points</span>
+            <span className="inline-flex items-center gap-1 font-[var(--font-ui)] text-xs">{completed}/{total}</span>
           </div>
         </div>
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#D8D0C2]">
-          <div className="h-full rounded-full bg-[#C4713A]" style={{ width: `${progress}%` }} />
-        </div>
-        <button
-          type="button"
-          onClick={onOpen}
-          className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[#3A2A22] px-4 font-[var(--font-label)] text-[0.72rem] font-bold uppercase tracking-[0.08em] text-[#FFF9F0] transition hover:bg-[#2C211C]"
-        >
-          Open Draft
-        </button>
       </div>
     </article>
   );
