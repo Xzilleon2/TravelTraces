@@ -29,6 +29,8 @@ export interface Pin {
   author: string;
   authorAvatar?: string;
   isPrivate: boolean; // true = only I can see; false = other users' pins
+  lat?: number;
+  lon?: number;
   isBold?: boolean;
   isItalic?: boolean;
   isQuote?: boolean;

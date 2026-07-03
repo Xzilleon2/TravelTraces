@@ -14,6 +14,7 @@ const DESTINATIONS = [
     region: "Palawan",
     province: "Palawan",
     terrain: "Islands",
+    coordinate: { lat: 11.1956, lon: 119.4075 },
     rating: 4.9,
     reviews: 2140,
     explorers: 847,
@@ -44,6 +45,7 @@ const DESTINATIONS = [
     region: "Cagayan Valley",
     province: "Batanes",
     terrain: "Highlands",
+    coordinate: { lat: 20.4487, lon: 121.9702 },
     rating: 4.8,
     reviews: 840,
     explorers: 312,
@@ -73,6 +75,7 @@ const DESTINATIONS = [
     region: "Cordillera",
     province: "Ifugao",
     terrain: "Mountains",
+    coordinate: { lat: 16.919, lon: 121.0593 },
     rating: 4.7,
     reviews: 1320,
     explorers: 531,
@@ -102,6 +105,7 @@ const DESTINATIONS = [
     region: "Surigao del Norte",
     province: "Surigao del Norte",
     terrain: "Islands",
+    coordinate: { lat: 9.7843, lon: 126.1589 },
     rating: 4.8,
     reviews: 1890,
     explorers: 724,
@@ -132,6 +136,7 @@ const DESTINATIONS = [
     region: "Bohol",
     province: "Bohol",
     terrain: "Highlands",
+    coordinate: { lat: 9.8297, lon: 124.1397 },
     rating: 4.6,
     reviews: 1650,
     explorers: 618,
@@ -161,6 +166,7 @@ const DESTINATIONS = [
     region: "Palawan",
     province: "Palawan",
     terrain: "Islands",
+    coordinate: { lat: 11.9986, lon: 120.2043 },
     rating: 4.9,
     reviews: 1240,
     explorers: 489,
@@ -191,6 +197,7 @@ const DESTINATIONS = [
     region: "Ilocos Sur",
     province: "Ilocos Sur",
     terrain: "Urban",
+    coordinate: { lat: 17.5747, lon: 120.3869 },
     rating: 4.5,
     reviews: 980,
     explorers: 392,
@@ -220,6 +227,7 @@ const DESTINATIONS = [
     region: "Northern Mindanao",
     province: "Camiguin",
     terrain: "Islands",
+    coordinate: { lat: 9.173, lon: 124.7299 },
     rating: 4.7,
     reviews: 720,
     explorers: 281,
@@ -248,6 +256,10 @@ const DESTINATIONS = [
 type Destination = (typeof DESTINATIONS)[number];
 
 const travelCategories = ["All", "Hiking", "Food Place", "Hidden Gems", "Beaches", "Forest", "Culture", "More"];
+
+function formatCoordinates(coordinate: { lat: number; lon: number }): string {
+  return `${coordinate.lat.toFixed(4)}, ${coordinate.lon.toFixed(4)}`;
+}
 
 const TERRAIN_ICON: Record<string, React.ElementType> = {
   All: Compass,
@@ -322,6 +334,7 @@ function DestinationGuideView({ dest, onBack }: { dest: Destination; onBack: () 
         province: dest.province,
         category,
         description: dest.desc,
+        coordinate: dest.coordinate,
       }),
     );
     navigate("/maps");
@@ -368,6 +381,7 @@ function DestinationGuideView({ dest, onBack }: { dest: Destination; onBack: () 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", borderTop: "1px solid rgba(58,42,34,0.14)", borderBottom: "1px solid rgba(58,42,34,0.14)", padding: "1rem 0", flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: "#6B5A50", flexWrap: "wrap" }}>
               <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.85rem", fontFamily: "var(--font-ui)" }}><MapPin size={13} />{dest.province}, Philippines</span>
+              <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.85rem", fontFamily: "var(--font-ui)" }}><Compass size={13} />{formatCoordinates(dest.coordinate)}</span>
               <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.85rem", fontFamily: "var(--font-ui)" }}><Star size={13} />{dest.rating.toFixed(1)} rating</span>
               <span style={{ fontSize: "0.85rem", fontFamily: "var(--font-ui)" }}>{dest.bestMonths}</span>
             </div>
@@ -413,6 +427,7 @@ function DestinationGuideView({ dest, onBack }: { dest: Destination; onBack: () 
             {[
               { icon: Users, value: dest.explorers.toLocaleString(), label: "Explorers" },
               { icon: Pin, value: dest.pins.toLocaleString(), label: "Pins" },
+              { icon: MapPin, value: formatCoordinates(dest.coordinate), label: "Coordinates" },
               { icon: BookOpen, value: dest.stories.length.toString(), label: "Stories" },
               { icon: Compass, value: dest.difficulty, label: "Difficulty" },
             ].map((stat) => (
@@ -797,6 +812,10 @@ function DestinationCard({ d, onClick }: { d: Destination; onClick: () => void }
             <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.72rem", color: "#9A9A8A" }}>·</span>
             <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.78rem", color: "#6B6B5A" }}>{d.terrain}</span>
           </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", marginTop: "0.35rem" }}>
+            <Compass size={12} color="#9E6B5C" />
+            <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.74rem", color: "#6B5A50", fontWeight: 600 }}>{formatCoordinates(d.coordinate)}</span>
+          </div>
         </div>
 
         <p style={{ fontFamily: "var(--font-body)", fontSize: "0.875rem", color: "#4A4A3A", lineHeight: 1.65, marginBottom: "1rem", flex: 1 }}>{d.desc}</p>
@@ -926,3 +945,4 @@ export default function ExplorePage() {
     </GatedPage>
   );
 }
+

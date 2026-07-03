@@ -1,13 +1,12 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router";
-import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, CalendarDays, CheckCircle2, FileText, LockKeyhole, MapPin, Plus, Search, Share2, Trash2 } from "lucide-react";
+import { ArrowLeft, BookOpen, CalendarDays, MapPin, Plus, Printer, Search, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { GatedPage } from "../components/GatedPage";
-import type { MapScope } from "../services/mappingApi";
+import { useAuth } from "../context/AuthContext";
 import {
   albumUnlocked,
-  canPublishTravelPlan,
   completedDestinationCount,
   deleteTravelPlanStory,
   readTravelPlanStories,
@@ -19,7 +18,6 @@ import {
 } from "../services/travelPlanStories";
 
 const planCategories = ["All", "Hiking", "Food Place", "Hidden Gems", "Beaches", "Forest", "Culture", "More"];
-const albumTemplates = ["Field Journal", "Island Lookbook", "Route Chronicle"];
 const sampleTravelPlans: TravelPlanStory[] = [
   {
     id: "sample-siargao-book",
@@ -27,7 +25,8 @@ const sampleTravelPlans: TravelPlanStory[] = [
     ownerName: "Mika Santos",
     travelPlanName: "Three Days Around Siargao",
     coverImage: "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=1200&h=760&fit=crop&auto=format",
-    description: "A completed island route from Cloud 9 to Sugba Lagoon, documented as a printable travel book by another TravelTraces explorer.",
+    description:
+      "A completed three-day Siargao route built for testing the TravelTraces Album Maker: early surf light at Cloud 9, a slow community sunset at Catangnan Bridge, and a blue-water lagoon day in Del Carmen. Each stop is documented as part of one continuous island journey instead of separate marker posts.",
     routeGeometry: [
       [9.8131, 126.1649],
       [9.812, 126.158],
@@ -53,8 +52,12 @@ const sampleTravelPlans: TravelPlanStory[] = [
         category: "Beaches",
         title: "Morning Swell at Cloud 9",
         description:
-          "The first stop started before sunrise. The boardwalk was quiet, the water was silver, and the surfers were already reading the waves like pages. This became the emotional opening of the route.",
-        photos: ["https://images.unsplash.com/photo-1672933354004-3cbd9874f099?w=1100&h=720&fit=crop&auto=format"],
+          "The journey opened before the island was fully awake. I arrived at Cloud 9 while the boardwalk lights were still soft and the horizon was only beginning to turn pale orange. A few surfers were already out beyond the reef, sitting quietly on their boards and waiting for the first clean sets to arrive. From the viewing deck, the waves looked organized and patient, curling over the shallow reef with that famous Siargao rhythm.\n\nThis stop became the emotional opening page of the album because it captured the reason people keep returning to the island: not only the surf, but the ceremony around it. Vendors were setting up coffee, locals were greeting each other by name, and travelers who had just arrived stood quietly beside people who had lived with this break for years. It felt like a good beginning because nothing needed to be rushed. The route started with watching, listening, and letting the island set the pace.",
+        photos: [
+          "https://images.unsplash.com/photo-1672933354004-3cbd9874f099?w=1100&h=720&fit=crop&auto=format",
+          "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=1100&h=720&fit=crop&auto=format",
+          "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=1100&h=720&fit=crop&auto=format",
+        ],
         dateVisited: "2026-04-18",
       },
       {
@@ -71,8 +74,12 @@ const sampleTravelPlans: TravelPlanStory[] = [
         category: "Culture",
         title: "Golden Hour at Catangnan Bridge",
         description:
-          "Point two became the route's pause. Local riders crossed slowly, kids jumped into the river below, and the sunset made the concrete bridge feel softer than expected.",
-        photos: ["https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1100&h=720&fit=crop&auto=format"],
+          "Catangnan Bridge was originally planned for the second day, but the weather cleared so beautifully that I moved it into the first afternoon. That change made the route feel more natural. After the morning at Cloud 9, this stop gave the day a slower, more local rhythm: motorcycles passing in both directions, small groups leaning on the railings, and kids timing their jumps into the river below whenever the light hit the water just right.\n\nWhat made the bridge memorable was how ordinary and cinematic it felt at the same time. It was not a place that demanded attention through a big entrance or a ticket booth. It was simply a crossing point that had become a gathering place. The sunset turned the concrete warm, the river reflected the sky in broken strips, and the whole scene felt like the middle chapter of a travel book: quieter than the opening, but full of texture, movement, and people.",
+        photos: [
+          "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1100&h=720&fit=crop&auto=format",
+          "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1100&h=720&fit=crop&auto=format",
+          "https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1100&h=720&fit=crop&auto=format",
+        ],
         dateVisited: "2026-04-18",
       },
       {
@@ -89,23 +96,18 @@ const sampleTravelPlans: TravelPlanStory[] = [
         category: "Hidden Gems",
         title: "Blue Silence in Sugba Lagoon",
         description:
-          "The final point was slower and brighter. Kayaks moved between mangroves, the water shifted from jade to blue, and the whole itinerary finally felt complete enough to become an album.",
-        photos: ["https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1100&h=720&fit=crop&auto=format"],
+          "The last stop began with the boat transfer from Del Carmen, passing through stretches of mangroves that made the route feel protected from the louder parts of the island. Sugba Lagoon opened slowly, first as narrow channels of green water and then as a wider blue space surrounded by limestone, trees, and floating platforms. It was brighter than the first two stops, but also quieter in a deeper way. Even with other visitors nearby, the lagoon had a calm that made people lower their voices without being told.\n\nThis destination completed the travel plan because it gave the album its closing image: water changing color under the sun, kayaks moving between shadows, and everyone drifting into their own version of stillness. I added more photos here because the lagoon needs sequence to make sense. One frame shows the approach, another catches the open water, and another holds the small human details that make a scenic place feel remembered rather than simply visited.",
+        photos: [
+          "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1100&h=720&fit=crop&auto=format",
+          "https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?w=1100&h=720&fit=crop&auto=format",
+          "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1100&h=720&fit=crop&auto=format",
+          "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1100&h=720&fit=crop&auto=format",
+        ],
         dateVisited: "2026-04-19",
       },
     ],
   },
 ];
-
-type VisitFormState = {
-  visibility: MapScope;
-  placeName: string;
-  category: string;
-  title: string;
-  description: string;
-  photos: string;
-  dateVisited: string;
-};
 
 const todayDate = () => new Date().toISOString().slice(0, 10);
 
@@ -155,58 +157,6 @@ function stopDisplayTitle(destination: TravelPlanDestination): string {
   return title || destination.placeName || `Destination ${destination.order}`;
 }
 
-function showSeparateAddress(destination: TravelPlanDestination): boolean {
-  const title = destination.title?.trim().toLowerCase();
-  const place = destination.placeName.trim().toLowerCase();
-  return Boolean(title && title !== place);
-}
-
-function ActionIconButton({
-  label,
-  children,
-  onClick,
-  tone = "neutral",
-  disabled = false,
-}: {
-  label: string;
-  children: ReactNode;
-  onClick: () => void;
-  tone?: "neutral" | "primary" | "danger" | "locked";
-  disabled?: boolean;
-}) {
-  const toneClass = {
-    neutral: "border-[#3A2A22]/16 bg-[#FBF7F0] text-[#3A2A22] hover:border-[#3A2A22]/30 hover:bg-[#EFE7DC]",
-    primary: "border-[#3A2A22] bg-[#3A2A22] text-[#FFF9F0] hover:bg-[#2C211C]",
-    danger: "border-[#B23B2E]/25 bg-[#FBF7F0] text-[#8A2F25] hover:border-[#B23B2E]/45 hover:bg-[#B23B2E]/10",
-    locked: "border-[#3A2A22]/10 bg-[#DDD4C8] text-[#6B5A50]",
-  }[tone];
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      title={label}
-      className={`grid h-10 w-10 place-items-center rounded-xl border transition focus:outline-none focus:ring-2 focus:ring-[#C4713A]/35 disabled:cursor-not-allowed ${toneClass}`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function destinationToVisitForm(destination: TravelPlanDestination): VisitFormState {
-  return {
-    visibility: destination.visibility ?? "private",
-    placeName: destination.placeName,
-    category: destination.category ?? "Hidden Gems",
-    title: destination.title ?? destination.placeName,
-    description: destination.description ?? "",
-    photos: destination.photos?.join("\n") ?? "",
-    dateVisited: destination.dateVisited ?? todayDate(),
-  };
-}
-
 function statusCopy(status: ReturnType<typeof travelPlanStatus>) {
   if (status === "planning") return "Planning";
   if (status === "ongoing") return "Ongoing";
@@ -219,7 +169,40 @@ function statusPillClass(status: ReturnType<typeof travelPlanStatus>) {
   return "border-[#3A2A22]/15 bg-[#EFE7DC] text-[#3A2A22]";
 }
 
+function formatPlanCoordinates(coordinate: { lat: number; lon: number }): string {
+  return `${coordinate.lat.toFixed(4)}, ${coordinate.lon.toFixed(4)}`;
+}
+
+function openTravelPlanRouteInMap(plan: TravelPlanStory, navigate: (path: string) => void) {
+  const points = [...plan.destinations]
+    .sort((a, b) => a.order - b.order)
+    .filter((destination) => Number.isFinite(destination.coordinate.lat) && Number.isFinite(destination.coordinate.lon))
+    .map((destination) => ({
+      order: destination.order,
+      title: destination.title ?? destination.placeName,
+      place: destination.placeName,
+      category: destination.category,
+      coordinate: destination.coordinate,
+      description: destination.description,
+      date: destination.dateVisited ?? destination.plannedDate,
+    }));
+
+  if (!points.length) return;
+
+  window.localStorage.setItem(
+    "traveltraces.pendingTravelPlanRoute",
+    JSON.stringify({
+      planId: plan.id,
+      title: plan.travelPlanName,
+      ownerName: plan.ownerName,
+      points,
+    }),
+  );
+  navigate("/maps");
+}
+
 function PublicTravelPlanBook({ plan, onBack }: { plan: TravelPlanStory; onBack: () => void }) {
+  const navigate = useNavigate();
   const destinations = [...plan.destinations].sort((a, b) => a.order - b.order);
   const pointCount = destinations.length;
   const travelDates = Array.from(new Set(destinations.map((destination) => destination.dateVisited).filter(Boolean)));
@@ -256,6 +239,9 @@ function PublicTravelPlanBook({ plan, onBack }: { plan: TravelPlanStory; onBack:
           <button type="button" onClick={onBack} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#3A2A22]/18 px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.06em] text-[#3A2A22]">
             <ArrowLeft size={15} /> Travel Plans
           </button>
+          <button type="button" onClick={() => openTravelPlanRouteInMap(plan, navigate)} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#3A2A22]/18 px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.06em] text-[#3A2A22] transition hover:bg-[#EFE7DC]">
+            <MapPin size={15} /> View Route in Map
+          </button>
         </div>
 
         <header className="mx-auto mb-10 max-w-3xl">
@@ -272,18 +258,19 @@ function PublicTravelPlanBook({ plan, onBack }: { plan: TravelPlanStory; onBack:
         <section className="mx-auto grid max-w-3xl gap-16">
           {destinations.map((destination) => (
             <article key={destination.id} id={`travel-plan-point-${destination.order}`} className="scroll-mt-28 border-t border-[#3A2A22]/14 pt-10">
-              <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="m-0 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.16em] text-[#9E6B5C]">Point {destination.order} of {pointCount}</p>
-                  <h2 className="m-0 mt-2 font-[var(--font-display)] text-4xl font-semibold leading-tight text-[#3A2A22] sm:text-5xl">{destination.title}</h2>
+              <div className="mb-6">
+                <p className="m-0 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.16em] text-[#9E6B5C]">Point {destination.order} of {pointCount}</p>
+                <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
+                  <h2 className="m-0 min-w-0 flex-1 font-[var(--font-display)] text-4xl font-semibold leading-tight text-[#3A2A22] sm:text-5xl">{destination.title}</h2>
+                  <span className="mt-1 shrink-0 rounded-full border border-[#3A2A22]/16 px-4 py-2 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] text-[#3A2A22]">
+                    Day {destination.plannedDay}
+                  </span>
                 </div>
-                <span className="rounded-full border border-[#3A2A22]/16 px-4 py-2 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] text-[#3A2A22]">
-                  Day {destination.plannedDay}
-                </span>
               </div>
 
               <div className="mb-7 flex flex-wrap gap-3 border-y border-[#3A2A22]/12 py-4 text-sm text-[#5B4A40]">
                 <span className="inline-flex items-center gap-2"><MapPin size={14} /> {destination.placeName}</span>
+                <span>{formatPlanCoordinates(destination.coordinate)}</span>
                 <span>{destination.category}</span>
                 <span>{destination.dateVisited}</span>
                 {destination.plannedTime ? <span>{destination.plannedTime}</span> : null}
@@ -314,30 +301,34 @@ function PublicTravelPlanBook({ plan, onBack }: { plan: TravelPlanStory; onBack:
 
 function TravelPlanDetail({ plan, onBack, onUpdate, onDelete }: { plan: TravelPlanStory; onBack: () => void; onUpdate: (plan: TravelPlanStory) => void; onDelete: (planId: string) => void }) {
   const navigate = useNavigate();
-  const [editingDestinationId, setEditingDestinationId] = useState<string | null>(null);
-  const [visitDestinationId, setVisitDestinationId] = useState<string | null>(null);
   const [deleteRequest, setDeleteRequest] = useState<{ kind: "plan" | "destination"; id: string; label: string } | null>(null);
   const [planNotice, setPlanNotice] = useState<string | null>(null);
-  const [albumTemplate, setAlbumTemplate] = useState(albumTemplates[0]);
-  const [visitForm, setVisitForm] = useState<VisitFormState>(() =>
-    destinationToVisitForm(
-      plan.destinations[0] ?? {
-        id: "draft",
-        order: 1,
-        placeName: "Destination",
-        coordinate: { lat: 0, lon: 0 },
-        plannedDay: 1,
-        status: "planned",
-      },
-    ),
-  );
+  const [draggedDestinationId, setDraggedDestinationId] = useState<string | null>(null);
 
-  const status = travelPlanStatus(plan);
-  const completed = completedDestinationCount(plan);
   const total = plan.destinations.length;
-  const progress = total ? Math.round((completed / total) * 100) : 0;
-  const coverImage = plan.coverImage || plan.destinations.find((destination) => destination.photos?.[0])?.photos?.[0];
-  const groupedDays = Array.from(new Set(plan.destinations.map((destination) => destination.plannedDay))).sort((a, b) => a - b);
+  const sortedDestinations = [...plan.destinations].sort((a, b) => a.order - b.order);
+  const travelDates = Array.from(new Set(plan.destinations.map((destination) => destination.dateVisited ?? destination.plannedDate).filter(Boolean)));
+
+  const scrollToPoint = (pointId: string) => {
+    document.getElementById(pointId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const pointNav = total ? (
+    <div className="fixed right-4 top-1/2 z-[1000] flex -translate-y-1/2 flex-col gap-2 rounded-full border border-[#3A2A22]/12 bg-[#FBF7F0]/95 p-2 shadow-[0_14px_32px_rgba(58,42,34,0.14)] backdrop-blur">
+      {sortedDestinations.map((destination) => (
+        <button
+          key={destination.id}
+          type="button"
+          onClick={() => scrollToPoint(`travel-plan-point-${destination.order}`)}
+          className="grid h-9 w-9 place-items-center rounded-full border border-[#3A2A22]/14 bg-[#EFE7DC] font-[var(--font-label)] text-xs font-bold text-[#3A2A22] transition hover:bg-[#3A2A22] hover:text-[#F5F0E8]"
+          aria-label={`Jump to point ${destination.order}`}
+          title={`Point ${destination.order}`}
+        >
+          {destination.order}
+        </button>
+      ))}
+    </div>
+  ) : null;
 
   const commitPlan = (next: TravelPlanStory) => {
     const saved = upsertTravelPlanStory(next);
@@ -367,14 +358,15 @@ function TravelPlanDetail({ plan, onBack, onUpdate, onDelete }: { plan: TravelPl
     });
   };
 
-  const moveDestination = (destinationId: string, direction: -1 | 1) => {
+  const reorderDestination = (sourceId: string, targetId: string) => {
+    if (sourceId === targetId) return;
     const sorted = [...plan.destinations].sort((a, b) => a.order - b.order);
-    const index = sorted.findIndex((destination) => destination.id === destinationId);
-    const target = index + direction;
-    if (index < 0 || target < 0 || target >= sorted.length) return;
-    const [item] = sorted.splice(index, 1);
+    const sourceIndex = sorted.findIndex((destination) => destination.id === sourceId);
+    const targetIndex = sorted.findIndex((destination) => destination.id === targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+    const [item] = sorted.splice(sourceIndex, 1);
     if (!item) return;
-    sorted.splice(target, 0, item);
+    sorted.splice(targetIndex, 0, item);
     commitPlan({ ...plan, destinations: sorted.map((destination, nextIndex) => ({ ...destination, order: nextIndex + 1 })) });
   };
 
@@ -403,55 +395,40 @@ function TravelPlanDetail({ plan, onBack, onUpdate, onDelete }: { plan: TravelPl
     });
   };
 
-  const startVisit = (destination: TravelPlanDestination) => {
+  const ensureDocumentable = (destination: TravelPlanDestination): boolean => {
     if (!canDocumentDestination(destination)) {
       setPlanNotice(documentLockMessage(destination));
-      return;
+      return false;
     }
     setPlanNotice(null);
-    setVisitDestinationId(destination.id);
-    setVisitForm(destinationToVisitForm(destination));
+    return true;
   };
 
-  const saveVisit = () => {
-    if (!visitDestinationId || !visitForm.placeName.trim() || !visitForm.title.trim() || !visitForm.description.trim()) return;
-    const destination = plan.destinations.find((item) => item.id === visitDestinationId);
-    if (destination && !canDocumentDestination(destination)) {
-      setPlanNotice(documentLockMessage(destination));
-      return;
-    }
-    updateDestination(visitDestinationId, {
-      placeName: visitForm.placeName.trim(),
-      visibility: visitForm.visibility,
-      category: visitForm.category,
-      title: visitForm.title.trim(),
-      description: visitForm.description.trim(),
-      photos: visitForm.photos
+  const documentDestination = (destination: TravelPlanDestination, patch: Partial<TravelPlanDestination>) => {
+    const nextDescription = patch.description ?? destination.description;
+    const nextPhotos = patch.photos ?? destination.photos;
+    const hasMinimumStory = Boolean(nextDescription?.trim() && nextPhotos?.length);
+    updateDestination(destination.id, {
+      visibility: destination.visibility ?? "private",
+      category: destination.category ?? "Hidden Gems",
+      title: destination.title ?? destination.placeName,
+      dateVisited: destination.dateVisited ?? todayDate(),
+      ...patch,
+      status: hasMinimumStory ? "completed" : destination.status,
+    });
+  };
+
+  const addPointPhotos = (destination: TravelPlanDestination) => {
+    if (!ensureDocumentable(destination)) return;
+    const current = destination.photos?.join("\n") ?? "";
+    const value = window.prompt("Add photo URLs, separated by comma or line break.", current);
+    if (value === null) return;
+    documentDestination(destination, {
+      photos: value
         .split(/\n|,/)
         .map((photo) => photo.trim())
         .filter(Boolean),
-      dateVisited: visitForm.dateVisited,
-      status: "completed",
     });
-    setVisitDestinationId(null);
-  };
-
-  const togglePublish = () => {
-    if (!canPublishTravelPlan(plan)) return;
-    commitPlan({ ...plan, published: !plan.published, visibility: plan.published ? "private" : "public" });
-  };
-
-  const viewDestinationOnMap = (destination: TravelPlanDestination) => {
-    if (!destination.coordinate.lat && !destination.coordinate.lon) return;
-    window.localStorage.setItem(
-      "traveltraces.pendingStoryViewPin",
-      JSON.stringify({
-        title: destination.title ?? destination.placeName,
-        place: destination.placeName,
-        coordinate: destination.coordinate,
-      }),
-    );
-    navigate("/maps");
   };
 
   const confirmDelete = () => {
@@ -471,11 +448,17 @@ function TravelPlanDetail({ plan, onBack, onUpdate, onDelete }: { plan: TravelPl
           <button type="button" onClick={onBack} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#3A2A22]/18 px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.06em] text-[#3A2A22]">
             <ArrowLeft size={15} /> Travel Plans
           </button>
-          <div className="flex flex-wrap gap-2">
-            <span className={`inline-flex min-h-10 items-center rounded-full border px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.06em] ${statusPillClass(status)}`}>{statusCopy(status)}</span>
-            <button type="button" disabled={!canPublishTravelPlan(plan)} onClick={togglePublish} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#3A2A22]/18 px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.06em] text-[#3A2A22] disabled:opacity-55">
-              {canPublishTravelPlan(plan) ? <Share2 size={14} /> : <LockKeyhole size={14} />}
-              {plan.published ? "Unpublish" : "Publish"}
+          <div className="flex flex-wrap justify-end gap-2">
+            {albumUnlocked(plan) ? (
+              <button type="button" onClick={() => window.print()} className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[#3A2A22] px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.06em] text-[#FFF9F0] shadow-[0_12px_28px_rgba(58,42,34,0.16)] transition hover:bg-[#2C211C]">
+                <Printer size={15} /> Print Album
+              </button>
+            ) : null}
+            <button type="button" onClick={() => openTravelPlanRouteInMap(plan, navigate)} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#3A2A22]/18 px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.06em] text-[#3A2A22] transition hover:bg-[#EFE7DC]">
+              <MapPin size={15} /> View Route in Map
+            </button>
+            <button type="button" onClick={addDestination} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#3A2A22]/18 px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.06em] text-[#3A2A22] transition hover:bg-[#EFE7DC]">
+              <Plus size={14} /> Add Destination
             </button>
             <button type="button" onClick={() => setDeleteRequest({ kind: "plan", id: plan.id, label: plan.travelPlanName })} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#B23B2E]/30 bg-[#B23B2E]/10 px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.06em] text-[#8A2F25]">
               <Trash2 size={14} /> Delete
@@ -490,28 +473,11 @@ function TravelPlanDetail({ plan, onBack, onUpdate, onDelete }: { plan: TravelPl
           <h1 className="m-0 font-[var(--font-display)] text-5xl font-semibold leading-[0.98] text-[#1A1A1A] sm:text-7xl">{plan.travelPlanName}</h1>
           {plan.description ? <p className="mt-6 font-[var(--font-body)] text-lg leading-8 text-[#4A4A3A]">{plan.description}</p> : null}
           <div className="mt-6 flex flex-wrap items-center gap-4 border-y border-[#3A2A22]/14 py-4 font-[var(--font-ui)] text-sm text-[#5B4A40]">
-            <span className="inline-flex items-center gap-2"><BookOpen size={15} /> {total} destination{total === 1 ? "" : "s"}</span>
-            <span className="inline-flex items-center gap-2"><CalendarDays size={15} /> {totalTravelDays(plan)} travel day{totalTravelDays(plan) === 1 ? "" : "s"}</span>
-            <span className="inline-flex items-center gap-2"><CheckCircle2 size={15} /> {completed}/{total} completed</span>
-            <span>{plan.published ? "Public after completion" : "Private itinerary"}</span>
-          </div>
-          <div className="mt-5 h-2 overflow-hidden rounded-full bg-[#EFE7DC]">
-            <div className="h-full rounded-full bg-[#C4713A]" style={{ width: `${progress}%` }} />
+            <span>By {plan.ownerName}</span>
+            <span className="inline-flex items-center gap-2"><BookOpen size={15} /> {total} point{total === 1 ? "" : "s"}</span>
+            <span className="inline-flex items-center gap-2"><CalendarDays size={15} /> {travelDates.length || totalTravelDays(plan)} travel date{(travelDates.length || totalTravelDays(plan)) === 1 ? "" : "s"}</span>
           </div>
         </header>
-
-        {coverImage ? (
-          <figure className="mb-12 overflow-hidden rounded-lg">
-            <img src={coverImage} alt="" className="h-[clamp(260px,48vw,560px)] w-full object-cover" />
-          </figure>
-        ) : (
-          <div className="mb-12 grid min-h-[260px] place-items-center rounded-lg border border-[#3A2A22]/12 bg-[#EFE7DC] text-center">
-            <div>
-              <FileText className="mx-auto mb-3 text-[#9E6B5C]" size={30} />
-              <p className="m-0 font-[var(--font-display)] text-2xl text-[#3A2A22]">The cover builds from your completed destination photos.</p>
-            </div>
-          </div>
-        )}
 
         {total <= 1 ? (
           <div className="mb-8 rounded-xl border border-[#C4713A]/25 bg-[#C4713A]/10 p-4 text-sm leading-6 text-[#5B4A40]">
@@ -519,225 +485,131 @@ function TravelPlanDetail({ plan, onBack, onUpdate, onDelete }: { plan: TravelPl
           </div>
         ) : null}
 
-        <section className="mx-auto max-w-4xl">
-          <div className="mb-5 rounded-2xl border border-[#3A2A22]/12 bg-[#FFF9F0] p-5 shadow-[0_18px_44px_rgba(58,42,34,0.08)]">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p className="m-0 font-[var(--font-label)] text-[0.72rem] font-bold tracking-[0.08em] text-[#8A4B26]">Plan before travel</p>
-                <h2 className="m-0 mt-1 font-[var(--font-display)] text-3xl font-semibold text-[#2C211C]">Ordered Itinerary</h2>
-              </div>
-              <button type="button" onClick={addDestination} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#3A2A22] px-5 text-sm font-bold text-[#FFF9F0] transition hover:bg-[#2C211C]">
-                <Plus size={16} strokeWidth={2.2} /> Add Destination
-              </button>
-            </div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
-              <div>
-                <p className="m-0 text-sm font-semibold text-[#2C211C]">{completed} of {total} destinations documented</p>
-                <div className="mt-2 h-3 overflow-hidden rounded-full bg-[#E5D9C9]" aria-label={`${progress}% itinerary completion`}>
-                  <div className="h-full rounded-full bg-[#C4713A] transition-all" style={{ width: `${progress}%` }} />
-                </div>
-              </div>
-              <span className="rounded-full border border-[#3A2A22]/14 bg-[#F5F0E8] px-4 py-2 text-sm font-semibold text-[#4D4038]">
-                Album progress {completed}/{total}
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-10">
-            {groupedDays.map((day) => (
-              <div key={day} className="relative">
-                <div className="mb-4 flex items-center gap-3">
-                  <span className="rounded-full bg-[#C4713A] px-4 py-2 font-[var(--font-label)] text-sm font-bold text-[#FFF9F0] shadow-[0_10px_24px_rgba(196,113,58,0.2)]">Day {day}</span>
-                  <div className="h-px flex-1 bg-[#3A2A22]/14" />
-                </div>
-                <div className="space-y-4">
-                  {plan.destinations.filter((destination) => destination.plannedDay === day).sort((a, b) => a.order - b.order).map((destination) => {
-                    const isEditing = editingDestinationId === destination.id;
-                    const isVisitOpen = visitDestinationId === destination.id;
+        <section className="mx-auto grid max-w-3xl gap-12">
+          <div className="grid gap-12">
+                  {sortedDestinations.map((destination) => {
                     const isPlanned = destination.status === "planned";
                     const documentReady = canDocumentDestination(destination);
                     const note = meaningfulStopNote(destination.notes);
                     const title = stopDisplayTitle(destination);
+
+                    if (!isPlanned) {
+                      return (
+                        <article
+                          key={destination.id}
+                          id={`travel-plan-point-${destination.order}`}
+                          draggable
+                          onDragStart={() => setDraggedDestinationId(destination.id)}
+                          onDragEnd={() => setDraggedDestinationId(null)}
+                          onDragOver={(event) => event.preventDefault()}
+                          onDrop={() => {
+                            if (draggedDestinationId) reorderDestination(draggedDestinationId, destination.id);
+                            setDraggedDestinationId(null);
+                          }}
+                          className={`scroll-mt-28 border-t border-[#3A2A22]/14 pt-10 transition ${draggedDestinationId === destination.id ? "opacity-50" : "cursor-grab active:cursor-grabbing"}`}
+                        >
+                          <div className="mb-6">
+                            <p className="m-0 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.16em] text-[#9E6B5C]">Point {destination.order} of {total}</p>
+                            <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
+                              <h2 className="m-0 min-w-0 flex-1 font-[var(--font-display)] text-4xl font-semibold leading-tight text-[#3A2A22] sm:text-5xl">{title}</h2>
+                              <span className="mt-1 shrink-0 rounded-full border border-[#3A2A22]/16 px-4 py-2 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] text-[#3A2A22]">Day {destination.plannedDay}</span>
+                            </div>
+                          </div>
+
+                          <div className="mb-7 flex flex-wrap gap-3 border-y border-[#3A2A22]/12 py-4 text-sm text-[#5B4A40]">
+                            <span className="inline-flex items-center gap-2"><MapPin size={14} /> {destination.placeName}</span>
+                            <span>{formatPlanCoordinates(destination.coordinate)}</span>
+                            {destination.category ? <span>{destination.category}</span> : null}
+                            {destination.dateVisited ? <span>{destination.dateVisited}</span> : null}
+                            {destination.plannedTime ? <span>{destination.plannedTime}</span> : null}
+                          </div>
+
+                          {destination.photos?.[0] ? <img src={destination.photos[0]} alt="" className="mb-7 h-[clamp(240px,42vw,440px)] w-full rounded-lg object-cover" /> : null}
+                          {destination.photos && destination.photos.length > 1 ? (
+                            <div className="mb-7 grid grid-cols-3 gap-2">
+                              {destination.photos.slice(1, 4).map((photo) => <img key={photo} src={photo} alt="" className="h-28 w-full rounded-lg object-cover" />)}
+                            </div>
+                          ) : null}
+
+                          <div className="space-y-5 font-[var(--font-body)] text-lg leading-9 text-[#1A1A1A]">
+                            {(destination.description ?? "").split("\n\n").filter(Boolean).map((paragraph) => <p key={paragraph} className="m-0">{paragraph}</p>)}
+                          </div>
+
+                          {note ? (
+                            <div className="mt-8 rounded-lg border border-[#C4713A]/20 bg-[#EFE7DC] p-5">
+                              <p className="m-0 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.12em] text-[#9E6B5C]">Route note</p>
+                              <p className="m-0 mt-2 text-sm leading-6 text-[#5B4A40]">{note}</p>
+                            </div>
+                          ) : null}
+
+                        </article>
+                      );
+                    }
+
                     return (
-                      <article key={destination.id} className="rounded-2xl border border-[#3A2A22]/12 bg-[#FFF9F0] p-5 shadow-[0_16px_38px_rgba(58,42,34,0.08)]">
-                        <div className="flex flex-wrap items-start justify-between gap-4">
-                          <div className="flex min-w-0 flex-1 gap-4">
-                            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#3A2A22] font-[var(--font-label)] text-sm font-bold text-[#FFF9F0]">{destination.order}</span>
-                            <div className="min-w-0 flex-1">
-                              {isEditing && isPlanned ? (
-                                <div className="grid gap-3">
-                                  <label className="grid gap-1">
-                                    <span className="text-xs font-bold text-[#5B4A40]">Place name</span>
-                                    <input value={destination.placeName} onChange={(event) => updateDestination(destination.id, { placeName: event.target.value })} className="min-h-11 rounded-xl border border-[#3A2A22]/14 bg-white px-3 text-sm outline-none focus:border-[#C4713A] focus:ring-2 focus:ring-[#C4713A]/20" />
-                                  </label>
-                                  <div className="grid gap-2 sm:grid-cols-3">
-                                    <label className="grid gap-1">
-                                      <span className="text-xs font-bold text-[#5B4A40]">Day</span>
-                                      <input type="number" min={1} value={destination.plannedDay} onChange={(event) => updateDestination(destination.id, { plannedDay: Math.max(1, Number(event.target.value) || 1) })} className="min-h-11 rounded-xl border border-[#3A2A22]/14 bg-white px-3 text-sm outline-none focus:border-[#C4713A] focus:ring-2 focus:ring-[#C4713A]/20" />
-                                    </label>
-                                    <label className="grid gap-1">
-                                      <span className="text-xs font-bold text-[#5B4A40]">Date</span>
-                                      <input type="date" min={todayDate()} value={destination.plannedDate ?? ""} onChange={(event) => updateDestination(destination.id, { plannedDate: event.target.value })} className="min-h-11 rounded-xl border border-[#3A2A22]/14 bg-white px-3 text-sm outline-none focus:border-[#C4713A] focus:ring-2 focus:ring-[#C4713A]/20" />
-                                    </label>
-                                    <label className="grid gap-1">
-                                      <span className="text-xs font-bold text-[#5B4A40]">Time</span>
-                                      <input type="time" value={destination.plannedTime ?? ""} onChange={(event) => updateDestination(destination.id, { plannedTime: event.target.value })} className="min-h-11 rounded-xl border border-[#3A2A22]/14 bg-white px-3 text-sm outline-none focus:border-[#C4713A] focus:ring-2 focus:ring-[#C4713A]/20" />
-                                    </label>
-                                  </div>
-                                  <label className="grid gap-1">
-                                    <span className="text-xs font-bold text-[#5B4A40]">Stop note</span>
-                                    <textarea value={meaningfulStopNote(destination.notes) ?? ""} onChange={(event) => updateDestination(destination.id, { notes: event.target.value })} rows={3} className="resize-none rounded-xl border border-[#3A2A22]/14 bg-white px-3 py-2 text-sm leading-6 outline-none focus:border-[#C4713A] focus:ring-2 focus:ring-[#C4713A]/20" placeholder="Add a note about this stop." />
-                                  </label>
-                                </div>
-                              ) : (
-                                <>
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <h4 className="m-0 font-[var(--font-display)] text-2xl font-semibold leading-tight text-[#2C211C]">{title}</h4>
-                                    <span className={`rounded-full border px-3 py-1 text-xs font-bold ${isPlanned ? "border-[#6A584D]/25 bg-[#F5F0E8] text-[#4D4038]" : "border-[#5C8A9E]/30 bg-[#E8F0EF] text-[#315568]"}`}>
-                                      {isPlanned ? "Planned" : "Completed"}
-                                    </span>
-                                  </div>
-                                  {showSeparateAddress(destination) ? <p className="m-0 mt-2 text-sm font-semibold text-[#4D4038]">{destination.placeName}</p> : null}
-                                  <p className="m-0 mt-2 text-sm leading-6 text-[#5B4A40]">{scheduleSummary(destination)}</p>
-                                  <p className={`m-0 mt-2 text-sm leading-6 ${note ? "text-[#4D4038]" : "text-[#7A685E]"}`}>{note ?? "Add a note about this stop."}</p>
-                                  {destination.description ? <p className="m-0 mt-4 border-l-2 border-[#C4713A]/35 pl-4 font-[var(--font-body)] text-base leading-7 text-[#1A1A1A]">{destination.description}</p> : null}
-                                </>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex shrink-0 flex-wrap gap-2">
-                            {isPlanned ? (
-                              <>
-                                <ActionIconButton label={isEditing ? "Finish editing plan" : "Edit this stop"} onClick={() => setEditingDestinationId(isEditing ? null : destination.id)}>
-                                  <FileText size={16} strokeWidth={2.2} />
-                                </ActionIconButton>
-                                <ActionIconButton label="Move stop up" onClick={() => moveDestination(destination.id, -1)}>
-                                  <ArrowUp size={16} strokeWidth={2.2} />
-                                </ActionIconButton>
-                                <ActionIconButton label="Move stop down" onClick={() => moveDestination(destination.id, 1)}>
-                                  <ArrowDown size={16} strokeWidth={2.2} />
-                                </ActionIconButton>
-                                <ActionIconButton label="Delete this stop" tone="danger" onClick={() => setDeleteRequest({ kind: "destination", id: destination.id, label: stopDisplayTitle(destination) })}>
-                                  <Trash2 size={16} strokeWidth={2.2} />
-                                </ActionIconButton>
-                              </>
-                            ) : null}
-                            {destination.coordinate.lat || destination.coordinate.lon ? (
-                              <ActionIconButton label="View this pin on the map" onClick={() => viewDestinationOnMap(destination)}>
-                                <MapPin size={16} strokeWidth={2.2} />
-                              </ActionIconButton>
-                            ) : null}
+                      <article
+                        key={destination.id}
+                        id={`travel-plan-point-${destination.order}`}
+                        draggable
+                        onDragStart={() => setDraggedDestinationId(destination.id)}
+                        onDragEnd={() => setDraggedDestinationId(null)}
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={() => {
+                          if (draggedDestinationId) reorderDestination(draggedDestinationId, destination.id);
+                          setDraggedDestinationId(null);
+                        }}
+                        className={`scroll-mt-28 border-t border-[#3A2A22]/14 pt-10 transition ${draggedDestinationId === destination.id ? "opacity-50" : "cursor-grab active:cursor-grabbing"}`}
+                      >
+                        <div className="mb-6">
+                          <p className="m-0 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.16em] text-[#9E6B5C]">Point {destination.order} of {total}</p>
+                          <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
+                            <h2 className="m-0 min-w-0 flex-1 font-[var(--font-display)] text-4xl font-semibold leading-tight text-[#3A2A22] sm:text-5xl">{title}</h2>
+                            <span className="mt-1 shrink-0 rounded-full border border-[#3A2A22]/16 px-4 py-2 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] text-[#3A2A22]">Day {destination.plannedDay}</span>
                           </div>
                         </div>
+                        <div className="mb-7 flex flex-wrap gap-3 border-y border-[#3A2A22]/12 py-4 text-sm text-[#5B4A40]">
+                          <span className="inline-flex items-center gap-2"><MapPin size={14} /> {destination.placeName}</span>
+                          <span>{formatPlanCoordinates(destination.coordinate)}</span>
+                          <span>{destination.category ?? "Category pending"}</span>
+                          {destination.plannedDate ? <span>{destination.plannedDate}</span> : null}
+                          {destination.plannedTime ? <span>{destination.plannedTime}</span> : null}
+                        </div>
 
-                        {destination.photos?.length ? (
-                          <div className="mt-5 grid grid-cols-3 gap-2">
-                            {destination.photos.slice(0, 3).map((photo) => <img key={photo} src={photo} alt="" className="h-24 w-full rounded-xl object-cover" />)}
-                          </div>
-                        ) : null}
-
-                        {isVisitOpen ? (
-                          <div className="mt-5 rounded-2xl border border-[#C4713A]/25 bg-[#FBF7F0] p-4">
-                            <div className="grid gap-3">
-                              <div className="grid gap-2 sm:grid-cols-3">
-                                <select value={visitForm.visibility} onChange={(event) => setVisitForm((current) => ({ ...current, visibility: event.target.value as MapScope }))} className="min-h-11 rounded-xl border border-[#3A2A22]/14 bg-white px-3 text-sm">
-                                  <option value="private">Private Map</option>
-                                  <option value="public">Public Map</option>
-                                  <option value="group">Group Map</option>
-                                </select>
-                                <select value={visitForm.category} onChange={(event) => setVisitForm((current) => ({ ...current, category: event.target.value }))} className="min-h-11 rounded-xl border border-[#3A2A22]/14 bg-white px-3 text-sm">
-                                  {planCategories.filter((item) => item !== "All").map((item) => <option key={item}>{item}</option>)}
-                                </select>
-                                <input type="date" value={visitForm.dateVisited} onChange={(event) => setVisitForm((current) => ({ ...current, dateVisited: event.target.value }))} className="min-h-11 rounded-xl border border-[#3A2A22]/14 bg-white px-3 text-sm" />
-                              </div>
-                              <input value={visitForm.placeName} onChange={(event) => setVisitForm((current) => ({ ...current, placeName: event.target.value }))} className="min-h-11 rounded-xl border border-[#3A2A22]/14 bg-white px-3 text-sm" placeholder="Place name" />
-                              <input value={visitForm.title} onChange={(event) => setVisitForm((current) => ({ ...current, title: event.target.value }))} className="min-h-11 rounded-xl border border-[#3A2A22]/14 bg-white px-3 text-sm" placeholder="Story title" />
-                              <textarea value={visitForm.description} onChange={(event) => setVisitForm((current) => ({ ...current, description: event.target.value }))} rows={4} className="resize-none rounded-xl border border-[#3A2A22]/14 bg-white px-3 py-2 text-sm leading-6" placeholder="Document what happened when you visited." />
-                              <textarea value={visitForm.photos} onChange={(event) => setVisitForm((current) => ({ ...current, photos: event.target.value }))} rows={2} className="resize-none rounded-xl border border-[#3A2A22]/14 bg-white px-3 py-2 text-sm leading-6" placeholder="Photo URLs, separated by comma or line break." />
-                              <div className="flex flex-wrap justify-end gap-2">
-                                <button type="button" onClick={() => setVisitDestinationId(null)} className="min-h-10 rounded-full border border-[#3A2A22]/18 px-4 text-sm font-bold text-[#3A2A22]">Cancel</button>
-                                <button type="button" onClick={saveVisit} className="min-h-10 rounded-full bg-[#C4713A] px-4 text-sm font-bold text-[#FFF9F0]">Mark Completed</button>
-                              </div>
-                            </div>
-                          </div>
-                        ) : null}
-
-                        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#3A2A22]/10 pt-4">
-                          <div>
-                            {isPlanned && !documentReady ? <p className="m-0 text-sm font-medium text-[#6F5749]">{documentLockMessage(destination)}</p> : <p className="m-0 text-sm font-medium text-[#4D4038]">{isPlanned ? "Ready to document once the scheduled time arrives." : "This stop is documented and can be edited."}</p>}
-                          </div>
-                          <button
-                            type="button"
-                            disabled={isPlanned && !documentReady}
-                            onClick={() => startVisit(destination)}
-                            title={isPlanned && !documentReady ? documentLockMessage(destination) : undefined}
-                            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#3A2A22] px-5 text-sm font-bold text-[#FFF9F0] transition hover:bg-[#2C211C] disabled:cursor-not-allowed disabled:bg-[#D9D0C2] disabled:text-[#66584F]"
-                          >
-                            {isPlanned && !documentReady ? <LockKeyhole size={16} strokeWidth={2.2} /> : <CheckCircle2 size={16} strokeWidth={2.2} />}
-                            {isPlanned ? "Document Visit" : "Edit Visit"}
+                        {destination.photos?.[0] ? (
+                          <img src={destination.photos[0]} alt="" className="mb-7 h-[clamp(240px,42vw,440px)] w-full rounded-lg object-cover" />
+                        ) : (
+                          <button type="button" onClick={() => addPointPhotos(destination)} className="mb-7 grid h-[clamp(240px,42vw,440px)] w-full place-items-center rounded-lg border border-dashed border-[#3A2A22]/20 bg-[#EFE7DC] font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.16em] text-[#7A4B32]">
+                            Add photo here
                           </button>
-                        </div>
+                        )}
+
+                        {documentReady ? (
+                          <textarea
+                            defaultValue={destination.description ?? ""}
+                            onBlur={(event) => documentDestination(destination, { description: event.target.value })}
+                            rows={5}
+                            className="w-full resize-none rounded-lg border border-dashed border-[#3A2A22]/20 bg-transparent px-0 py-2 font-[var(--font-body)] text-lg leading-9 text-[#1A1A1A] outline-none placeholder:uppercase placeholder:tracking-[0.08em] placeholder:text-[#7A685E] focus:border-[#C4713A]/45 focus:bg-[#FFF9F0]/60 focus:px-3"
+                            placeholder="TYPE HERE"
+                          />
+                        ) : (
+                          <button type="button" onClick={() => ensureDocumentable(destination)} className="block w-full rounded-lg border border-dashed border-[#3A2A22]/20 bg-[#EFE7DC]/70 px-4 py-7 text-left font-[var(--font-body)] text-lg leading-8 text-[#7A685E]">
+                            TYPE HERE
+                          </button>
+                        )}
+
+                        {note ? (
+                          <div className="mt-8 rounded-lg border border-[#C4713A]/20 bg-[#EFE7DC] p-5">
+                            <p className="m-0 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.12em] text-[#9E6B5C]">Route note</p>
+                            <p className="m-0 mt-2 text-sm leading-6 text-[#5B4A40]">{note}</p>
+                          </div>
+                        ) : null}
+
                       </article>
                     );
                   })}
-                </div>
-              </div>
-            ))}
           </div>
         </section>
 
-        <section className="mx-auto mt-14 max-w-4xl overflow-hidden rounded-3xl border border-[#C4713A]/25 bg-gradient-to-br from-[#3A2A22] via-[#4A352A] to-[#8A4B26] p-6 text-[#FFF9F0] shadow-[0_28px_70px_rgba(58,42,34,0.22)]">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="m-0 font-[var(--font-label)] text-[0.72rem] font-bold tracking-[0.12em] text-[#E8C7A9]">Album Maker</p>
-              <h2 className="m-0 mt-1 font-[var(--font-display)] text-4xl font-semibold">Printable Journey Album</h2>
-              <p className="m-0 mt-3 max-w-2xl text-sm leading-6 text-[#F5E7D6]">
-                {albumUnlocked(plan) ? "All destinations are complete. Choose a template and preview the print-ready travel book." : `Locked until every destination is documented. ${completed} of ${total} destinations completed.`}
-              </p>
-            </div>
-            <div className="grid h-14 w-14 place-items-center rounded-2xl border border-[#FFF9F0]/18 bg-[#FFF9F0]/10">
-              {albumUnlocked(plan) ? <CheckCircle2 size={26} strokeWidth={2.2} /> : <LockKeyhole size={26} strokeWidth={2.2} />}
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <div className="flex items-center justify-between gap-4 text-sm font-semibold text-[#F5E7D6]">
-              <span>{completed} documented</span>
-              <span>{total} total</span>
-            </div>
-            <div className="mt-2 h-3 overflow-hidden rounded-full bg-[#FFF9F0]/18">
-              <div className="h-full rounded-full bg-[#E9B17A]" style={{ width: `${progress}%` }} />
-            </div>
-          </div>
-
-          {albumUnlocked(plan) ? (
-            <div className="mt-6 grid gap-4">
-              <div className="flex flex-wrap gap-2">
-                {albumTemplates.map((template) => (
-                  <button key={template} type="button" onClick={() => setAlbumTemplate(template)} className={`min-h-10 rounded-full border px-4 text-sm font-bold transition ${albumTemplate === template ? "border-[#FFF9F0] bg-[#FFF9F0] text-[#3A2A22]" : "border-[#FFF9F0]/25 text-[#FFF9F0] hover:bg-[#FFF9F0]/10"}`}>
-                    {template}
-                  </button>
-                ))}
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-[#FFF9F0]/14 bg-[#FFF9F0]/10 p-5">
-                  <p className="font-[var(--font-label)] text-xs font-bold tracking-[0.12em] text-[#E8C7A9]">Cover</p>
-                  <h3 className="font-[var(--font-display)] text-3xl font-semibold text-[#FFF9F0]">{plan.travelPlanName}</h3>
-                  <p className="text-sm leading-6 text-[#F5E7D6]">{albumTemplate} / {totalTravelDays(plan)} travel days / {total} stops</p>
-                </div>
-                {plan.destinations.map((destination) => (
-                  <div key={destination.id} className="rounded-2xl border border-[#FFF9F0]/14 bg-[#FFF9F0]/10 p-5">
-                    <p className="font-[var(--font-label)] text-xs font-bold tracking-[0.12em] text-[#E8C7A9]">Page {destination.order}</p>
-                    <h3 className="font-[var(--font-display)] text-2xl font-semibold text-[#FFF9F0]">{destination.title || destination.placeName}</h3>
-                    <p className="text-sm leading-6 text-[#F5E7D6]">{destination.dateVisited} / Day {destination.plannedDay}</p>
-                    <p className="text-sm leading-6 text-[#FFF9F0]">{destination.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </section>
         <ConfirmDialog
           open={Boolean(deleteRequest)}
           title={`Delete ${deleteRequest?.label ?? "this item"}?`}
@@ -747,6 +619,7 @@ function TravelPlanDetail({ plan, onBack, onUpdate, onDelete }: { plan: TravelPl
           onCancel={() => setDeleteRequest(null)}
         />
       </article>
+      {typeof document !== "undefined" && pointNav ? createPortal(pointNav, document.body) : null}
     </div>
   );
 }
@@ -754,11 +627,11 @@ function TravelPlanDetail({ plan, onBack, onUpdate, onDelete }: { plan: TravelPl
 function TravelPlanStoriesContent() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [plans, setPlans] = useState<TravelPlanStory[]>(() => readTravelPlanStories());
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [activePlanId, setActivePlanId] = useState<string | null>(() => new URLSearchParams(location.search).get("plan"));
-  const [pendingPlanDelete, setPendingPlanDelete] = useState<TravelPlanStory | null>(null);
 
   useEffect(() => {
     setPlans(readTravelPlanStories());
@@ -798,11 +671,11 @@ function TravelPlanStoriesContent() {
     deleteTravelPlanStory(planId);
     setPlans((current) => current.filter((plan) => plan.id !== planId));
     setActivePlanId(null);
-    setPendingPlanDelete(null);
   };
 
   if (activePlan) {
-    if (activePlanIsSample) {
+    const activePlanBelongsToCurrentUser = activePlan.ownerId === (user?.id ?? "demo-user") || activePlan.ownerId === "demo-user";
+    if (activePlanIsSample && !activePlanBelongsToCurrentUser) {
       return <PublicTravelPlanBook plan={activePlan} onBack={() => setActivePlanId(null)} />;
     }
 
@@ -825,9 +698,14 @@ function TravelPlanStoriesContent() {
         <header className="mb-10">
           <p className="mb-2 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.16em] text-[#9E6B5C]">Personal itinerary shelf</p>
           <h1 className="m-0 font-[var(--font-display)] text-5xl font-semibold leading-none text-[#3A2A22] sm:text-6xl">Travel Plans</h1>
-          <p className="mt-4 max-w-3xl font-[var(--font-body)] text-lg leading-8 text-[#5B4A40]">
-            Multi-destination journeys created from Draw Route. Plan the order, document each visited stop, then unlock Album Maker when the full route is complete.
-          </p>
+          <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
+            <p className="m-0 max-w-3xl font-[var(--font-body)] text-lg leading-8 text-[#5B4A40]">
+              Multi-destination journeys created from Draw Route. Plan the order, document each visited stop, then unlock Album Maker when the full route is complete.
+            </p>
+            <button type="button" onClick={() => navigate("/maps")} className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-[#C4713A] px-5 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] text-[#F5F0E8]">
+              <MapPin size={15} /> Create with Draw Route
+            </button>
+          </div>
         </header>
 
         <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
@@ -877,19 +755,12 @@ function TravelPlanStoriesContent() {
           </div>
         </div>
 
-        <div className="mb-8 flex justify-end">
-          <button type="button" onClick={() => navigate("/maps")} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#C4713A] px-5 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] text-[#F5F0E8]">
-            <MapPin size={15} /> Create with Draw Route
-          </button>
-        </div>
-
         {filteredPlans.length ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {filteredPlans.map((plan) => {
               const status = travelPlanStatus(plan);
               const completed = completedDestinationCount(plan);
               const total = plan.destinations.length;
-              const progress = total ? Math.round((completed / total) * 100) : 0;
               const cover = plan.coverImage || plan.destinations.find((destination) => destination.photos?.[0])?.photos?.[0];
               return (
                 <article key={plan.id} onClick={() => setActivePlanId(plan.id)} className="overflow-hidden rounded-lg border border-[#3A2A22]/12 bg-[#EDEAE0] shadow-[0_14px_34px_rgba(58,42,34,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(58,42,34,0.12)]">
@@ -904,23 +775,8 @@ function TravelPlanStoriesContent() {
                       <div className="rounded-lg bg-[#FBF7F0] p-3"><p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[#6B6B5A]">Days</p><strong className="font-[var(--font-display)] text-2xl text-[#3A2A22]">{totalTravelDays(plan)}</strong></div>
                       <div className="rounded-lg bg-[#FBF7F0] p-3"><p className="m-0 text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[#6B6B5A]">Done</p><strong className="font-[var(--font-display)] text-2xl text-[#3A2A22]">{completed}/{total}</strong></div>
                     </div>
-                    <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#FBF7F0]">
-                      <div className="h-full rounded-full bg-[#C4713A]" style={{ width: `${progress}%` }} />
-                    </div>
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                       <p className="m-0 text-xs font-semibold text-[#6B6B5A]">{albumUnlocked(plan) ? "Album Maker unlocked" : "Private until every destination is completed"}</p>
-                      {!sampleTravelPlans.some((sample) => sample.id === plan.id) ? (
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setPendingPlanDelete(plan);
-                          }}
-                          className="inline-flex min-h-8 items-center gap-1 rounded-full border border-[#B23B2E]/25 px-3 text-xs font-bold text-[#8A2F25] hover:bg-[#B23B2E]/10"
-                        >
-                          <Trash2 size={13} /> Delete
-                        </button>
-                      ) : null}
                     </div>
                   </div>
                 </article>
@@ -939,14 +795,6 @@ function TravelPlanStoriesContent() {
         .category-pill:hover { background-color: rgba(58,42,34,0.08); border-color: #3A2A22; color: #3A2A22; }
         .category-pill[aria-pressed="true"]:hover { background-color: #3A2A22; border-color: #3A2A22; color: #F5F0E8; }
       `}</style>
-      <ConfirmDialog
-        open={Boolean(pendingPlanDelete)}
-        title={`Delete ${pendingPlanDelete?.travelPlanName ?? "this Travel Plan"}?`}
-        description={`Are you sure you want to delete "${pendingPlanDelete?.travelPlanName ?? "this Travel Plan"}"? This removes the whole itinerary story immediately.`}
-        confirmLabel="Delete Travel Plan"
-        onConfirm={() => pendingPlanDelete && removeTravelPlan(pendingPlanDelete.id)}
-        onCancel={() => setPendingPlanDelete(null)}
-      />
     </div>
   );
 }

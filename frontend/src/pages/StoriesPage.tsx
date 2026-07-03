@@ -237,6 +237,10 @@ export const STORY_MAP_POINTS: Record<number, { place: string; coordinate: { lat
   6: { place: "Hundred Islands, Pangasinan", coordinate: { lat: 16.2076, lon: 119.9706 } },
 };
 
+function formatStoryCoordinates(point?: { coordinate: { lat: number; lon: number } }): string {
+  return point ? `${point.coordinate.lat.toFixed(4)}, ${point.coordinate.lon.toFixed(4)}` : "";
+}
+
 export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext, onDelete }: {
   story: TravelStory;
   onBack: () => void;
@@ -443,6 +447,9 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
                   <p style={{ margin: "0 0 0.35rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#9E6B5C" }}>Share your own trace</p>
                   <h3 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.35rem", fontWeight: 600, color: "#3A2A22", lineHeight: 1.1 }}>Want to share your own story of this location?</h3>
                   <p style={{ margin: "0.45rem 0 0", fontFamily: "var(--font-body)", color: "#5B4A40", lineHeight: 1.6 }}>Pin {storyPoint.place} on your map and write what happened there.</p>
+                  <p style={{ margin: "0.35rem 0 0", fontFamily: "var(--font-ui)", color: "#3A2A22", fontSize: "0.84rem", fontWeight: 700 }}>
+                    Coordinates: {formatStoryCoordinates(storyPoint)}
+                  </p>
                 </div>
                 <div style={{ display: "flex", gap: "0.65rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
                   <button
@@ -1067,6 +1074,7 @@ function StoriesContent() {
                   <p style={{ fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: "0.875rem", color: "#1A1A1A" }}>{filtered[0].author}</p>
                   <div style={{ display: "flex", gap: "0.75rem", color: "#6B6B5A", marginTop: "0.2rem" }}>
                     <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.78rem", fontFamily: "var(--font-ui)" }}><MapPin size={11} />{filtered[0].region}</span>
+                    {STORY_MAP_POINTS[filtered[0].id] ? <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.78rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}><Compass size={11} />{formatStoryCoordinates(STORY_MAP_POINTS[filtered[0].id])}</span> : null}
                     <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.78rem", fontFamily: "var(--font-ui)" }}><Clock size={11} />{filtered[0].readTime}</span>
                   </div>
                 </div>
@@ -1089,6 +1097,11 @@ function StoriesContent() {
               <div style={{ padding: "1.25rem" }}>
                 <span style={{ fontFamily: "var(--font-label)", fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#C4713A" }}>{s.category}</span>
                 <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.15rem", fontWeight: 600, color: "#3A2A22", lineHeight: 1.35, margin: "0.4rem 0 0.75rem" }}>{s.title}</h3>
+                {STORY_MAP_POINTS[s.id] ? (
+                  <p style={{ display: "flex", alignItems: "center", gap: "0.35rem", margin: "0 0 0.75rem", fontFamily: "var(--font-ui)", fontSize: "0.74rem", color: "#6B5A50", fontWeight: 700 }}>
+                    <Compass size={12} color="#9E6B5C" /> {formatStoryCoordinates(STORY_MAP_POINTS[s.id])}
+                  </p>
+                ) : null}
                 <p style={{ fontFamily: "var(--font-body)", fontSize: "0.875rem", color: "#4A4A3A", lineHeight: 1.6, marginBottom: "1rem" }}>{s.excerpt.slice(0, 120)}…</p>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>

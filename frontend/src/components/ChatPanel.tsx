@@ -288,13 +288,22 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
   const { user } = useAuth();
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conv[]>(INITIAL_CONVERSATIONS);
-  const [activeTab, setActiveTab] = useState<"Friends" | "Events" | "Unread">("Events");
+  const [activeTab, setActiveTab] = useState<"Friends" | "Events" | "Unread">("Friends");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeConvId, setActiveConvId] = useState<number | null>(null);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [groupNote, setGroupNote] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setActiveTab("Friends");
+    setActiveConvId(null);
+    setOptionsOpen(false);
+    setCreateGroupOpen(false);
+    setSearchQuery("");
+  }, [open]);
 
   if (!open) return null;
 

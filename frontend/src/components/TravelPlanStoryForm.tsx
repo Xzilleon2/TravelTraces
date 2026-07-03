@@ -8,6 +8,7 @@ type PlannedStop = ApiLocation & {
   plannedDay?: number;
   plannedDate?: string;
   plannedTime?: string;
+  category?: string;
   notes?: string;
 };
 
@@ -33,6 +34,7 @@ const emptyLocation = (index: number): PlannedStop => ({
   confidence: 1,
   plannedDay: 1,
   plannedDate: addDaysKey(new Date(), index),
+  category: "Hidden Gems",
 });
 
 function addDaysKey(startDate: Date, days: number): string {
@@ -42,6 +44,7 @@ function addDaysKey(startDate: Date, days: number): string {
 }
 
 const todayDate = () => new Date().toISOString().slice(0, 10);
+const stopCategories = ["Hiking", "Food Place", "Hidden Gems", "Beaches", "Forest", "Culture", "More"];
 
 function travelPlanConflictMessage(stops: PlannedStop[]): string | null {
   const today = todayDate();
@@ -87,6 +90,7 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
         plannedDay: index === 0 ? 1 : Math.min(index + 1, 3),
         plannedDate: addDaysKey(today, index),
         plannedTime: "",
+        category: "Hidden Gems",
         notes: "",
       })),
     );
@@ -229,6 +233,12 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
                     <input type="time" required value={stop.plannedTime ?? ""} onChange={(event) => updateStop(index, { plannedTime: event.target.value })} className="min-h-10 rounded-lg border border-[#3A2A22]/12 bg-white px-3 text-sm outline-none focus:border-[#C4713A]" />
                   </label>
                 </div>
+                <label className="grid gap-1">
+                  <span className="text-xs font-semibold text-[#5B4A40]">Category</span>
+                  <select value={stop.category ?? "Hidden Gems"} onChange={(event) => updateStop(index, { category: event.target.value })} className="min-h-10 rounded-lg border border-[#3A2A22]/12 bg-white px-3 text-sm outline-none focus:border-[#C4713A]">
+                    {stopCategories.map((category) => <option key={category}>{category}</option>)}
+                  </select>
+                </label>
                 <label className="grid gap-1">
                   <span className="text-xs font-semibold text-[#5B4A40]">Notes</span>
                   <textarea value={stop.notes ?? ""} onChange={(event) => updateStop(index, { notes: event.target.value })} rows={2} className="resize-none rounded-lg border border-[#3A2A22]/12 bg-white px-3 py-2 text-sm outline-none focus:border-[#C4713A]" placeholder="Tickets, route notes, timing, reminders..." />

@@ -47,6 +47,21 @@ Enum album_status {
   exported
 }
 
+Enum source_entity_type {
+  manual
+  story
+  explore_place
+  travel_plan
+  travel_plan_destination
+  event
+}
+
+Enum deletion_status {
+  active
+  trashed
+  permanently_deleted
+}
+
 Enum group_member_role {
   owner
   admin
@@ -232,12 +247,14 @@ Table stories {
   read_time varchar
   visibility visibility_scope [not null, default: "public"]
   status story_status [not null, default: "published"]
+  deletion_status deletion_status [not null, default: "active"]
   likes_count int [not null, default: 0]
   saves_count int [not null, default: 0]
   comments_count int [not null, default: 0]
   posted_at timestamp [not null]
   created_at timestamp [not null]
   updated_at timestamp [not null]
+  deleted_at timestamp
 }
 
 Table story_photos {
@@ -274,7 +291,9 @@ Table story_likes {
 Table saved_stories {
   story_id varchar [not null]
   user_id varchar [not null]
+  collection_id varchar
   saved_at timestamp [not null]
+  deleted_at timestamp
 
   indexes {
     (story_id, user_id) [pk]
@@ -328,17 +347,25 @@ Table pins {
   creator_id varchar [not null]
   story_id varchar
   place_id varchar
+  travel_plan_id varchar
+  travel_plan_destination_id varchar
+  source_entity_type source_entity_type [not null, default: "manual"]
+  source_entity_id varchar
   title varchar [not null]
   note text
   address varchar
   latitude decimal(10,7) [not null]
   longitude decimal(10,7) [not null]
+  map_x_percent decimal(5,2)
+  map_y_percent decimal(5,2)
   category varchar
   scope visibility_scope [not null, default: "private"]
   source varchar [not null, default: "manual"]
   media_json json
+  deletion_status deletion_status [not null, default: "active"]
   created_at timestamp [not null]
   updated_at timestamp [not null]
+  deleted_at timestamp
 }
 
 Table pin_photos {
@@ -363,9 +390,13 @@ Table routes {
   route_id varchar [not null]
   session_id varchar
   creator_id varchar [not null]
+  travel_plan_id varchar
   scope visibility_scope [not null, default: "private"]
   engine varchar [not null, default: "osrm"]
   route_json json [not null]
+  distance_m decimal(12,2)
+  duration_s int
+  is_drawn_route boolean [not null, default: false]
   created_at timestamp [not null]
   updated_at timestamp [not null]
 }
@@ -377,6 +408,10 @@ Table route_points {
   latitude decimal(10,7) [not null]
   longitude decimal(10,7) [not null]
   label varchar
+  snapped_latitude decimal(10,7)
+  snapped_longitude decimal(10,7)
+  place_name varchar
+  category varchar
 }
 
 Table route_groups {
@@ -400,6 +435,7 @@ Table travel_plan_stories {
   visibility visibility_scope [not null, default: "private", note: "Travel plans stay private while planning or ongoing. Public visibility is allowed only after completion."]
   status travel_plan_status [not null, default: "planning"]
   published boolean [not null, default: false]
+  publishable boolean [not null, default: false, note: "True only when every destination has been completed."]
   total_destinations int [not null, default: 0]
   completed_destinations int [not null, default: 0]
   total_travel_days int [not null, default: 1]
@@ -407,10 +443,14 @@ Table travel_plan_stories {
   saves_count int [not null, default: 0]
   comments_count int [not null, default: 0]
   album_template varchar
+  album_unlocked boolean [not null, default: false]
+  owner_can_print_album boolean [not null, default: false, note: "Print Album is an owner-only action. Public viewers can view completed routes but cannot print another user's album from the detail page."]
+  deletion_status deletion_status [not null, default: "active"]
   published_at timestamp
   created_at timestamp [not null]
   updated_at timestamp [not null]
   archived_at timestamp
+  deleted_at timestamp
 }
 
 Table travel_plan_groups {
@@ -426,21 +466,28 @@ Table travel_plan_destinations {
   destination_id varchar [pk]
   travel_plan_id varchar [not null]
   place_id varchar
+  route_point_id varchar
+  pin_id varchar
   destination_order int [not null]
   place_name varchar [not null]
   latitude decimal(10,7) [not null]
   longitude decimal(10,7) [not null]
+  category varchar [not null, default: "Hidden Gems"]
   planned_day int [not null, default: 1]
+  planned_date date [not null]
   planned_time time
   notes text
   status travel_plan_destination_status [not null, default: "planned"]
+  documentable_after timestamp [not null, note: "Destination can be documented only after this scheduled date/time has arrived."]
   visited_at timestamp
   completed_at timestamp
   created_at timestamp [not null]
   updated_at timestamp [not null]
+  deleted_at timestamp
 
   indexes {
     (travel_plan_id, destination_order) [unique]
+    (travel_plan_id, planned_date, planned_time) [unique, note: "Prevents two destinations in the same plan from sharing the same planned date and time."]
   }
 }
 
@@ -457,8 +504,10 @@ Table travel_plan_destination_documents {
   date_visited date [not null]
   publish_to_map boolean [not null, default: false]
   publish_as_story boolean [not null, default: false]
+  documented_after_schedule boolean [not null, default: true]
   created_at timestamp [not null]
   updated_at timestamp [not null]
+  deleted_at timestamp
 }
 
 Table travel_plan_destination_photos {
@@ -473,6 +522,7 @@ Table travel_plan_destination_photos {
 Table travel_plan_albums {
   album_id varchar [pk]
   travel_plan_id varchar [not null, unique]
+  owner_id varchar [not null]
   template_name varchar [not null]
   cover_title varchar
   cover_image_url varchar
@@ -482,6 +532,7 @@ Table travel_plan_albums {
   generated_at timestamp
   created_at timestamp [not null]
   updated_at timestamp [not null]
+  deleted_at timestamp
 }
 
 Table travel_plan_album_pages {
@@ -528,10 +579,29 @@ Table saved_travel_plans {
   travel_plan_id varchar [not null]
   user_id varchar [not null]
   saved_at timestamp [not null]
+  deleted_at timestamp
 
   indexes {
     (travel_plan_id, user_id) [pk]
   }
+}
+
+Table user_calendar_items {
+  calendar_item_id varchar [pk]
+  user_id varchar [not null]
+  travel_plan_id varchar
+  destination_id varchar
+  title varchar [not null]
+  place_name varchar
+  starts_at timestamp [not null]
+  ends_at timestamp
+  latitude decimal(10,7)
+  longitude decimal(10,7)
+  source_entity_type source_entity_type [not null, default: "travel_plan_destination"]
+  source_entity_id varchar
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp
 }
 
 Table tracking_sessions {
@@ -771,6 +841,9 @@ Table travel_collections {
 Table saved_tourist_spots {
   saved_spot_id varchar [pk]
   place_id varchar
+  story_id varchar
+  travel_plan_id varchar
+  pin_id varchar
   owner_id varchar [not null]
   collection_id varchar
   name varchar [not null]
@@ -779,6 +852,7 @@ Table saved_tourist_spots {
   longitude decimal(10,7) [not null]
   notes text
   saved_at timestamp [not null]
+  deleted_at timestamp
 }
 
 Table audit_log {
@@ -816,6 +890,7 @@ Ref: story_likes.story_id > stories.story_id [delete: cascade]
 Ref: story_likes.user_id > users.user_id [delete: cascade]
 Ref: saved_stories.story_id > stories.story_id [delete: cascade]
 Ref: saved_stories.user_id > users.user_id [delete: cascade]
+Ref: saved_stories.collection_id > story_collections.collection_id [delete: set null]
 Ref: story_collections.owner_id > users.user_id [delete: cascade]
 Ref: story_collection_items.collection_id > story_collections.collection_id [delete: cascade]
 Ref: story_collection_items.story_id > stories.story_id [delete: cascade]
@@ -828,11 +903,14 @@ Ref: pins.map_id > user_maps.map_id [delete: set null]
 Ref: pins.creator_id > users.user_id [delete: cascade]
 Ref: pins.story_id > stories.story_id [delete: set null]
 Ref: pins.place_id > explore_places.place_id [delete: set null]
+Ref: pins.travel_plan_id > travel_plan_stories.travel_plan_id [delete: set null]
+Ref: pins.travel_plan_destination_id > travel_plan_destinations.destination_id [delete: set null]
 Ref: pin_photos.pin_id > pins.pin_id [delete: cascade]
 Ref: pin_groups.pin_id > pins.pin_id [delete: cascade]
 Ref: pin_groups.group_id > travel_groups.circle_id [delete: cascade]
 
 Ref: routes.creator_id > users.user_id [delete: cascade]
+Ref: routes.travel_plan_id > travel_plan_stories.travel_plan_id [delete: cascade]
 Ref: route_points.record_id > routes.record_id [delete: cascade]
 Ref: route_groups.record_id > routes.record_id [delete: cascade]
 Ref: route_groups.group_id > travel_groups.circle_id [delete: cascade]
@@ -843,11 +921,14 @@ Ref: travel_plan_groups.travel_plan_id > travel_plan_stories.travel_plan_id [del
 Ref: travel_plan_groups.group_id > travel_groups.circle_id [delete: cascade]
 Ref: travel_plan_destinations.travel_plan_id > travel_plan_stories.travel_plan_id [delete: cascade]
 Ref: travel_plan_destinations.place_id > explore_places.place_id [delete: set null]
+Ref: travel_plan_destinations.route_point_id > route_points.point_id [delete: set null]
+Ref: travel_plan_destinations.pin_id > pins.pin_id [delete: set null]
 Ref: travel_plan_destination_documents.destination_id > travel_plan_destinations.destination_id [delete: cascade]
 Ref: travel_plan_destination_documents.pin_id > pins.pin_id [delete: set null]
 Ref: travel_plan_destination_documents.story_id > stories.story_id [delete: set null]
 Ref: travel_plan_destination_photos.document_id > travel_plan_destination_documents.document_id [delete: cascade]
 Ref: travel_plan_albums.travel_plan_id > travel_plan_stories.travel_plan_id [delete: cascade]
+Ref: travel_plan_albums.owner_id > users.user_id [delete: cascade]
 Ref: travel_plan_album_pages.album_id > travel_plan_albums.album_id [delete: cascade]
 Ref: travel_plan_album_pages.destination_id > travel_plan_destinations.destination_id [delete: set null]
 Ref: travel_plan_comments.travel_plan_id > travel_plan_stories.travel_plan_id [delete: cascade]
@@ -857,6 +938,9 @@ Ref: travel_plan_likes.travel_plan_id > travel_plan_stories.travel_plan_id [dele
 Ref: travel_plan_likes.user_id > users.user_id [delete: cascade]
 Ref: saved_travel_plans.travel_plan_id > travel_plan_stories.travel_plan_id [delete: cascade]
 Ref: saved_travel_plans.user_id > users.user_id [delete: cascade]
+Ref: user_calendar_items.user_id > users.user_id [delete: cascade]
+Ref: user_calendar_items.travel_plan_id > travel_plan_stories.travel_plan_id [delete: cascade]
+Ref: user_calendar_items.destination_id > travel_plan_destinations.destination_id [delete: cascade]
 
 Ref: tracking_sessions.user_id > users.user_id [delete: cascade]
 Ref: tracking_sessions.route_id > routes.record_id [delete: set null]
@@ -900,5 +984,8 @@ Ref: messages.pin_id > pins.pin_id [delete: set null]
 Ref: travel_collections.owner_id > users.user_id [delete: cascade]
 Ref: saved_tourist_spots.owner_id > users.user_id [delete: cascade]
 Ref: saved_tourist_spots.place_id > explore_places.place_id [delete: set null]
+Ref: saved_tourist_spots.story_id > stories.story_id [delete: set null]
+Ref: saved_tourist_spots.travel_plan_id > travel_plan_stories.travel_plan_id [delete: set null]
+Ref: saved_tourist_spots.pin_id > pins.pin_id [delete: set null]
 Ref: saved_tourist_spots.collection_id > travel_collections.collection_id [delete: set null]
 Ref: audit_log.actor_id > users.user_id [delete: set null]

@@ -44,7 +44,7 @@ export type TravelPlanDraftInput = {
   travelPlanName: string;
   coverImage?: string;
   description?: string;
-  stops: Array<ApiLocation & { plannedDay?: number; plannedDate?: string; plannedTime?: string; notes?: string }>;
+  stops: Array<ApiLocation & { plannedDay?: number; plannedDate?: string; plannedTime?: string; notes?: string; category?: string }>;
   routeGeometry?: [number, number][];
 };
 
@@ -139,6 +139,7 @@ export function createTravelPlanStory(input: TravelPlanDraftInput): TravelPlanSt
       plannedDate: stop.plannedDate,
       plannedTime: stop.plannedTime,
       notes: stop.notes,
+      category: stop.category,
       status: "planned",
     })),
   };

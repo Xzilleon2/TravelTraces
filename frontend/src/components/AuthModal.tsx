@@ -47,7 +47,7 @@ export function AuthModal() {
       else setError(result.error ?? authError ?? "Sign up failed. Check your details and try again.");
     } else {
       const result = await login(normalizedEmail, normalizedPassword);
-      if (result.ok) navigate("/maps");
+      if (result.ok) navigate("/explore");
       else setError(result.error ?? authError ?? "Sign in failed. Check your credentials and try again.");
     }
   };

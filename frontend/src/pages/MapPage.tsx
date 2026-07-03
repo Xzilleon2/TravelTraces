@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { MapPin, X, Info, ArrowUp, Calendar, Compass, Users } from "lucide-react";
 import { GatedPage } from "../components/GatedPage";
 import { UpgradeModal } from "../components/UpgradeModal";
@@ -11,6 +11,19 @@ import { MapCustomForm } from "../components/MapCustomForm";
 import { CompanionFinder } from "../components/CompanionFinder";
 import { sanitizeRichHtml } from "../security/sanitize";
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function latLonToMapPercent(coordinate: { lat: number; lon: number }): { x: number; y: number } {
+  const x = ((coordinate.lon - 116) / 11.5) * 82 + 9;
+  const y = ((21.5 - coordinate.lat) / 17.5) * 88 + 5;
+  return {
+    x: clamp(x, 6, 94),
+    y: clamp(y, 5, 94),
+  };
+}
+
 function PhilippinesMap({
   pins,
   onPinClick,
@@ -18,6 +31,7 @@ function PhilippinesMap({
   onMapClick,
   companionState,
   mapMode,
+  routePoints,
 }: {
   pins: Pin[];
   onPinClick: (p: Pin) => void;
@@ -25,6 +39,7 @@ function PhilippinesMap({
   onMapClick: (x: number, y: number) => void;
   companionState: any;
   mapMode: "private" | "public";
+  routePoints: { x: number; y: number; label: string; order: number }[];
 }) {
   const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
     // If user clicked any button or SVG pin icon, do not trigger coordinate pin creation
@@ -136,6 +151,28 @@ function PhilippinesMap({
         </svg>
       )}
 
+      {routePoints.length > 1 ? (
+        <svg viewBox="0 0 100 100" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 8, pointerEvents: "none" }}>
+          <polyline
+            points={routePoints.map((point) => `${point.x},${point.y}`).join(" ")}
+            fill="none"
+            stroke="#C4713A"
+            strokeWidth={0.9}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray="2 1.2"
+          />
+          {routePoints.map((point) => (
+            <g key={`${point.order}-${point.label}`} transform={`translate(${point.x}, ${point.y})`}>
+              <circle r={2.2} fill="#3A2A22" stroke="#FBF7F0" strokeWidth={0.6} />
+              <text x={0} y={0.9} textAnchor="middle" fill="#FBF7F0" fontSize={2.2} fontWeight="700" fontFamily="var(--font-label)">
+                {point.order}
+              </text>
+            </g>
+          ))}
+        </svg>
+      ) : null}
+
       {/* Selected companion avatar pin styling on map */}
       {companionState.active && companionState.companion && (
         <div style={{ position: "absolute", left: `${companionState.companion.x}%`, top: `${companionState.companion.y}%`, transform: "translate(-50%, -100%)", zIndex: 12, pointerEvents: "none" }}>
@@ -244,6 +281,7 @@ function MapContent() {
   // Private Map vs Public Map mode requested by user
   const [mapMode, setMapMode] = useState<"private" | "public">("private");
   const [publicNoticeActive, setPublicNoticeActive] = useState(false);
+  const [activeRoutePoints, setActiveRoutePoints] = useState<{ x: number; y: number; label: string; order: number }[]>([]);
 
   // Forms coordinate active state
   const [activeFormCoords, setActiveFormCoords] = useState<{ x: number; y: number; region: string } | null>(null);
@@ -295,6 +333,105 @@ function MapContent() {
     const detectedRegion = getRegionFromCoordinates(x, y);
     setActiveFormCoords({ x, y, region: detectedRegion });
   };
+
+  useEffect(() => {
+    const readJson = <T,>(key: string): T | null => {
+      try {
+        const raw = window.localStorage.getItem(key);
+        return raw ? (JSON.parse(raw) as T) : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const storyPayload = readJson<{ storyId?: number; title: string; place: string; coordinate: { lat: number; lon: number } }>("traveltraces.pendingStoryViewPin");
+    const storyPinPayload = readJson<{ storyId?: number; title: string; place: string; coordinate: { lat: number; lon: number } }>("traveltraces.pendingStoryPin");
+    const explorePayload = readJson<{ name: string; province: string; category: string; description: string; coordinate?: { lat: number; lon: number } }>("traveltraces.pendingExplorePin");
+    const routePayload = readJson<{
+      planId: string;
+      title: string;
+      ownerName: string;
+      points: Array<{ order: number; title: string; place: string; category?: string; coordinate: { lat: number; lon: number }; description?: string; date?: string }>;
+    }>("traveltraces.pendingTravelPlanRoute");
+
+    if (routePayload?.points?.length) {
+      const routePins = routePayload.points.map((point) => {
+        const projected = latLonToMapPercent(point.coordinate);
+        return {
+          id: Number(`${Date.now()}${point.order}`),
+          name: `Point ${point.order}: ${point.title || point.place}`,
+          region: point.place,
+          x: projected.x,
+          y: projected.y,
+          lat: point.coordinate.lat,
+          lon: point.coordinate.lon,
+          type: "visited" as const,
+          category: point.category ?? "Travel Plan",
+          note: point.description || `${routePayload.title} route stop by ${routePayload.ownerName}.`,
+          author: routePayload.ownerName,
+          isPrivate: false,
+          date: point.date,
+        };
+      });
+      setPins((current) => [...routePins, ...current.filter((pin) => !routePins.some((routePin) => routePin.name === pin.name && routePin.author === pin.author))]);
+      setActiveRoutePoints(routePins.map((pin, index) => ({ x: pin.x, y: pin.y, label: pin.name, order: index + 1 })));
+      setMapMode("public");
+      setSelectedPin(routePins[0] ?? null);
+      window.localStorage.removeItem("traveltraces.pendingTravelPlanRoute");
+      return;
+    }
+
+    const pointPayload = storyPayload ?? storyPinPayload;
+    if (pointPayload?.coordinate) {
+      const projected = latLonToMapPercent(pointPayload.coordinate);
+      const newPin: Pin = {
+        id: pointPayload.storyId ? 800000 + pointPayload.storyId : Date.now(),
+        name: pointPayload.title,
+        region: pointPayload.place,
+        x: projected.x,
+        y: projected.y,
+        lat: pointPayload.coordinate.lat,
+        lon: pointPayload.coordinate.lon,
+        type: "visited",
+        category: "Story",
+        note: `Pinned story location: ${pointPayload.place}`,
+        author: storyPinPayload ? "You" : "TravelTraces",
+        isPrivate: Boolean(storyPinPayload),
+        date: "From Stories",
+      };
+      setPins((current) => [newPin, ...current.filter((pin) => pin.id !== newPin.id)]);
+      setMapMode(storyPinPayload ? "private" : "public");
+      setSelectedPin(newPin);
+      setActiveRoutePoints([]);
+      window.localStorage.removeItem("traveltraces.pendingStoryViewPin");
+      window.localStorage.removeItem("traveltraces.pendingStoryPin");
+      return;
+    }
+
+    if (explorePayload?.coordinate) {
+      const projected = latLonToMapPercent(explorePayload.coordinate);
+      const newPin: Pin = {
+        id: Date.now(),
+        name: explorePayload.name,
+        region: explorePayload.province,
+        x: projected.x,
+        y: projected.y,
+        lat: explorePayload.coordinate.lat,
+        lon: explorePayload.coordinate.lon,
+        type: "wishlist",
+        category: explorePayload.category,
+        note: explorePayload.description,
+        author: "You",
+        isPrivate: true,
+        date: "From Explore",
+      };
+      setPins((current) => [newPin, ...current]);
+      setMapMode("private");
+      setSelectedPin(newPin);
+      setActiveRoutePoints([]);
+      window.localStorage.removeItem("traveltraces.pendingExplorePin");
+    }
+  }, []);
 
   const handleSavePinData = (formData: {
     name: string;
@@ -356,6 +493,7 @@ function MapContent() {
               onClick={() => {
                 setMapMode("private");
                 setSelectedPin(null);
+                setActiveRoutePoints([]);
               }}
               style={{
                 padding: "0.625rem 1.25rem",
@@ -379,6 +517,7 @@ function MapContent() {
               onClick={() => {
                 setMapMode("public");
                 setSelectedPin(null);
+                setActiveRoutePoints([]);
               }}
               style={{
                 padding: "0.625rem 1.25rem",
@@ -465,6 +604,7 @@ function MapContent() {
               onMapClick={handleMapClick}
               companionState={companionFinderState}
               mapMode={mapMode}
+              routePoints={activeRoutePoints}
             />
           </div>
 
@@ -510,6 +650,15 @@ function MapContent() {
                     {selectedPin.type}
                   </span>
                 </div>
+
+                {selectedPin.lat !== undefined && selectedPin.lon !== undefined ? (
+                  <div style={{ marginBottom: "1rem", border: "1px solid rgba(58,42,34,0.12)", backgroundColor: "#F5F0E8", borderRadius: "0.25rem", padding: "0.7rem 0.85rem" }}>
+                    <p style={{ margin: "0 0 0.2rem", fontFamily: "var(--font-label)", fontSize: "0.62rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E6B5C", fontWeight: 700 }}>Pinned coordinates</p>
+                    <p style={{ margin: 0, fontFamily: "var(--font-ui)", fontSize: "0.84rem", color: "#3A2A22", fontWeight: 700 }}>
+                      {selectedPin.lat.toFixed(4)}, {selectedPin.lon.toFixed(4)}
+                    </p>
+                  </div>
+                ) : null}
 
                  {/* VISUAL RICH STYLED STORY CARD DETAILED VIEW (Matches Form Toolbars) */}
                  <div
