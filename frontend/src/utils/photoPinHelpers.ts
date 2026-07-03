@@ -97,6 +97,7 @@ export function primaryPhotoUrl(pin: ApiPin): string | null {
 
 export type MarkerSaveInput = {
   title: string;
+  subtitle?: string;
   description: string;
   category?: string;
   placeName?: string;
@@ -117,6 +118,7 @@ export function markerSavePayload(input: MarkerSaveInput) {
     ...(attachments[0] ?? {}),
     category: input.category ?? "More",
     place_name: input.placeName ?? input.address ?? "",
+    subtitle: input.subtitle ?? "",
   };
   const locationPhoto = input.photos.find((item) => item.source === "exif" || item.source === "gps");
   const source = locationPhoto?.source ?? input.source;

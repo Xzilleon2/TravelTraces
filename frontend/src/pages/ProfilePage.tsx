@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { NavLink, useNavigate } from "react-router";
+import { NavLink, useLocation, useNavigate } from "react-router";
 import {
   Award,
   Bookmark,
+  BookOpen,
   Calendar,
   CalendarDays,
   CheckCircle2,
@@ -31,8 +32,9 @@ import type { ApiPin, TouristSpot, TravelGroup } from "../services/mappingApi";
 import { deleteTouristSpot, listPins, listTouristSpots, listTravelGroups } from "../services/mappingApi";
 import { readTravelPlanStories, totalTravelDays, travelPlanStatus, type TravelPlanDestination, type TravelPlanStory } from "../services/travelPlanStories";
 import { LOCAL_STORIES_KEY, SAVED_STORIES_KEY } from "./StoriesPage";
+import { TravelPlanArticleView } from "./TravelPlanStoriesPage";
 
-const tabs = ["Overview", "Achievements", "Saved Places", "Travel Groups", "Calendar", "Settings"] as const;
+const tabs = ["Overview", "Achievements", "Saved Places", "Draft Plans", "Travel Groups", "Calendar", "Settings"] as const;
 type ProfileTab = (typeof tabs)[number];
 
 type ProfileData = {
@@ -169,6 +171,68 @@ function EmptyState({ icon: Icon, title, copy }: { icon: LucideIcon; title: stri
       <h3 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2C211C]">{title}</h3>
       <p className="m-0 mx-auto mt-2 max-w-md text-sm leading-6 text-[#5E4B40]">{copy}</p>
     </div>
+  );
+}
+
+function draftPlanCover(plan: TravelPlanStory): string | null {
+  return plan.coverImage || null;
+}
+
+function DraftPlanCard({ plan, onOpen }: { plan: TravelPlanStory; onOpen: () => void }) {
+  const status = travelPlanStatus(plan);
+  const completed = plan.destinations.filter((destination) => destination.status !== "planned").length;
+  const total = plan.destinations.length;
+  const progress = total ? Math.round((completed / total) * 100) : 0;
+  const cover = draftPlanCover(plan);
+  const statusLabel = status === "completed" ? (cover ? "Ready to publish" : "Cover required") : status === "ongoing" ? "Ongoing draft" : "Planning draft";
+
+  return (
+    <article className="overflow-hidden rounded-lg border border-[#3A2A22]/10 bg-[#F5F0E8] shadow-[0_14px_34px_rgba(58,42,34,0.07)]">
+      {cover ? (
+        <img src={cover} alt="" className="h-44 w-full object-cover" />
+      ) : (
+        <div className="grid h-44 place-items-center border-b border-[#3A2A22]/10 bg-gradient-to-br from-[#EFE7DC] to-[#FFF9F0]">
+          <div className="text-center">
+            <BookOpen className="mx-auto mb-2 text-[#9E6B5C]" size={28} />
+            <p className="m-0 font-[var(--font-label)] text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#7A4B32]">{status === "completed" ? "Cover required" : "Draft cover pending"}</p>
+          </div>
+        </div>
+      )}
+      <div className="p-5">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <span className="rounded-full border border-[#C4713A]/28 bg-[#C4713A]/10 px-3 py-1 font-[var(--font-label)] text-[0.66rem] font-bold uppercase tracking-[0.1em] text-[#7A4B32]">
+            {statusLabel}
+          </span>
+          <span className="font-[var(--font-ui)] text-xs font-semibold text-[#5E4B40]">Updated {formatDate(plan.updatedAt)}</span>
+        </div>
+        <h3 className="m-0 font-[var(--font-display)] text-2xl font-semibold leading-tight text-[#2C211C]">{plan.travelPlanName}</h3>
+        <p className="m-0 mt-2 text-sm leading-6 text-[#5E4B40]">{plan.subtitle || plan.description || `${total} destination route created from Draw Route.`}</p>
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <div className="rounded-lg bg-[#FFF9F0] p-3">
+            <p className="m-0 font-[var(--font-label)] text-[0.64rem] font-bold uppercase tracking-[0.08em] text-[#5E4B40]">Points</p>
+            <strong className="font-[var(--font-display)] text-2xl text-[#2C211C]">{total}</strong>
+          </div>
+          <div className="rounded-lg bg-[#FFF9F0] p-3">
+            <p className="m-0 font-[var(--font-label)] text-[0.64rem] font-bold uppercase tracking-[0.08em] text-[#5E4B40]">Days</p>
+            <strong className="font-[var(--font-display)] text-2xl text-[#2C211C]">{totalTravelDays(plan)}</strong>
+          </div>
+          <div className="rounded-lg bg-[#FFF9F0] p-3">
+            <p className="m-0 font-[var(--font-label)] text-[0.64rem] font-bold uppercase tracking-[0.08em] text-[#5E4B40]">Done</p>
+            <strong className="font-[var(--font-display)] text-2xl text-[#2C211C]">{completed}/{total}</strong>
+          </div>
+        </div>
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#D8D0C2]">
+          <div className="h-full rounded-full bg-[#C4713A]" style={{ width: `${progress}%` }} />
+        </div>
+        <button
+          type="button"
+          onClick={onOpen}
+          className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[#3A2A22] px-4 font-[var(--font-label)] text-[0.72rem] font-bold uppercase tracking-[0.08em] text-[#FFF9F0] transition hover:bg-[#2C211C]"
+        >
+          Open Draft
+        </button>
+      </div>
+    </article>
   );
 }
 
@@ -330,7 +394,7 @@ function TravelPlanCalendar({ plans, ownerId }: { plans: TravelPlanStory[]; owne
                         <button
                           key={entry.id}
                           type="button"
-                          onClick={() => navigate(`/travel-plan-stories?plan=${encodeURIComponent(entry.planId)}`)}
+                          onClick={() => navigate(`/profile?tab=drafts&plan=${encodeURIComponent(entry.planId)}`)}
                           className={`block w-full rounded-full px-3 py-2 text-left text-xs font-bold leading-tight text-white shadow-[0_10px_20px_rgba(0,0,0,0.18)] transition hover:scale-[1.01] ${entry.colorClass}`}
                           title={`${entry.planName}: ${entry.destination.placeName}`}
                         >
@@ -354,7 +418,7 @@ function TravelPlanCalendar({ plans, ownerId }: { plans: TravelPlanStory[]; owne
               {monthPlans.length ? monthPlans.map((plan) => {
                 const status = travelPlanStatus(plan);
                 return (
-                  <button key={plan.id} type="button" onClick={() => navigate(`/travel-plan-stories?plan=${encodeURIComponent(plan.id)}`)} className="rounded-lg border border-[#3A2A22]/10 bg-[#F5F0E8] p-4 text-left transition hover:border-[#C4713A]/50 hover:bg-[#FFF4E8]">
+                  <button key={plan.id} type="button" onClick={() => navigate(`/profile?tab=drafts&plan=${encodeURIComponent(plan.id)}`)} className="rounded-lg border border-[#3A2A22]/10 bg-[#F5F0E8] p-4 text-left transition hover:border-[#C4713A]/50 hover:bg-[#FFF4E8]">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <h3 className="m-0 font-[var(--font-display)] text-2xl font-semibold text-[#2C211C]">{plan.travelPlanName}</h3>
                       <span className="rounded-full bg-[#3A2A22] px-3 py-1 font-[var(--font-label)] text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[#FFF9F0]">{status}</span>
@@ -369,7 +433,7 @@ function TravelPlanCalendar({ plans, ownerId }: { plans: TravelPlanStory[]; owne
           <Panel title="Upcoming Stops" eyebrow="Next Destinations">
             <div className="grid gap-3">
               {entries.filter((entry) => entry.dateKey >= todayKey).slice(0, 5).map((entry) => (
-                <button key={entry.id} type="button" onClick={() => navigate(`/travel-plan-stories?plan=${encodeURIComponent(entry.planId)}`)} className="grid grid-cols-[auto_1fr] gap-3 rounded-lg bg-[#F5F0E8] p-3 text-left">
+                <button key={entry.id} type="button" onClick={() => navigate(`/profile?tab=drafts&plan=${encodeURIComponent(entry.planId)}`)} className="grid grid-cols-[auto_1fr] gap-3 rounded-lg bg-[#F5F0E8] p-3 text-left">
                   <span className="grid h-12 w-12 place-items-center rounded-full bg-[#C4713A] text-[#FFF9F0]"><Clock3 size={18} /></span>
                   <span>
                     <span className="block font-semibold text-[#2C211C]">{entry.destination.placeName}</span>
@@ -401,6 +465,7 @@ function TravelPlanCalendar({ plans, ownerId }: { plans: TravelPlanStory[]; owne
 
 function ProfileContent() {
   const { user, updateUser } = useAuth();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<ProfileTab>("Overview");
   const [data, setData] = useState<ProfileData>(emptyProfileData);
   const [loading, setLoading] = useState(true);
@@ -408,6 +473,7 @@ function ProfileContent() {
   const [savedStoriesCount, setSavedStoriesCount] = useState(0);
   const [localStoriesCount, setLocalStoriesCount] = useState(0);
   const [travelPlans, setTravelPlans] = useState<TravelPlanStory[]>([]);
+  const [activeDraftPlanId, setActiveDraftPlanId] = useState<string | null>(null);
   const [pendingSavedPlaceDelete, setPendingSavedPlaceDelete] = useState<TouristSpot | null>(null);
   const [form, setForm] = useState<ProfileForm | null>(null);
 
@@ -439,6 +505,18 @@ function ProfileContent() {
       window.removeEventListener("storage", refreshTravelPlans);
     };
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("tab") === "drafts") {
+      setActiveTab("Draft Plans");
+    }
+    const requestedPlan = params.get("plan");
+    if (requestedPlan) {
+      setActiveTab("Draft Plans");
+      setActiveDraftPlanId(requestedPlan);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     if (!user) return;
@@ -504,6 +582,30 @@ function ProfileContent() {
   const profileCompletion = Math.round(
     ([user.avatar, user.bio, user.location, user.nationality, user.joinedDate].filter(Boolean).length / 5) * 100,
   );
+  const ownedTravelPlans = travelPlans.filter((plan) => plan.ownerId === user.id || plan.ownerName === user.name || plan.ownerId === "demo-user");
+  const draftTravelPlans = ownedTravelPlans
+    .filter((plan) => travelPlanStatus(plan) !== "completed" || !plan.published)
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  const activeDraftPlan = activeDraftPlanId ? draftTravelPlans.find((plan) => plan.id === activeDraftPlanId) ?? null : null;
+
+  if (activeTab === "Draft Plans" && activeDraftPlan) {
+    return (
+      <TravelPlanArticleView
+        plan={activeDraftPlan}
+        onBack={() => setActiveDraftPlanId(null)}
+        onPrev={() => undefined}
+        onNext={() => undefined}
+        hasPrev={false}
+        hasNext={false}
+        editable
+        backLabel="Draft Plans"
+        onPlanChange={(updatedPlan) => {
+          setTravelPlans((current) => [updatedPlan, ...current.filter((plan) => plan.id !== updatedPlan.id)]);
+          setActiveDraftPlanId(updatedPlan.id);
+        }}
+      />
+    );
+  }
 
   const handleFormChange = (field: keyof ProfileForm, value: string) => {
     setForm((current) => (current ? { ...current, [field]: value } : current));
@@ -669,6 +771,30 @@ function ProfileContent() {
                 </article>
               ))}
               {!data.spots.length ? <EmptyState icon={Bookmark} title="No saved places yet" copy="Saved stories and tourist spots will appear here once you begin collecting places." /> : null}
+            </div>
+          </Panel>
+        ) : null}
+
+        {activeTab === "Draft Plans" ? (
+          <Panel
+            title="Draft Travel Plans"
+            eyebrow="Private Workspace"
+            action={<NavLink to="/maps" className="text-sm font-bold text-[#7A4B32]">Create with Draw Route</NavLink>}
+          >
+            <div className="mb-5 rounded-lg border border-[#C4713A]/25 bg-[#FFF4E8] p-4 text-sm leading-6 text-[#5E4B40]">
+              Drafts are only visible to you. Finish documenting every point, then publish the Travel Plan when it is ready for the public page.
+            </div>
+            <div className="grid gap-5 md:grid-cols-2">
+              {draftTravelPlans.map((plan) => (
+                <DraftPlanCard key={plan.id} plan={plan} onOpen={() => setActiveDraftPlanId(plan.id)} />
+              ))}
+              {!draftTravelPlans.length ? (
+                <EmptyState
+                  icon={BookOpen}
+                  title="No draft travel plans yet"
+                  copy="Use Draw Route on the map to create a private multi-destination itinerary. Drafts will appear here before they are published."
+                />
+              ) : null}
             </div>
           </Panel>
         ) : null}

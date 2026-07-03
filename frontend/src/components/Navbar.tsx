@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router";
-import { Menu, X, LogOut, User, ChevronDown, MessageSquare, Bookmark } from "lucide-react";
+import { Menu, X, LogOut, User, ChevronDown, MessageSquare } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { ChatPanel } from "./ChatPanel";
 import { MusicBox } from "./MusicBox";
@@ -190,9 +190,6 @@ export function Navbar() {
                     <NavLink to="/profile" onClick={() => setUserMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 1rem", color: "#1A1A1A", textDecoration: "none", fontSize: "0.875rem" }}>
                       <User size={15} /> My Profile
                     </NavLink>
-                    <NavLink to="/saved-places" onClick={() => setUserMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 1rem", color: "#1A1A1A", textDecoration: "none", fontSize: "0.875rem" }}>
-                      <Bookmark size={15} /> Saved Places
-                    </NavLink>
                     <MusicBox variant="menu" />
                     <button onClick={handleLogout} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 1rem", color: "#C0392B", background: "none", border: "none", cursor: "pointer", fontSize: "0.875rem", width: "100%", textAlign: "left" }}>
                       <LogOut size={15} /> Sign Out
@@ -265,13 +262,6 @@ export function Navbar() {
                   style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", minHeight: 44, background: "rgba(196,113,58,0.1)", border: "1px solid rgba(58,42,34,0.16)", color: "#3A2A22", padding: "0.6rem", borderRadius: "999px", textDecoration: "none", fontFamily: "var(--font-label)", fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}
                 >
                   <User size={15} /> My Profile
-                </NavLink>
-                <NavLink
-                  to="/saved-places"
-                  onClick={() => setMobileOpen(false)}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", minHeight: 44, background: "rgba(196,113,58,0.1)", border: "1px solid rgba(58,42,34,0.16)", color: "#3A2A22", padding: "0.6rem", borderRadius: "999px", textDecoration: "none", fontFamily: "var(--font-label)", fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}
-                >
-                  <Bookmark size={15} /> Saved Places
                 </NavLink>
                 <button onClick={() => { void logout().finally(() => { setMobileOpen(false); navigate("/"); }); }} style={{ width: "100%", minHeight: 44, background: "rgba(192,57,43,0.12)", border: "1px solid rgba(192,57,43,0.25)", color: "#9E3B2F", padding: "0.6rem", borderRadius: "999px", cursor: "pointer", fontFamily: "var(--font-label)", fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Sign Out

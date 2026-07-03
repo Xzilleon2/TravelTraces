@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Search, MapPin, Clock, Heart, Bookmark, Share2, ArrowLeft, ChevronLeft, ChevronRight, Send, MessageCircle, Compass, Mountain, Utensils, Gem, Waves, TreePine, Landmark, BookOpen, CalendarDays, CheckCircle2, FileText, LockKeyhole, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -923,7 +923,7 @@ function StoriesContent() {
     const requestedStory = Number(params.get("story") ?? params.get("localStory"));
     return Number.isFinite(requestedStory) && requestedStory > 0 ? requestedStory : null;
   });
-  const allStories: TravelStory[] = [...localStories, ...STORIES];
+  const allStories: TravelStory[] = useMemo(() => [...localStories, ...STORIES].sort((a, b) => b.likes - a.likes), [localStories]);
 
   useEffect(() => {
     setLocalStories(readLocalStories());

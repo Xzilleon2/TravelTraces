@@ -21,6 +21,7 @@ type Props = {
   onConvertToMarker: (location: ApiLocation) => void;
   onSave: (input: {
     travelPlanName: string;
+    subtitle?: string;
     coverImage?: string;
     description?: string;
     stops: PlannedStop[];
@@ -70,6 +71,7 @@ function reorderStops(stops: PlannedStop[], from: number, to: number): PlannedSt
 
 export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose, onConvertToMarker, onSave }: Props) {
   const [travelPlanName, setTravelPlanName] = useState("");
+  const [subtitle, setSubtitle] = useState("");
   const [coverImage, setCoverImage] = useState("");
   const [description, setDescription] = useState("");
   const [plannedStops, setPlannedStops] = useState<PlannedStop[]>([]);
@@ -79,6 +81,7 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
   useEffect(() => {
     if (!open) return;
     setTravelPlanName("");
+    setSubtitle("");
     setCoverImage("");
     setDescription("");
     setPendingStopDelete(null);
@@ -144,6 +147,16 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
             onChange={(event) => setTravelPlanName(event.target.value)}
             className="min-h-11 rounded-lg border border-[#3A2A22]/15 bg-white px-3 text-sm outline-none focus:border-[#C4713A] focus:ring-2 focus:ring-[#C4713A]/20"
             placeholder="Weekend Trip to Siargao"
+          />
+        </label>
+
+        <label className="grid gap-2">
+          <span className="font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] text-[#3A2A22]">Subtitle</span>
+          <input
+            value={subtitle}
+            onChange={(event) => setSubtitle(event.target.value)}
+            className="min-h-11 rounded-lg border border-[#3A2A22]/15 bg-white px-3 text-sm outline-none focus:border-[#C4713A] focus:ring-2 focus:ring-[#C4713A]/20"
+            placeholder="A short line that explains the whole route"
           />
         </label>
 
@@ -270,6 +283,7 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
             }
             onSave({
               travelPlanName: travelPlanName.trim(),
+              subtitle: subtitle.trim() || undefined,
               coverImage: coverImage.trim() || undefined,
               description: description.trim() || undefined,
               stops: plannedStops.map((stop) => ({ ...stop, label: stop.label.trim() || "Destination" })),

@@ -6,15 +6,17 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import {
   Bookmark,
   Download,
-  Layers,
   LocateFixed,
   Lock,
+  Map as MapIcon,
   MapPin,
   MousePointer2,
   BookOpen,
+  Mountain,
   Route,
   Search,
   Share2,
+  Satellite,
   Timer,
   Users,
   WifiOff,
@@ -27,7 +29,6 @@ import { TravelTracesToolbar, type TravelTracesToolbarMenu } from "../components
 import { useAuth } from "../context/AuthContext";
 import { GatedPage } from "../components/GatedPage";
 import { MarkerFormModal } from "../components/MarkerFormModal";
-import { MarkerDetailPanel } from "../components/MarkerDetailPanel";
 import { SmartMeetupPlanner } from "../components/SmartMeetupPlanner";
 import { TravelPlanStoryForm } from "../components/TravelPlanStoryForm";
 import { WorkspaceButton } from "../components/workspace/WorkspaceButton";
@@ -38,7 +39,6 @@ import {
   inputField,
   toggleGrid,
 } from "../components/workspace/workspaceStyles";
-import { MapLayerSelector } from "../components/maps/MapLayerSelector";
 import type { ApiLocation, ApiPin, ApiRoute, LocationVisibility, MapScope, MeetupPlan, MeetupSuggestion, TouristSpot, TravelGroup, TravelGroupLocation, UserMap } from "../services/mappingApi";
 import {
   buildDrivingRoute,
@@ -60,11 +60,6 @@ import { markerSavePayload, primaryPhotoUrl, type PendingMarkerPhoto } from "../
 import { createTravelPlanStory } from "../services/travelPlanStories";
 import { SEA_BOUNDS } from "../utils/seaBounds";
 import { LOCAL_STORIES_KEY, STORIES, STORY_MAP_POINTS, STORY_PHOTOS, type TravelStory } from "./StoriesPage";
-import drawRouteIcon from "../assets/icons/draw-route.png";
-import meetupIcon from "../assets/icons/meetup.png";
-import panIcon from "../assets/icons/pan.png";
-import pathIcon from "../assets/icons/path.png";
-import pinIcon from "../assets/icons/pin.png";
 
 type BaseLayer = "street" | "satellite" | "terrain";
 type RouteMode = "fastest" | "shortest";
@@ -217,6 +212,7 @@ function persistPrototypeStory(input: {
   pin: ApiPin;
   category: string;
   placeName: string;
+  subtitle?: string;
   author: string;
   authorAvatar?: string;
 }) {
@@ -239,7 +235,7 @@ function persistPrototypeStory(input: {
     saves: 0,
     img: cover,
     category: input.category,
-    excerpt: input.pin.note || `A new TravelTraces story pinned at ${input.placeName}.`,
+    excerpt: input.subtitle || input.pin.note || `A new TravelTraces story pinned at ${input.placeName}.`,
     body: input.pin.note || `A new TravelTraces story pinned at ${input.placeName}.`,
     photos: photos.length ? photos : [cover],
     storyPoint: { place: input.placeName, coordinate: input.pin.coordinate },
@@ -879,10 +875,6 @@ function ToolbarPanelTitle({ children, meta }: { children: ReactNode; meta?: Rea
   );
 }
 
-function ToolbarAssetIcon({ src, alt }: { src: string; alt: string }) {
-  return <img src={src} alt={alt} className="h-5 w-5 object-contain" />;
-}
-
 function ToolbarActionRow({
   icon,
   label,
@@ -970,7 +962,6 @@ function MapsWorkspaceContent() {
   const [draftMarkerLocation, setDraftMarkerLocation] = useState<ApiLocation | null>(null);
   const [markerModalLocation, setMarkerModalLocation] = useState<ApiLocation | null>(null);
   const [travelPlanFormOpen, setTravelPlanFormOpen] = useState(false);
-  const [selectedPin, setSelectedPin] = useState<ApiPin | null>(null);
   const [activeMap, setActiveMap] = useState<UserMap | null>(null);
   const [placementPreview, setPlacementPreview] = useState<string | null>(null);
 
@@ -1286,7 +1277,6 @@ function MapsWorkspaceContent() {
 
     map.flyTo({ center: [coordinate.lon, coordinate.lat], zoom: 12.8, duration: 900 });
     setScope("public");
-    setSelectedPin(matchingPin ?? null);
     setStatus(matchingPin ? `Showing ${pendingStoryViewPin.place ?? matchingPin.title} on the public map.` : `Showing ${pendingStoryViewPin.place ?? "this story location"} on the public map.`);
     setPendingStoryViewPin(null);
   }, [mapPins, mapReady, pendingStoryViewPin]);
@@ -1463,13 +1453,14 @@ function MapsWorkspaceContent() {
   }, []);
 
   const saveMarkerFromModal = useCallback(
-    async (input: { placeName: string; title: string; description: string; category: string; scope: MapScope; photos: PendingMarkerPhoto[]; source: ApiPin["source"] }) => {
+    async (input: { placeName: string; title: string; subtitle: string; description: string; category: string; scope: MapScope; photos: PendingMarkerPhoto[]; source: ApiPin["source"] }) => {
       if (!markerModalLocation) return;
       setBusy(true);
       setStatus(null);
       try {
         const payload = markerSavePayload({
           title: input.title,
+          subtitle: input.subtitle,
           description: input.description,
           category: input.category,
           placeName: input.placeName,
@@ -1519,11 +1510,11 @@ function MapsWorkspaceContent() {
           pin,
           category: input.category,
           placeName: input.placeName,
+          subtitle: input.subtitle,
           author: user?.name ?? "You",
           authorAvatar: user?.avatar,
         });
         addOrReplacePin(pin);
-        setSelectedPin(pin);
         setMarkerModalLocation(null);
         setDraftMarkerLocation(null);
         setScope(input.scope);
@@ -1757,7 +1748,8 @@ function MapsWorkspaceContent() {
         return;
       }
 
-      setSelectedPin(pin);
+      map.flyTo({ center: [pin.coordinate.lon, pin.coordinate.lat], zoom: Math.max(map.getZoom(), 13), duration: 650 });
+      setStatus(`${pin.title} centered on the map.`);
     };
     const onPinEnter = () => {
       map.getCanvas().style.cursor = "pointer";
@@ -1955,8 +1947,23 @@ function MapsWorkspaceContent() {
     setExportFormat(format);
   }, []);
 
-  const handleCloseSelectedPin = useCallback(() => setSelectedPin(null), []);
   const handleCloseMarkerModal = useCallback(() => setMarkerModalLocation(null), []);
+
+  const handleFocusPin = useCallback(
+    (pin: ApiPin) => {
+      const storyHref = pinStoryHref(pin);
+      if (storyHref) {
+        navigate(storyHref);
+        return;
+      }
+      const map = mapRef.current;
+      if (map) {
+        map.flyTo({ center: [pin.coordinate.lon, pin.coordinate.lat], zoom: Math.max(map.getZoom(), 13), duration: 650 });
+      }
+      setStatus(`${pin.title} centered on the map.`);
+    },
+    [navigate],
+  );
 
   const handleUseRouteTimeForLegend = useCallback(() => {
     setLegend((current) => ({ ...current, time: formatDuration(route?.duration_s) }));
@@ -2459,7 +2466,7 @@ function MapsWorkspaceContent() {
   const savedSpotControls = (
     <div className="grid gap-3">
       <div className="rounded-lg bg-[#F5F0E8] p-3 text-sm text-[#3A2A22]">
-        <span className="font-bold">{touristSpots.length}</span> saved tourist spots
+        <span className="font-bold">{touristSpots.length}</span> saved story and travel plan places
       </div>
       <div className="flex max-h-72 flex-col gap-3 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
         {touristSpots.slice(0, 8).map((spot) => (
@@ -2481,7 +2488,7 @@ function MapsWorkspaceContent() {
             </div>
           </div>
         ))}
-        {!touristSpots.length ? <div className="rounded-lg bg-[#F5F0E8] p-4 text-sm text-[#6B6B5A]">Saved tourist spots will appear here.</div> : null}
+        {!touristSpots.length ? <div className="rounded-lg bg-[#F5F0E8] p-4 text-sm text-[#6B6B5A]">Saved places from stories and travel plans will appear here.</div> : null}
       </div>
     </div>
   );
@@ -2579,7 +2586,7 @@ function MapsWorkspaceContent() {
           <button
             key={pin.pin_id}
             type="button"
-            onClick={() => setSelectedPin(pin)}
+            onClick={() => handleFocusPin(pin)}
             className="rounded-lg border border-[#3A2A22]/10 bg-[#F5F0E8] p-3 text-left text-sm transition hover:border-[#3A2A22]/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3A2A22] focus-visible:ring-offset-2"
           >
             <span className="block font-semibold text-[#1A1A1A]">{pin.title}</span>
@@ -2649,20 +2656,31 @@ function MapsWorkspaceContent() {
     shortcut: string;
     icon: ReactNode;
   }> = [
-    { key: "path", label: "Path Finder", description: "From, to, autocomplete, and snapped routing.", shortcut: "Ctrl+F / Ctrl+T", icon: <ToolbarAssetIcon src={pathIcon} alt="" /> },
-    { key: "draw", label: "Draw Route", description: "Freehand route stops with routed street geometry.", shortcut: "Ctrl+D", icon: <ToolbarAssetIcon src={drawRouteIcon} alt="" /> },
+    { key: "path", label: "Path Finder", description: "From, to, autocomplete, and snapped routing.", shortcut: "Ctrl+F / Ctrl+T", icon: <Route size={18} /> },
+    { key: "draw", label: "Draw Route", description: "Freehand route stops with routed street geometry.", shortcut: "Ctrl+D", icon: <MousePointer2 size={18} /> },
     { key: "sharing", label: "Live Travel Sharing", description: "Share, stop, check in, and control visibility.", shortcut: "Ctrl+L", icon: <LocateFixed size={18} /> },
-    { key: "meetup", label: "Smart Meetup Planner", description: "Participants, travel limits, and venue suggestions.", shortcut: "Ctrl+K", icon: <ToolbarAssetIcon src={meetupIcon} alt="" /> },
-    { key: "markers", label: "Travel Markers", description: "Drop a marker and create a database-backed travel post.", shortcut: "Ctrl+M", icon: <ToolbarAssetIcon src={pinIcon} alt="" /> },
-    { key: "spots", label: "Saved Tourist Spots", description: "Use saved places for routes, meetups, and posts.", shortcut: "Ctrl+Shift+S", icon: <Bookmark size={18} /> },
+    { key: "meetup", label: "Smart Meetup Planner", description: "Participants, travel limits, and venue suggestions.", shortcut: "Ctrl+K", icon: <Users size={18} /> },
+    { key: "markers", label: "Travel Markers", description: "Drop a marker and create a database-backed travel post.", shortcut: "Ctrl+M", icon: <MapPin size={18} /> },
+    { key: "spots", label: "Saved Story & Plan Places", description: "Use saved places from stories and travel plans for routes, meetups, and posts.", shortcut: "Ctrl+Shift+S", icon: <Bookmark size={18} /> },
+  ];
+
+  const mapStyleRows: Array<{
+    key: BaseLayer;
+    label: string;
+    description: string;
+    icon: ReactNode;
+  }> = [
+    { key: "street", label: "Street Map", description: "Clean road, place, and label detail for planning routes.", icon: <MapIcon size={18} /> },
+    { key: "satellite", label: "Satellite Map", description: "Aerial imagery for coastlines, terrain, and real-world context.", icon: <Satellite size={18} /> },
+    { key: "terrain", label: "Terrain Map", description: "Topographic detail for hikes, mountains, and elevation-aware trips.", icon: <Mountain size={18} /> },
   ];
 
   const mapToolsPanel = (
-    <div className="max-h-[72vh] overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
-      <ToolbarPanelTitle meta={baseLayer}>Map Tools</ToolbarPanelTitle>
+    <div className="max-h-[min(56dvh,24rem)] overflow-y-auto overscroll-contain pb-3 pr-1 [scrollbar-gutter:stable]">
+      <ToolbarPanelTitle meta="Pan / Zoom">Navigate</ToolbarPanelTitle>
       <div className="grid gap-2">
         <ToolbarActionRow
-          icon={<ToolbarAssetIcon src={panIcon} alt="" />}
+          icon={<MousePointer2 size={18} />}
           label="Pan"
           description="Click and drag to move the map."
           shortcut="Ctrl+P"
@@ -2734,9 +2752,9 @@ function MapsWorkspaceContent() {
     </div>
   );
 
-  const mapModePanel = (
-    <div className="max-h-[72vh] overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
-      <ToolbarPanelTitle meta={`${visiblePins.length} pins`}>Map Mode</ToolbarPanelTitle>
+  const visibilityPanel = (
+    <div className="max-h-[min(56dvh,24rem)] overflow-y-auto overscroll-contain pb-3 pr-1 [scrollbar-gutter:stable]">
+      <ToolbarPanelTitle meta={`${visiblePins.length} pins`}>Visibility</ToolbarPanelTitle>
       <div className="grid gap-2">
         {workspaceModes.map((mode) => {
           const Icon = mode.icon;
@@ -2774,22 +2792,26 @@ function MapsWorkspaceContent() {
   const toolbarButtons = [
     {
       id: "map" as const,
-      label: "Map Tools",
-      icon: <ToolbarAssetIcon src={panIcon} alt="" />,
+      label: "Navigate",
+      description: "Pan, zoom, and export the map.",
+      icon: <MousePointer2 size={18} />,
       panel: mapToolsPanel,
     },
     {
       id: "travel" as const,
       label: "Travel Tools",
-      icon: <ToolbarAssetIcon src={pinIcon} alt="" />,
+      description: "Routes, markers, sharing, meetups, and saved places.",
+      icon: <MapPin size={18} />,
       panel: travelToolsPanel,
       active: Boolean(pickTarget || drawingActive || sharingEnabled),
     },
     {
       id: "mode" as const,
-      label: "Map Mode",
-      icon: <Layers size={18} />,
-      panel: mapModePanel,
+      label: "Visibility",
+      description: "Switch between private, group, and public map visibility.",
+      icon: <Lock size={18} />,
+      panel: visibilityPanel,
+      status: scope,
     },
   ];
 
@@ -2798,8 +2820,35 @@ function MapsWorkspaceContent() {
       <div className="grid h-full min-h-0 grid-cols-1">
         <div className="relative h-full min-h-0 overflow-hidden bg-[#D8D4C8]">
           <div ref={mapContainerRef} className="h-full min-h-0 w-full" />
-          <MarkerDetailPanel pin={selectedPin} creatorName={user?.name} onClose={handleCloseSelectedPin} />
-          <MapLayerSelector activeLayer={baseLayer} onLayerChange={handleBaseLayerChange} />
+          <div className="absolute bottom-24 left-2 right-2 z-20 max-w-[calc(100%-1rem)] sm:bottom-28 sm:left-4 sm:right-auto sm:max-w-[calc(100%-2rem)] xl:bottom-4">
+            <div className="no-scrollbar flex w-fit max-w-full items-center gap-1.5 overflow-x-auto rounded-[1.45rem] border border-[#3A2A22]/15 bg-[#FBF7F0]/92 p-1.5 shadow-[0_18px_48px_rgba(58,42,34,0.18)] backdrop-blur-xl sm:gap-2 sm:p-2">
+              {mapStyleRows.map((layer) => {
+                const selected = baseLayer === layer.key;
+                return (
+                  <button
+                    key={layer.key}
+                    type="button"
+                    aria-label={`${layer.label}. ${layer.description}`}
+                    aria-pressed={selected}
+                    title={layer.description}
+                    onClick={() => handleBaseLayerChange(layer.key)}
+                    className={`group grid h-[4.25rem] min-w-[4.65rem] shrink-0 place-items-center rounded-[1rem] border px-2 text-center text-[0.58rem] font-bold uppercase tracking-[0.04em] transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C4713A]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#FBF7F0] sm:h-[4.65rem] sm:min-w-[5.2rem] sm:px-3 sm:text-[0.64rem] ${
+                      selected
+                        ? "border-[#3A2A22] bg-[#3A2A22] text-[#FBF7F0] shadow-[0_10px_26px_rgba(58,42,34,0.24)]"
+                        : "border-[#3A2A22]/10 bg-[#EFE7DC] text-[#3A2A22] hover:-translate-y-0.5 hover:border-[#C4713A]/35 hover:bg-[#F5E6D8] hover:text-[#2C211C]"
+                    }`}
+                  >
+                    <span className={`grid h-7 w-7 place-items-center rounded-[0.75rem] border transition [&>svg]:h-[17px] [&>svg]:w-[17px] ${
+                      selected ? "border-[#C4713A] bg-[#C4713A] text-[#FBF7F0]" : "border-[#3A2A22]/10 bg-[#FBF7F0] text-[#3A2A22] group-hover:border-[#C4713A]/35 group-hover:bg-[#F5E6D8]"
+                    }`}>
+                      {layer.icon}
+                    </span>
+                    <span className="mt-1 leading-tight">{layer.label.replace(" Map", "")}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           {boxZoomDrag ? (
             <div
               className="pointer-events-none absolute z-30 border-2 border-[#EA9940] bg-transparent shadow-[0_0_0_1px_rgba(18,33,46,0.22)]"
@@ -2832,28 +2881,6 @@ function MapsWorkspaceContent() {
               {activeSidePanelContent}
             </aside>
           ) : null}
-
-          <div className="absolute left-3 right-3 top-3 z-10 rounded-lg border border-[#3A2A22]/15 bg-[#F5F0E8]/95 p-3 text-xs text-[#3A2A22] shadow-lg backdrop-blur sm:left-4 sm:right-auto sm:top-4 sm:max-w-[min(26rem,calc(100%-2rem))] sm:p-4 sm:text-sm">
-            {markerPlacementActive ? (
-              <div className="grid gap-1">
-                <span className="font-[var(--font-label)] text-sm font-semibold uppercase tracking-[0.04em]">
-                  Marker Placement Mode Active
-                </span>
-                <span>Click on the map to place your travel post.</span>
-                {placementPreview && <span className="font-[var(--font-label)] text-xs uppercase tracking-[0.05em] text-[#6B6B5A]">{placementPreview}</span>}
-              </div>
-            ) : (
-              <span className="font-[var(--font-label)] text-sm font-semibold uppercase tracking-[0.04em]">
-                {pickTarget
-                  ? `Click the map to set ${pickTarget}.`
-                  : status
-                    ? status
-                    : drawingActive
-                      ? "Click streets to add snapped route stops."
-                      : "MapTiler workspace active."}
-              </span>
-            )}
-          </div>
         </div>
       </div>
       <TravelTracesToolbar activeMenu={activeToolbarMenu} buttons={toolbarButtons} onActiveMenuChange={setActiveToolbarMenu} />
@@ -2883,6 +2910,7 @@ function MapsWorkspaceContent() {
             ownerId: viewerId,
             ownerName: user?.name ?? "You",
             travelPlanName: input.travelPlanName,
+            subtitle: input.subtitle,
             coverImage: input.coverImage,
             description: input.description,
             stops: input.stops,
@@ -2891,8 +2919,8 @@ function MapsWorkspaceContent() {
           setTravelPlanFormOpen(false);
           setDraftStops([]);
           setRoute(null);
-          setStatus(`Travel Plan Story "${plan.travelPlanName}" saved privately. Open Stories to track the journey.`);
-          navigate(`/travel-plan-stories?plan=${encodeURIComponent(plan.id)}`);
+          setStatus(`Travel Plan Story "${plan.travelPlanName}" saved privately. Open Travel Plans to track the journey.`);
+          navigate(`/profile?tab=drafts&plan=${encodeURIComponent(plan.id)}`);
         }}
       />
     </section>

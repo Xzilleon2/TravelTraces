@@ -429,19 +429,21 @@ Table travel_plan_stories {
   route_record_id varchar
   name varchar [not null]
   subtitle varchar
-  cover_image_url varchar
+  cover_image_url varchar [note: "Drafts may start without a cover. A completed Travel Plan cannot be published until the owner chooses or uploads this cover image."]
   description text
   route_geometry_json json
   visibility visibility_scope [not null, default: "private", note: "Travel plans stay private while planning or ongoing. Public visibility is allowed only after completion."]
   status travel_plan_status [not null, default: "planning"]
-  published boolean [not null, default: false]
-  publishable boolean [not null, default: false, note: "True only when every destination has been completed."]
+  published boolean [not null, default: false, note: "Owner drafts are hidden from the public Travel Plans feed until the route is completed and the owner publishes it."]
+  publishable boolean [not null, default: false, note: "True only when every destination has been completed and the owner has chosen a cover image."]
+  public_feed_visible boolean [not null, default: false, note: "Derived from published = true and status = completed. This controls whether the card appears beside public Explore, Stories, Community, and Events content."]
+  owner_draft_visible boolean [not null, default: true, note: "Shows the owner's private unfinished or unpublished Travel Plan cards in Profile > Draft Plans."]
   total_destinations int [not null, default: 0]
   completed_destinations int [not null, default: 0]
   total_travel_days int [not null, default: 1]
-  likes_count int [not null, default: 0]
-  saves_count int [not null, default: 0]
-  comments_count int [not null, default: 0]
+  likes_count int [not null, default: 0, note: "Engagement is shown only after the plan is published publicly."]
+  saves_count int [not null, default: 0, note: "Saves are available only for published completed plans."]
+  comments_count int [not null, default: 0, note: "Comments are enabled only for published completed plans."]
   album_template varchar
   album_unlocked boolean [not null, default: false]
   owner_can_print_album boolean [not null, default: false, note: "Print Album is an owner-only action. Public viewers can view completed routes but cannot print another user's album from the detail page."]
@@ -470,15 +472,18 @@ Table travel_plan_destinations {
   pin_id varchar
   destination_order int [not null]
   place_name varchar [not null]
+  title varchar [note: "Editable point title shown in the Substack-style travel plan article."]
   latitude decimal(10,7) [not null]
   longitude decimal(10,7) [not null]
   category varchar [not null, default: "Hidden Gems"]
   planned_day int [not null, default: 1]
   planned_date date [not null]
   planned_time time
+  planned_description text [note: "Draft article copy for this point. It can be edited inline before final documentation."]
   notes text
   status travel_plan_destination_status [not null, default: "planned"]
   documentable_after timestamp [not null, note: "Destination can be documented only after this scheduled date/time has arrived."]
+  reordered_at timestamp [note: "Updated when the owner drags this destination to a new ordered position."]
   visited_at timestamp
   completed_at timestamp
   created_at timestamp [not null]

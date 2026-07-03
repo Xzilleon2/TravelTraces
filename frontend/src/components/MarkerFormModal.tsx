@@ -19,6 +19,7 @@ type Props = {
   onSave: (input: {
     placeName: string;
     title: string;
+    subtitle: string;
     description: string;
     category: string;
     scope: MapScope;
@@ -38,6 +39,7 @@ const mapScopes: Array<{ value: MapScope; label: string }> = [
 export function MarkerFormModal({ open, location, scope, onScopeChange, onClose, onSave, busy }: Props) {
   const [placeName, setPlaceName] = useState("");
   const [title, setTitle] = useState("Travel memory");
+  const [subtitle, setSubtitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Hidden Gems");
   const [selectedScope, setSelectedScope] = useState<MapScope>(scope);
@@ -53,6 +55,7 @@ export function MarkerFormModal({ open, location, scope, onScopeChange, onClose,
     if (!open) return;
     setPlaceName(location?.label ?? "");
     setTitle("Travel memory");
+    setSubtitle("");
     setDescription("");
     setCategory("Hidden Gems");
     setSelectedScope(scope);
@@ -166,6 +169,16 @@ export function MarkerFormModal({ open, location, scope, onScopeChange, onClose,
         </label>
 
         <label className="grid gap-2">
+          <span className="font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#3A2A22]">Subtitle</span>
+          <input
+            value={subtitle}
+            onChange={(event) => setSubtitle(event.target.value)}
+            className="min-h-11 rounded border border-[#3A2A22]/15 bg-white px-3 text-sm outline-none focus:border-[#3A2A22]"
+            placeholder="A short summary shown under the title"
+          />
+        </label>
+
+        <label className="grid gap-2">
           <span className="font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#3A2A22]">Description</span>
           <textarea
             value={description}
@@ -220,6 +233,7 @@ export function MarkerFormModal({ open, location, scope, onScopeChange, onClose,
             void onSave({
               placeName: placeName.trim() || location.label,
               title: title.trim(),
+              subtitle: subtitle.trim(),
               description: description.trim(),
               category,
               scope: selectedScope,

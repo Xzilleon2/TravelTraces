@@ -28,8 +28,12 @@ export type TravelPlanStory = {
   ownerId: string;
   ownerName: string;
   travelPlanName: string;
+  subtitle?: string;
   coverImage?: string;
   description?: string;
+  likesCount?: number;
+  savesCount?: number;
+  commentsCount?: number;
   routeGeometry?: [number, number][];
   destinations: TravelPlanDestination[];
   visibility: MapScope;
@@ -42,6 +46,7 @@ export type TravelPlanDraftInput = {
   ownerId: string;
   ownerName: string;
   travelPlanName: string;
+  subtitle?: string;
   coverImage?: string;
   description?: string;
   stops: Array<ApiLocation & { plannedDay?: number; plannedDate?: string; plannedTime?: string; notes?: string; category?: string }>;
@@ -67,7 +72,7 @@ export function albumUnlocked(plan: TravelPlanStory): boolean {
 }
 
 export function canPublishTravelPlan(plan: TravelPlanStory): boolean {
-  return albumUnlocked(plan);
+  return albumUnlocked(plan) && Boolean(plan.coverImage?.trim());
 }
 
 export function normalizeTravelPlan(plan: TravelPlanStory): TravelPlanStory {
@@ -84,6 +89,9 @@ export function normalizeTravelPlan(plan: TravelPlanStory): TravelPlanStory {
 
   return {
     ...plan,
+    likesCount: Math.max(0, Number(plan.likesCount) || 0),
+    savesCount: Math.max(0, Number(plan.savesCount) || 0),
+    commentsCount: Math.max(0, Number(plan.commentsCount) || 0),
     destinations,
     visibility: canPublishTravelPlan({ ...plan, destinations }) ? plan.visibility : "private",
     published: canPublishTravelPlan({ ...plan, destinations }) ? Boolean(plan.published) : false,
@@ -123,8 +131,12 @@ export function createTravelPlanStory(input: TravelPlanDraftInput): TravelPlanSt
     ownerId: input.ownerId,
     ownerName: input.ownerName,
     travelPlanName: input.travelPlanName.trim() || "Untitled Travel Plan",
+    subtitle: input.subtitle?.trim() || undefined,
     coverImage: input.coverImage,
     description: input.description,
+    likesCount: 0,
+    savesCount: 0,
+    commentsCount: 0,
     routeGeometry: input.routeGeometry,
     visibility: "private",
     published: false,
