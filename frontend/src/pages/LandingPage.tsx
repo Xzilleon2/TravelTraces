@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router";
-import { ArrowRight, Clock, Heart, HelpCircle, Send } from "lucide-react";
+import { ArrowRight, Clock, Heart, Send } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { LANDING_IMAGE_SOURCES } from "./landingAssets";
 
@@ -164,7 +164,6 @@ export default function LandingPage() {
             <p className="section-kicker">Help</p>
             <h2>Need guidance before your next route?</h2>
             <p>Browse account, mapping, story, pricing, and safety guides for TravelTraces members.</p>
-            <button onClick={() => navigate("/help")}><HelpCircle size={15} /> Help centre</button>
           </div>
           <form onSubmit={(event) => { event.preventDefault(); navigate("/contact"); }}>
             <p className="section-kicker">Contact</p>
