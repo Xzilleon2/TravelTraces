@@ -215,6 +215,9 @@ function persistPrototypeStory(input: {
   subtitle?: string;
   author: string;
   authorAvatar?: string;
+  scope: MapScope;
+  ownerId: string;
+  groupIds: string[];
 }) {
   const photos = (input.pin.photos ?? [])
     .map((photo) => {
@@ -239,6 +242,9 @@ function persistPrototypeStory(input: {
     body: input.pin.note || `A new TravelTraces story pinned at ${input.placeName}.`,
     photos: photos.length ? photos : [cover],
     storyPoint: { place: input.placeName, coordinate: input.pin.coordinate },
+    scope: input.scope,
+    ownerId: input.ownerId,
+    groupIds: input.groupIds,
     local: true,
   };
 
@@ -1513,6 +1519,9 @@ function MapsWorkspaceContent() {
           subtitle: input.subtitle,
           author: user?.name ?? "You",
           authorAvatar: user?.avatar,
+          scope: input.scope,
+          ownerId: viewerId,
+          groupIds: input.scope === "group" ? groupIds : [],
         });
         addOrReplacePin(pin);
         setMarkerModalLocation(null);

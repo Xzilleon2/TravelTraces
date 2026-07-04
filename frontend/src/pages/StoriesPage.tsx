@@ -183,6 +183,13 @@ export const STORIES = [
 ];
 
 const categories = ["All", "Hiking", "Food Place", "Hidden Gems", "Beaches", "Forest", "Culture", "More"];
+const storyScopes = [
+  { key: "public", label: "Public Stories", helper: "Stories shared with everyone" },
+  { key: "mine", label: "My Stories", helper: "Stories you posted" },
+  { key: "group", label: "Group Stories", helper: "Stories shared with your groups" },
+] as const;
+type StoryScopeFilter = (typeof storyScopes)[number]["key"];
+
 const STORY_CATEGORY_ICON: Record<string, typeof Compass> = {
   Hiking: Mountain,
   "Food Place": Utensils,
@@ -197,6 +204,9 @@ export const LOCAL_STORIES_KEY = "traveltraces.localStories";
 export type TravelStory = (typeof STORIES)[number] & {
   photos?: string[];
   storyPoint?: { place: string; coordinate: { lat: number; lon: number } };
+  scope?: MapScope;
+  ownerId?: string;
+  groupIds?: string[];
   local?: boolean;
 };
 
@@ -917,6 +927,7 @@ function StoriesContent() {
   const [localStories, setLocalStories] = useState<TravelStory[]>(() => readLocalStories());
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
+  const [scopeFilter, setScopeFilter] = useState<StoryScopeFilter>("public");
   const [pendingStoryDelete, setPendingStoryDelete] = useState<TravelStory | null>(null);
   const [activeStory, setActiveStory] = useState<number | null>(() => {
     const params = new URLSearchParams(location.search);
@@ -924,6 +935,17 @@ function StoriesContent() {
     return Number.isFinite(requestedStory) && requestedStory > 0 ? requestedStory : null;
   });
   const allStories: TravelStory[] = useMemo(() => [...localStories, ...STORIES].sort((a, b) => b.likes - a.likes), [localStories]);
+
+  const isOwnStory = (story: TravelStory) => {
+    if (!story.local) return false;
+    return story.ownerId === user?.id || story.author === user?.name || story.author === "You";
+  };
+
+  const isVisibleGroupStory = (story: TravelStory) => {
+    if ((story.scope ?? "public") !== "group") return false;
+    if (!story.groupIds?.length) return true;
+    return story.groupIds.some((groupId) => user?.groupIds?.includes(groupId));
+  };
 
   useEffect(() => {
     setLocalStories(readLocalStories());
@@ -937,8 +959,21 @@ function StoriesContent() {
   const filtered = allStories.filter((s) => {
     const matchSearch = s.title.toLowerCase().includes(search.toLowerCase()) || s.author.toLowerCase().includes(search.toLowerCase()) || s.region.toLowerCase().includes(search.toLowerCase());
     const matchCat = category === "All" || s.category === category;
-    return matchSearch && matchCat;
+    const storyScope = s.scope ?? "public";
+    const matchScope =
+      scopeFilter === "public"
+        ? storyScope === "public"
+        : scopeFilter === "mine"
+          ? isOwnStory(s)
+          : isVisibleGroupStory(s);
+    return matchSearch && matchCat && matchScope;
   });
+
+  const scopeCounts = {
+    public: allStories.filter((story) => (story.scope ?? "public") === "public").length,
+    mine: allStories.filter(isOwnStory).length,
+    group: allStories.filter(isVisibleGroupStory).length,
+  };
 
   const activeIndex = activeStory !== null ? filtered.findIndex((s) => s.id === activeStory) : -1;
 
@@ -1008,6 +1043,24 @@ function StoriesContent() {
           <p className="mt-4 max-w-3xl font-[var(--font-body)] text-lg leading-8 text-[#5B4A40]">Long-form travel narratives from the TravelTraces community — honest, personal, and unhighlighted.</p>
         </header>
 
+        <div className="story-scope-tabs" aria-label="Story visibility filters">
+          {storyScopes.map((item) => {
+            const selected = scopeFilter === item.key;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setScopeFilter(item.key)}
+                className="story-scope-tab"
+                aria-pressed={selected}
+              >
+                <span>{item.label}</span>
+                <small>{scopeCounts[item.key]} {scopeCounts[item.key] === 1 ? "story" : "stories"}</small>
+              </button>
+            );
+          })}
+        </div>
+
         <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
           <div style={{ position: "relative", flex: "1 1 260px" }}>
             <Search size={16} style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "#6B5A50" }} />
@@ -1056,6 +1109,20 @@ function StoriesContent() {
             })}
           </div>
         </div>
+
+        {filtered.length === 0 ? (
+          <div className="story-empty-state">
+            <BookOpen size={26} />
+            <h2>No stories here yet</h2>
+            <p>
+              {scopeFilter === "mine"
+                ? "Your posted stories will appear here after you drop a marker and save it as a story."
+                : scopeFilter === "group"
+                  ? "Group stories will appear here when a story is shared to one of your travel groups."
+                  : "Try another search term or category to find more public travel stories."}
+            </p>
+          </div>
+        ) : null}
 
         {/* Featured story */}
         {filtered.length > 0 && (
@@ -1120,6 +1187,92 @@ function StoriesContent() {
       </div>
 
       <style>{`
+        .story-scope-tabs {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.75rem;
+          margin: -0.5rem 0 1.5rem;
+        }
+
+        .story-scope-tab {
+          min-height: 4.15rem;
+          min-width: min(100%, 12rem);
+          flex: 1 1 12rem;
+          border: 1px solid rgba(58,42,34,0.16);
+          border-radius: 0.45rem;
+          background: #FBF7F0;
+          color: #3A2A22;
+          padding: 0.85rem 1rem;
+          text-align: left;
+          cursor: pointer;
+          box-shadow: 0 12px 26px rgba(58,42,34,0.06);
+          transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .story-scope-tab span {
+          display: block;
+          font-family: var(--font-label);
+          font-size: 0.72rem;
+          font-weight: 800;
+          letter-spacing: 0.11em;
+          text-transform: uppercase;
+        }
+
+        .story-scope-tab small {
+          display: block;
+          margin-top: 0.35rem;
+          font-family: var(--font-ui);
+          font-size: 0.82rem;
+          color: #6B5A50;
+          font-weight: 700;
+        }
+
+        .story-scope-tab:hover {
+          transform: translateY(-1px);
+          border-color: rgba(58,42,34,0.34);
+          box-shadow: 0 16px 34px rgba(58,42,34,0.1);
+        }
+
+        .story-scope-tab[aria-pressed="true"] {
+          background: #3A2A22;
+          border-color: #3A2A22;
+          color: #F5F0E8;
+          box-shadow: 0 18px 38px rgba(58,42,34,0.18);
+        }
+
+        .story-scope-tab[aria-pressed="true"] small {
+          color: rgba(245,240,232,0.72);
+        }
+
+        .story-empty-state {
+          display: grid;
+          justify-items: center;
+          gap: 0.65rem;
+          margin: 2rem 0;
+          border: 1px dashed rgba(58,42,34,0.22);
+          border-radius: 0.55rem;
+          background: #FBF7F0;
+          padding: 3rem 1.5rem;
+          text-align: center;
+          color: #3A2A22;
+        }
+
+        .story-empty-state h2 {
+          margin: 0;
+          font-family: var(--font-display);
+          font-size: 1.85rem;
+          font-weight: 600;
+        }
+
+        .story-empty-state p {
+          margin: 0;
+          max-width: 32rem;
+          font-family: var(--font-body);
+          font-size: 0.98rem;
+          line-height: 1.7;
+          color: #5B4A40;
+        }
+
         .category-pill:hover { background-color: rgba(58,42,34,0.08); border-color: #3A2A22; color: #3A2A22; }
         .category-pill[aria-pressed="true"]:hover { background-color: #3A2A22; border-color: #3A2A22; color: #F5F0E8; }
         @media (max-width: 640px) {
