@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
 import { ArrowLeft, BellOff, MessageSquare, MoreHorizontal, Plus, Search, Send, SquarePen, Users, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import type { TravelGroup } from "../services/mappingApi";
+import { readLocalTable, upsertLocalRow, writeLocalTable } from "../services/localDb";
 import { GAMIFIED_USERS, getLevelFromXp } from "./gamification";
 
 type Msg = {
@@ -30,119 +32,55 @@ type Conv = {
   messages: Msg[];
 };
 
-const INITIAL_CONVERSATIONS: Conv[] = [
-  {
-    id: 1,
-    name: "Marco Reyes",
-    avatarBackground: "#3A2A22",
-    initials: "MR",
-    lastMessage: "You: grabe yung view sa Batanes!",
-    time: "5m",
-    online: true,
-    unread: true,
-    gamifiedKey: "carlo",
-    messages: [
-      { id: 1, from: "them", senderName: "Marco Reyes", text: "Are you planning to go north this summer?", time: "10:00 AM", read: true },
-      { id: 2, from: "me", text: "Yeah, thinking about Batanes actually!", time: "10:05 AM", read: true },
-      { id: 3, from: "them", senderName: "Marco Reyes", text: "Nice. Do not miss Marlboro Hills at sunrise.", time: "10:10 AM", read: true },
-      { id: 4, from: "me", text: "grabe yung view sa Batanes!", time: "5m ago", read: false },
-    ],
-  },
-  {
-    id: 2,
-    name: "Wanderers PH",
-    avatarBackground: "#9E6B5C",
-    initials: "W",
-    lastMessage: "Lea: anyone been to Sagada?",
-    time: "12m",
-    online: false,
-    unread: true,
-    muted: true,
-    isGroup: true,
-    messages: [
-      { id: 1, from: "them", senderName: "Pao", text: "Where is the next roadtrip?", time: "9:00 AM", read: true },
-      { id: 2, from: "them", senderName: "Lea", text: "anyone been to Sagada?", time: "12m ago", read: false },
-    ],
-  },
-  {
-    id: 3,
-    name: "Backpackers Davao",
-    avatarBackground: "#C4713A",
-    initials: "BD",
-    lastMessage: "Pio: solo travel daw siya sa Siargao",
-    time: "30m",
-    online: false,
-    unread: true,
-    isGroup: true,
-    messages: [
-      { id: 1, from: "them", senderName: "Ria", text: "Planning a Siargao trip soon.", time: "Yesterday", read: true },
-      { id: 2, from: "them", senderName: "Pio", text: "solo travel daw siya sa Siargao", time: "30m ago", read: false },
-    ],
-  },
-  {
-    id: 4,
-    name: "Samal Trip Planning",
-    avatarBackground: "#9E6B5C",
-    initials: "S",
-    lastMessage: "Karl: book na tayo ng ferry!",
-    time: "2h",
-    online: false,
-    unread: true,
-    muted: true,
-    isGroup: true,
-    messages: [
-      { id: 1, from: "them", senderName: "Mae", text: "What time is the departure?", time: "Yesterday", read: true },
-      { id: 2, from: "them", senderName: "Karl", text: "book na tayo ng ferry!", time: "2h ago", read: false },
-    ],
-  },
-  {
-    id: 5,
-    name: "GSL Travel Squad",
-    avatarBackground: "#3A2A22",
-    initials: "G",
-    lastMessage: "Delia sent an itinerary.",
-    time: "4h",
-    online: false,
-    unread: true,
-    muted: true,
-    isGroup: true,
-    messages: [
-      { id: 1, from: "them", senderName: "Delia", text: "Here is the tentative budget.", time: "Yesterday", read: true },
-      { id: 2, from: "them", senderName: "Delia", text: "Delia sent an itinerary.", time: "4h ago", read: false },
-    ],
-  },
-  {
-    id: 6,
-    name: "TravelTraces PH Community",
-    avatarBackground: "#3A2A22",
-    initials: "L",
-    lastMessage: "Rose: Adto lang sa Palawan ga pag-",
-    time: "5h",
-    online: false,
-    unread: true,
-    isGroup: true,
-    label: "Travel Group",
-    messages: [{ id: 1, from: "them", senderName: "Rose", text: "Adto lang sa Palawan ga pag-", time: "5h ago", read: false }],
-  },
-  {
-    id: 7,
-    name: "Travel Tips & Hacks",
-    avatarBackground: "#C4713A",
-    initials: "T",
-    lastMessage: "budget airlines sale na daw!",
-    time: "6h",
-    online: false,
-    unread: true,
-    isGroup: true,
-    label: "Community",
-    messages: [
-      { id: 1, from: "them", senderName: "Admin", text: "Seat sale alert for weekend getaways.", time: "Yesterday", read: true },
-      { id: 2, from: "them", senderName: "Travel Expert", text: "budget airlines sale na daw!", time: "6h ago", read: false },
-    ],
-  },
-];
-
 const REACTIONS = ["Nice", "Love it", "Great view", "Send pin"];
+
+type LocalConversationRow = Omit<Conv, "messages"> & {
+  ownerId: string;
+  updatedAt: string;
+};
+
+type LocalMessageRow = Msg & {
+  conversationId: number;
+  ownerId: string;
+  createdAt: string;
+};
+
+function readLocalConversations(ownerId: string): Conv[] {
+  const conversations = readLocalTable<LocalConversationRow>("conversations")
+    .filter((row) => row.ownerId === ownerId)
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  const messages = readLocalTable<LocalMessageRow>("messages")
+    .filter((row) => row.ownerId === ownerId)
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+  return conversations.map(({ ownerId: _ownerId, updatedAt: _updatedAt, ...conversation }) => ({
+    ...conversation,
+    messages: messages
+      .filter((message) => message.conversationId === conversation.id)
+      .map(({ conversationId: _conversationId, ownerId: _messageOwnerId, createdAt: _createdAt, ...message }) => message),
+  }));
+}
+
+function writeLocalConversations(ownerId: string, conversations: Conv[]) {
+  const now = new Date().toISOString();
+  const existingConversations = readLocalTable<LocalConversationRow>("conversations").filter((row) => row.ownerId !== ownerId);
+  const existingMessages = readLocalTable<LocalMessageRow>("messages").filter((row) => row.ownerId !== ownerId);
+  const conversationRows: LocalConversationRow[] = conversations.map(({ messages: _messages, ...conversation }) => ({
+    ...conversation,
+    ownerId,
+    updatedAt: now,
+  }));
+  const messageRows: LocalMessageRow[] = conversations.flatMap((conversation) =>
+    conversation.messages.map((message, index) => ({
+      ...message,
+      conversationId: conversation.id,
+      ownerId,
+      createdAt: new Date(Date.now() + index).toISOString(),
+    })),
+  );
+  writeLocalTable("conversations", [...conversationRows, ...existingConversations]);
+  writeLocalTable("messages", [...messageRows, ...existingMessages]);
+}
 
 function TypingIndicator() {
   return (
@@ -287,7 +225,8 @@ function MessageThreadView({
 export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [conversations, setConversations] = useState<Conv[]>(INITIAL_CONVERSATIONS);
+  const ownerId = user?.id ?? "guest";
+  const [conversations, setConversations] = useState<Conv[]>([]);
   const [activeTab, setActiveTab] = useState<"Friends" | "Events" | "Unread">("Friends");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeConvId, setActiveConvId] = useState<number | null>(null);
@@ -295,6 +234,25 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [groupNote, setGroupNote] = useState("");
+
+  useEffect(() => {
+    const refreshConversations = () => setConversations(readLocalConversations(ownerId));
+    refreshConversations();
+    window.addEventListener("traveltraces:local-db-updated", refreshConversations);
+    window.addEventListener("storage", refreshConversations);
+    return () => {
+      window.removeEventListener("traveltraces:local-db-updated", refreshConversations);
+      window.removeEventListener("storage", refreshConversations);
+    };
+  }, [ownerId]);
+
+  const updateConversationState = (updater: (current: Conv[]) => Conv[]) => {
+    setConversations((current) => {
+      const next = updater(current);
+      window.setTimeout(() => writeLocalConversations(ownerId, next), 0);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -318,12 +276,12 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
   const handleSelectConv = (conv: Conv) => {
     setActiveConvId(conv.id);
     if (conv.unread) {
-      setConversations((current) => current.map((item) => (item.id === conv.id ? { ...item, unread: false } : item)));
+      updateConversationState((current) => current.map((item) => (item.id === conv.id ? { ...item, unread: false } : item)));
     }
   };
 
   const handleUpdateConversation = (convId: number, messages: Msg[], lastMessage: string, unread: boolean) => {
-    setConversations((current) => current.map((conv) => (conv.id === convId ? { ...conv, messages, lastMessage, time: "Just now", unread } : conv)));
+    updateConversationState((current) => current.map((conv) => (conv.id === convId ? { ...conv, messages, lastMessage, time: "Just now", unread } : conv)));
   };
 
   const handleCreateGroup = () => {
@@ -346,7 +304,27 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
         { id: Date.now(), from: "me", text: note, time: "Just now", read: true },
       ],
     };
-    setConversations((current) => [created, ...current]);
+    updateConversationState((current) => [created, ...current]);
+    const now = new Date().toISOString();
+    const group: TravelGroup = {
+      circle_id: `chat-group-${nextId}`,
+      group_id: `chat-group-${nextId}`,
+      name,
+      owner_id: ownerId,
+      members: [{
+        user_id: ownerId,
+        display_name: user?.name ?? "You",
+        role: "Organizer",
+        phone: "",
+        avatar: user?.avatar ?? "",
+        admin: true,
+        location_sharing_enabled: true,
+        joined_at: now,
+      }],
+      created_at: now,
+      updated_at: now,
+    };
+    upsertLocalRow<TravelGroup>("travelGroups", group, (item) => item.circle_id);
     setActiveTab("Events");
     setActiveConvId(nextId);
     setGroupName("");

@@ -23,6 +23,7 @@ type Props = {
     travelPlanName: string;
     subtitle?: string;
     coverImage?: string;
+    coverPosition?: string;
     description?: string;
     stops: PlannedStop[];
   }) => void;
@@ -46,6 +47,17 @@ function addDaysKey(startDate: Date, days: number): string {
 
 const todayDate = () => new Date().toISOString().slice(0, 10);
 const stopCategories = ["Hiking", "Food Place", "Hidden Gems", "Beaches", "Forest", "Culture", "More"];
+const coverPositions = [
+  { label: "Top left", short: "TL", value: "left top" },
+  { label: "Top", short: "T", value: "center top" },
+  { label: "Top right", short: "TR", value: "right top" },
+  { label: "Left", short: "L", value: "left center" },
+  { label: "Center", short: "C", value: "center center" },
+  { label: "Right", short: "R", value: "right center" },
+  { label: "Bottom left", short: "BL", value: "left bottom" },
+  { label: "Bottom", short: "B", value: "center bottom" },
+  { label: "Bottom right", short: "BR", value: "right bottom" },
+];
 
 function travelPlanConflictMessage(stops: PlannedStop[]): string | null {
   const today = todayDate();
@@ -73,6 +85,7 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
   const [travelPlanName, setTravelPlanName] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [coverImage, setCoverImage] = useState("");
+  const [coverPosition, setCoverPosition] = useState("center center");
   const [description, setDescription] = useState("");
   const [plannedStops, setPlannedStops] = useState<PlannedStop[]>([]);
   const [pendingStopDelete, setPendingStopDelete] = useState<number | null>(null);
@@ -83,6 +96,7 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
     setTravelPlanName("");
     setSubtitle("");
     setCoverImage("");
+    setCoverPosition("center center");
     setDescription("");
     setPendingStopDelete(null);
     const today = new Date();
@@ -180,7 +194,31 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
             </button>
           </div>
           <input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => void handleCoverFile(event.target.files)} />
-          {coverImage ? <img src={coverImage} alt="" className="h-28 w-full rounded-lg object-cover" /> : null}
+          {coverImage ? (
+            <div className="grid gap-2 rounded-lg border border-[#3A2A22]/12 bg-white p-2">
+              <img src={coverImage} alt="" className="h-32 w-full rounded-lg object-cover" style={{ objectPosition: coverPosition }} />
+              <div>
+                <span className="mb-1 block font-[var(--font-label)] text-[0.62rem] font-bold uppercase tracking-[0.08em] text-[#6B5A50]">Visible crop area</span>
+                <div className="grid grid-cols-3 gap-1">
+                  {coverPositions.map((position) => {
+                    const active = coverPosition === position.value;
+                    return (
+                      <button
+                        key={position.value}
+                        type="button"
+                        onClick={() => setCoverPosition(position.value)}
+                        className={`min-h-7 rounded border text-[0.62rem] font-bold ${active ? "border-[#3A2A22] bg-[#3A2A22] text-[#F5F0E8]" : "border-[#3A2A22]/12 bg-[#F5F0E8] text-[#3A2A22]"}`}
+                        aria-label={`Show ${position.label.toLowerCase()} of cover photo`}
+                        title={position.label}
+                      >
+                        {position.short}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <label className="grid gap-2">
@@ -285,6 +323,7 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
               travelPlanName: travelPlanName.trim(),
               subtitle: subtitle.trim() || undefined,
               coverImage: coverImage.trim() || undefined,
+              coverPosition,
               description: description.trim() || undefined,
               stops: plannedStops.map((stop) => ({ ...stop, label: stop.label.trim() || "Destination" })),
             });

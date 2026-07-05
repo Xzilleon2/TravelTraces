@@ -59,7 +59,8 @@ import { publishWorkspaceEvent, subscribeWorkspaceEvents } from "../utils/worksp
 import { markerSavePayload, primaryPhotoUrl, type PendingMarkerPhoto } from "../utils/photoPinHelpers";
 import { createTravelPlanStory } from "../services/travelPlanStories";
 import { SEA_BOUNDS } from "../utils/seaBounds";
-import { LOCAL_STORIES_KEY, STORIES, STORY_MAP_POINTS, STORY_PHOTOS, type TravelStory } from "./StoriesPage";
+import { DELETED_STORY_PIN_IDS_KEY, LOCAL_STORIES_KEY, STORIES, STORY_MAP_POINTS, STORY_PHOTOS, type TravelStory } from "./StoriesPage";
+import { listLocalStories, upsertLocalStory } from "../services/localDb";
 
 type BaseLayer = "street" | "satellite" | "terrain";
 type RouteMode = "fastest" | "shortest";
@@ -164,7 +165,7 @@ function storyToMapPin(story: TravelStory): ApiPin | null {
     thumbnail_url: url,
     source: "upload",
   }));
-  const storyLinkMedia = story.local ? { storyDraftId: story.id } : { storyId: story.id };
+  const storyLinkMedia = { storyId: story.id };
   const storyDate = new Date(story.date);
   const timestamp = Number.isNaN(storyDate.getTime()) ? new Date().toISOString() : storyDate.toISOString();
 
@@ -199,12 +200,21 @@ function storyToMapPin(story: TravelStory): ApiPin | null {
 const COMMUNITY_STORY_PINS = STORIES.map(storyToMapPin).filter((pin): pin is ApiPin => Boolean(pin));
 
 function readLocalMapStories(): TravelStory[] {
+  return listLocalStories() as TravelStory[];
+}
+
+function readDeletedStoryPinIds(): number[] {
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(LOCAL_STORIES_KEY) ?? "[]") as TravelStory[];
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed = JSON.parse(window.localStorage.getItem(DELETED_STORY_PIN_IDS_KEY) ?? "[]") as number[];
+    return Array.isArray(parsed) ? parsed.map(Number).filter(Number.isFinite) : [];
   } catch {
     return [];
   }
+}
+
+function estimatePrototypeReadTime(text: string): string {
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  return `${Math.max(1, Math.ceil(words / 180))} min`;
 }
 
 function persistPrototypeStory(input: {
@@ -219,28 +229,39 @@ function persistPrototypeStory(input: {
   ownerId: string;
   groupIds: string[];
 }) {
-  const photos = (input.pin.photos ?? [])
+  const photoFrames = (input.pin.photos ?? [])
     .map((photo) => {
-      const data = photo as { data_url?: unknown; preview_url?: unknown; thumbnail_url?: unknown };
-      return String(data.data_url ?? data.preview_url ?? data.thumbnail_url ?? "");
+      const data = photo as { data_url?: unknown; preview_url?: unknown; thumbnail_url?: unknown; object_position?: unknown };
+      const url = String(data.data_url ?? data.preview_url ?? data.thumbnail_url ?? "");
+      if (!url) return null;
+      return {
+        data_url: typeof data.data_url === "string" ? data.data_url : undefined,
+        preview_url: typeof data.preview_url === "string" ? data.preview_url : url,
+        thumbnail_url: typeof data.thumbnail_url === "string" ? data.thumbnail_url : url,
+        object_position: typeof data.object_position === "string" ? data.object_position : "center center",
+      };
     })
-    .filter(Boolean);
-  const cover = photos[0] ?? "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=900&h=620&fit=crop&auto=format";
+    .filter((photo): photo is NonNullable<typeof photo> => Boolean(photo));
+  const coverFrame = photoFrames[0];
+  const cover = coverFrame?.data_url ?? coverFrame?.preview_url ?? coverFrame?.thumbnail_url ?? "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=900&h=620&fit=crop&auto=format";
+  const storyBody = input.pin.note || `A new TravelTraces story pinned at ${input.placeName}.`;
+  const storyExcerpt = input.subtitle || input.pin.note || `A new TravelTraces story pinned at ${input.placeName}.`;
   const story: TravelStory = {
     id: input.storyId,
     title: input.pin.title,
     author: input.author,
     authorAvatar: input.authorAvatar ?? "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=48&h=48&fit=crop&auto=format",
     region: input.placeName,
-    readTime: "Draft",
+    readTime: estimatePrototypeReadTime(`${input.pin.title} ${storyExcerpt} ${storyBody}`),
     date: "Just now",
     likes: 0,
     saves: 0,
     img: cover,
     category: input.category,
-    excerpt: input.subtitle || input.pin.note || `A new TravelTraces story pinned at ${input.placeName}.`,
-    body: input.pin.note || `A new TravelTraces story pinned at ${input.placeName}.`,
-    photos: photos.length ? photos : [cover],
+    excerpt: storyExcerpt,
+    body: storyBody,
+    photos: photoFrames.length ? photoFrames : [cover],
+    imagePosition: coverFrame?.object_position ?? "center center",
     storyPoint: { place: input.placeName, coordinate: input.pin.coordinate },
     scope: input.scope,
     ownerId: input.ownerId,
@@ -255,6 +276,7 @@ function persistPrototypeStory(input: {
   } catch {
     window.localStorage.setItem(LOCAL_STORIES_KEY, JSON.stringify([story]));
   }
+  upsertLocalStory(story);
 }
 
 const emptyLineCollection: FeatureCollection<LineString> = { type: "FeatureCollection", features: [] };
@@ -361,6 +383,20 @@ function pinStoryHref(pin: ApiPin) {
   if (storyId) return `/stories?story=${storyId}`;
   if (storyDraftId) return `/stories?localStory=${storyDraftId}`;
   return null;
+}
+
+function pinLinkedStoryId(pin: ApiPin): number | null {
+  const media = pin.media as { storyDraftId?: unknown; storyId?: unknown } | null;
+  const linkedStoryId = Number(media?.storyId ?? media?.storyDraftId);
+  if (Number.isFinite(linkedStoryId)) return linkedStoryId;
+  const pinId = String(pin.pin_id);
+  if (!/^(story-|local-marker-)\d+$/.test(pinId)) return null;
+  const generatedStoryId = Number(pinId.replace(/^(story-|local-marker-)/, ""));
+  return Number.isFinite(generatedStoryId) ? generatedStoryId : null;
+}
+
+function isGeneratedStoryPin(pin: ApiPin): boolean {
+  return /^(story-|local-marker-)/.test(String(pin.pin_id));
 }
 
 function routeToGeoJson(route: ApiRoute | null): FeatureCollection<LineString> {
@@ -995,6 +1031,7 @@ function MapsWorkspaceContent() {
   const [activeSidePanel, setActiveSidePanel] = useState<WorkspaceSidePanel>(null);
   const [meetupPlan, setMeetupPlan] = useState<MeetupPlan | null>(null);
   const [localMapStories, setLocalMapStories] = useState<TravelStory[]>(() => readLocalMapStories());
+  const [deletedStoryPinIds, setDeletedStoryPinIds] = useState<number[]>(() => readDeletedStoryPinIds());
   const [pendingStoryViewPin, setPendingStoryViewPin] = useState<StoryMapHandoff | null>(null);
   const dragRouteRef = useRef<{ active: boolean; baseStops: ApiLocation[]; points: ApiLocation[] }>({ active: false, baseStops: [], points: [] });
   const draftStopsRef = useRef<ApiLocation[]>([]);
@@ -1002,7 +1039,20 @@ function MapsWorkspaceContent() {
   const scopedGroupIds = useMemo(() => (scope === "group" ? groupIds : []), [scope, groupIds]);
   const activeMode = workspaceModes.find((mode) => mode.key === scope) ?? workspaceModes[0];
   const localStoryPins = useMemo(() => localMapStories.map(storyToMapPin).filter((pin): pin is ApiPin => Boolean(pin)), [localMapStories]);
-  const mapPins = useMemo(() => [...COMMUNITY_STORY_PINS, ...localStoryPins, ...pins], [localStoryPins, pins]);
+  const deletedStoryPinIdSet = useMemo(() => new Set(deletedStoryPinIds), [deletedStoryPinIds]);
+  const validStoryIdSet = useMemo(() => new Set([...STORIES, ...localMapStories].map((story) => story.id)), [localMapStories]);
+  const mapPins = useMemo(
+    () => [...COMMUNITY_STORY_PINS, ...localStoryPins, ...pins].filter((pin) => {
+      const linkedStoryId = pinLinkedStoryId(pin);
+      if (linkedStoryId === null) return true;
+      if (deletedStoryPinIdSet.has(linkedStoryId)) return false;
+      if (isGeneratedStoryPin(pin) || pin.media?.storyId || pin.media?.storyDraftId) {
+        return validStoryIdSet.has(linkedStoryId);
+      }
+      return true;
+    }),
+    [deletedStoryPinIdSet, localStoryPins, pins, validStoryIdSet],
+  );
   const visiblePins = useMemo(() => mapPins.filter((pin) => pin.scope === scope), [mapPins, scope]);
   const markerPlacementActive = pickTarget === "marker";
   const workspaceFriends = user?.friends?.length ? user.friends : friendList;
@@ -1176,6 +1226,14 @@ function MapsWorkspaceContent() {
       if (event.type === "pin.created") {
         setPins((current) => [event.pin, ...current.filter((pin) => pin.pin_id !== event.pin.pin_id)]);
       }
+      if (event.type === "pin.deleted") {
+        if (typeof event.storyId === "number") {
+          setDeletedStoryPinIds((current) => Array.from(new Set([event.storyId, ...current])));
+        }
+        if (event.pinId) {
+          setPins((current) => current.filter((pin) => pin.pin_id !== event.pinId));
+        }
+      }
       if (event.type === "route.updated") {
         setRoute(event.route);
       }
@@ -1183,17 +1241,23 @@ function MapsWorkspaceContent() {
   }, []);
 
   useEffect(() => {
-    const refreshLocalMapStories = () => setLocalMapStories(readLocalMapStories());
+    const refreshLocalMapStories = () => {
+      setLocalMapStories(readLocalMapStories());
+      setDeletedStoryPinIds(readDeletedStoryPinIds());
+    };
     window.addEventListener("traveltraces:local-stories-updated", refreshLocalMapStories);
+    window.addEventListener("traveltraces:story-pin-deleted", refreshLocalMapStories);
     window.addEventListener("storage", refreshLocalMapStories);
     return () => {
       window.removeEventListener("traveltraces:local-stories-updated", refreshLocalMapStories);
+      window.removeEventListener("traveltraces:story-pin-deleted", refreshLocalMapStories);
       window.removeEventListener("storage", refreshLocalMapStories);
     };
   }, []);
 
   useEffect(() => {
     setLocalMapStories(readLocalMapStories());
+    setDeletedStoryPinIds(readDeletedStoryPinIds());
 
     const pendingStoryView = window.localStorage.getItem("traveltraces.pendingStoryViewPin");
     if (pendingStoryView) {
@@ -1486,9 +1550,9 @@ function MapsWorkspaceContent() {
         try {
           pin = await createPin({
             ...payload,
-            media: { ...(payload.media ?? {}), storyDraftId: storyId },
+            media: { ...(payload.media ?? {}), storyId },
           });
-          pin = { ...pin, media: { ...(pin.media ?? {}), ...(payload.media ?? {}), storyDraftId: storyId } };
+          pin = { ...pin, media: { ...(pin.media ?? {}), ...(payload.media ?? {}), storyId } };
         } catch {
           const now = new Date().toISOString();
           const localPinId = `local-marker-${storyId}`;
@@ -1503,7 +1567,7 @@ function MapsWorkspaceContent() {
             creator_id: user?.name ?? viewerId,
             group_ids: payload.groupIds,
             source: payload.source,
-            media: { ...(payload.media ?? {}), storyDraftId: storyId },
+            media: { ...(payload.media ?? {}), storyId },
             photos: payload.photos,
             map_id: payload.mapId,
             created_at: now,
@@ -2921,6 +2985,7 @@ function MapsWorkspaceContent() {
             travelPlanName: input.travelPlanName,
             subtitle: input.subtitle,
             coverImage: input.coverImage,
+            coverPosition: input.coverPosition,
             description: input.description,
             stops: input.stops,
             routeGeometry: route?.geometry,

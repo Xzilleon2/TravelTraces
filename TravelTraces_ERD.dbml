@@ -21,7 +21,6 @@ Enum visibility_scope {
 }
 
 Enum story_status {
-  draft
   published
   archived
   reported
@@ -319,7 +318,7 @@ Table stories {
   cover_image_url varchar
   read_time varchar
   visibility visibility_scope [not null, default: "public"]
-  status story_status [not null, default: "published"]
+  status story_status [not null, default: "published", note: "Story posts are never drafts. Users can switch visibility between private, group, and public, and can edit/delete their own published story post."]
   deletion_status deletion_status [not null, default: "active"]
   likes_count int [not null, default: 0]
   saves_count int [not null, default: 0]
@@ -436,7 +435,7 @@ Table pins {
   category varchar
   scope visibility_scope [not null, default: "private"]
   source varchar [not null, default: "manual"]
-  media_json json
+  media_json json [note: "Frontend localStorage prototype stores story links as media.storyId. Legacy media.storyDraftId is only recognized for cleanup/backward compatibility; Stories do not have drafts."]
   deletion_status deletion_status [not null, default: "active"]
   created_at timestamp [not null]
   updated_at timestamp [not null]
@@ -516,7 +515,7 @@ Table travel_plan_stories {
   published boolean [not null, default: false, note: "Owner drafts are hidden from the public Travel Plans feed until the route is completed and the owner publishes it."]
   publishable boolean [not null, default: false, note: "True only when every destination has been completed and the owner has chosen a cover image."]
   public_feed_visible boolean [not null, default: false, note: "Derived from published = true and status = completed. This controls whether the card appears beside public Explore, Stories, Community, and Events content."]
-  owner_draft_visible boolean [not null, default: true, note: "Shows the owner's private unfinished or unpublished Travel Plan cards in Profile > Draft Plans."]
+  owner_draft_visible boolean [not null, default: true, note: "Shows the owner's private unfinished or unpublished Travel Plan cards in Profile > Draft Plans. Draft behavior belongs to Travel Plans only, not regular Stories."]
   total_destinations int [not null, default: 0]
   completed_destinations int [not null, default: 0]
   total_travel_days int [not null, default: 1]
@@ -963,6 +962,17 @@ Table audit_log {
   entity_id varchar
   details_json json
   created_at timestamp [not null]
+}
+
+Table local_storage_tables {
+  local_table_key varchar [pk]
+  dbml_table_name varchar [not null]
+  purpose text [not null]
+  browser_storage_key varchar [not null, unique]
+  mirrors_backend_table boolean [not null, default: true]
+  created_at timestamp
+  updated_at timestamp
+  Note: "Prototype-only map of DBML tables to localStorage keys. This lets the frontend test all flows locally before PostgreSQL is connected."
 }
 
 Ref: user_follows.follower_id > users.user_id [delete: cascade]

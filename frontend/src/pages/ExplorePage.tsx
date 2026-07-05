@@ -2,259 +2,37 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router";
 import { Search, MapPin, Star, ArrowLeft, BookOpen, Pin, Users, Camera, Clock, ChevronLeft, ChevronRight, ExternalLink, Compass, Mountain, Waves, Building2, TreePine, Droplets, Anchor, Gem, Landmark, Utensils } from "lucide-react";
 import { GatedPage } from "../components/GatedPage";
+import { LargeEmptyState } from "../components/LargeEmptyState";
 import { GAMIFIED_USERS, getLevelFromXp } from "../components/gamification";
 import { STORIES, StoryArticleView, type TravelStory } from "./StoriesPage";
 
 /* ─── Data ─────────────────────────────────────────────────── */
 
-const DESTINATIONS = [
-  {
-    id: 1,
-    name: "El Nido",
-    region: "Palawan",
-    province: "Palawan",
-    terrain: "Islands",
-    coordinate: { lat: 11.1956, lon: 119.4075 },
-    rating: 4.9,
-    reviews: 2140,
-    explorers: 847,
-    pins: 3240,
-    img: "https://images.unsplash.com/photo-1695051702427-1c24ce3682e7?w=800&h=500&fit=crop&auto=format",
-    gallery: [
-      "https://images.unsplash.com/photo-1632307918787-8cb52566dd35?w=500&h=350&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1688541197205-02bd8c71074d?w=500&h=350&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1609412058473-c199497c3c5d?w=500&h=350&fit=crop&auto=format",
-    ],
-    desc: "Dramatic limestone karst cliffs, hidden lagoons, and some of the clearest water in the world.",
-    longDesc: "El Nido is the gateway to the Bacuit Archipelago — a cluster of 45 islands and islets in the Sulu Sea. The municipality sits at the northern tip of Palawan and is surrounded by some of the most dramatic scenery in Southeast Asia: vertical limestone cliffs rising from turquoise water, secret beaches accessible only by kayak, and coral reefs that shelter hundreds of marine species.\n\nThe town itself has grown from a fishing village into a thriving travel destination, though it retains much of its barangay-scale charm. Electricity arrived only in the 1990s. The best time to visit is November through April, when the sea is calm enough for island-hopping tours. The signature experiences are Tour A (Big and Small Lagoons) and Tour C (Secret Beach, Shimizu Island), though the lesser-known Tour D offers quieter waters and more exclusive coves.\n\nThe reef system around Bacuit Bay is part of the Coral Triangle and among the most biodiverse marine environments on Earth. Responsible tourism is a growing concern — many barangay councils now enforce visitor caps and require permits for cave and lagoon access.",
-    tags: ["Island hopping", "Snorkelling", "Photography", "Kayaking"],
-    bestMonths: "Nov – Apr",
-    difficulty: "Easy",
-    highlights: ["Bacuit Archipelago", "Big & Small Lagoon", "Nacpan Twin Beach", "Secret Beach", "Shimizu Island"],
-    contributors: ["carlo", "ana", "sofia"],
-    stories: [
-      { title: "48 Hours in El Nido: What the Guidebooks Don't Tell You", author: "Carlo Reyes", authorKey: "carlo", likes: 418, date: "12 May 2025" },
-      { title: "The Secret Coves of Northern Palawan", author: "Ana Villanueva", authorKey: "ana", likes: 231, date: "2 Apr 2025" },
-      { title: "Hundred Islands to El Nido: A Solo Journey", author: "Sofia Reyes", authorKey: "sofia", likes: 189, date: "15 Mar 2025" },
-    ],
-    color: "#3A2A22",
-  },
-  {
-    id: 2,
-    name: "Batanes Islands",
-    region: "Cagayan Valley",
-    province: "Batanes",
-    terrain: "Highlands",
-    coordinate: { lat: 20.4487, lon: 121.9702 },
-    rating: 4.8,
-    reviews: 840,
-    explorers: 312,
-    pins: 1180,
-    img: "https://images.unsplash.com/photo-1768639400843-d604ccce9c3e?w=800&h=500&fit=crop&auto=format",
-    gallery: [
-      "https://images.unsplash.com/photo-1609412058473-c199497c3c5d?w=500&h=350&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1672933354004-3cbd9874f099?w=500&h=350&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1688541197205-02bd8c71074d?w=500&h=350&fit=crop&auto=format",
-    ],
-    desc: "The Philippines' northernmost province — rolling hills, stone houses, and the spirit of the Ivatans.",
-    longDesc: "Batanes is unlike anywhere else in the Philippines. The three main islands — Batan, Sabtang, and Itbayat — sit closer to Taiwan than to Manila, and they feel it: the architecture, the food, and the pace of life belong to a culture shaped by isolation and typhoons for centuries.\n\nThe Ivatan people built their homes from limestone and cogon grass to withstand the fierce typhoon seasons that batter the islands each year. These stone houses, called sinadumparan, have survived for hundreds of years and remain inhabited today. The vatang, a raincoat woven from voyavoy palm leaves, is still worn by fishermen when the seas turn rough.\n\nBatanes is one of the hardest places to reach in the Philippines — flights from Tuguegarao are infrequent and subject to cancellation by weather — which keeps visitor numbers low and the islands remarkably unspoiled. The rolling hills of Batan, the cliff roads of Sabtang, and the volcanic caldera of Iraya are among the most photographed landscapes in the country.",
-    tags: ["Culture", "Trekking", "Photography", "Heritage"],
-    bestMonths: "Mar – Jun",
-    difficulty: "Moderate",
-    highlights: ["Naidi Hills Lighthouse", "Valugan Boulder Beach", "Chavayan Village", "Marlboro Hills", "Sabtang Island"],
-    contributors: ["ana", "ramon"],
-    stories: [
-      { title: "The Road to Batanes: Chasing the Last Frontier's Last Sunsets", author: "Ana Villanueva", authorKey: "ana", likes: 632, date: "3 May 2025" },
-      { title: "Ivatan Weaving: Keeping an Ancient Art Alive", author: "Ramon Dela Cruz", authorKey: "ramon", likes: 387, date: "14 Mar 2025" },
-    ],
-    color: "#5C8A9E",
-  },
-  {
-    id: 3,
-    name: "Banaue Rice Terraces",
-    region: "Cordillera",
-    province: "Ifugao",
-    terrain: "Mountains",
-    coordinate: { lat: 16.919, lon: 121.0593 },
-    rating: 4.7,
-    reviews: 1320,
-    explorers: 531,
-    pins: 2100,
-    img: "https://images.unsplash.com/photo-1609412058473-c199497c3c5d?w=800&h=500&fit=crop&auto=format",
-    gallery: [
-      "https://images.unsplash.com/photo-1768639400843-d604ccce9c3e?w=500&h=350&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1695051702427-1c24ce3682e7?w=500&h=350&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1632307918787-8cb52566dd35?w=500&h=350&fit=crop&auto=format",
-    ],
-    desc: "Two-thousand-year-old rice terraces carved into the Cordillera mountains. An engineering wonder.",
-    longDesc: "The Ifugao Rice Terraces are among the greatest feats of pre-colonial engineering in the world. Carved into the mountains of Ifugao province over 2,000 years by the Ifugao people, the terraces follow the natural contours of the mountains and use a sophisticated irrigation system — the muyong — that channels water from privately maintained forest ponds through bamboo pipes to each terrace level.\n\nThe Banaue Terraces are the most accessible cluster, but the most spectacular are in Batad — a circular amphitheatre of terraces that requires a 40-minute walk from the nearest road. Other notable clusters include Bangaan and Hapao. The terraces are a UNESCO World Heritage Site and are considered a living cultural landscape, meaning they are still actively farmed by Ifugao families using traditional methods.\n\nThe best time to visit is during the planting season (June–July) when the terraces are flooded and reflect the sky, or during harvest (October–November) when they glow golden. The mumbakit, traditional Ifugao priests, still perform agricultural rituals tied to the planting and harvest cycles.",
-    tags: ["UNESCO", "Culture", "Trekking", "Photography"],
-    bestMonths: "Jun – Nov",
-    difficulty: "Moderate–Hard",
-    highlights: ["Batad Amphitheatre", "Bangaan Terraces", "Banaue Viewpoint", "Tappiya Falls", "Ifugao Village"],
-    contributors: ["ramon", "ana"],
-    stories: [
-      { title: "Three Weeks Among the Ifugao: Rice Terraces and Slow Time", author: "Ramon Dela Cruz", authorKey: "ramon", likes: 521, date: "28 Apr 2025" },
-      { title: "Batad: The Terrace Bowl That Changed My Life", author: "Ana Villanueva", authorKey: "ana", likes: 298, date: "10 Feb 2025" },
-    ],
-    color: "#C4713A",
-  },
-  {
-    id: 4,
-    name: "Siargao Island",
-    region: "Surigao del Norte",
-    province: "Surigao del Norte",
-    terrain: "Islands",
-    coordinate: { lat: 9.7843, lon: 126.1589 },
-    rating: 4.8,
-    reviews: 1890,
-    explorers: 724,
-    pins: 2890,
-    img: "https://images.unsplash.com/photo-1672933354004-3cbd9874f099?w=800&h=500&fit=crop&auto=format",
-    gallery: [
-      "https://images.unsplash.com/photo-1695051702427-1c24ce3682e7?w=500&h=350&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1609412058473-c199497c3c5d?w=500&h=350&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1688541197205-02bd8c71074d?w=500&h=350&fit=crop&auto=format",
-    ],
-    desc: "The surfing capital of the Philippines. Cloud 9, island hopping, and laid-back island life.",
-    longDesc: "Siargao is a teardrop-shaped island in the Philippine Sea that has become one of Southeast Asia's premier surf destinations. The Cloud 9 break — a hollow, powerful right-hand barrel that breaks over a shallow reef — has put Siargao on the world surf map and hosts an international surfing competition each year.\n\nBeyond surfing, Siargao offers one of the most diverse island-hopping routes in the Philippines: Naked Island, Daku Island, and Guyam Island form a classic day trip that combines bare sandbars, coconut groves, and calm swimming lagoons. The lagoon system north of General Luna — Sugba Lagoon in Del Carmen — is one of the most photographed spots in the country.\n\nTyphoon Odette struck in December 2021 and caused widespread destruction. The island has rebuilt significantly, and most tourism infrastructure is operational. The coconut palms are regrown to perhaps a third of their former height, giving the landscape a different but still beautiful character. The community's resilience has become part of Siargao's identity.",
-    tags: ["Surfing", "Island hopping", "Nightlife", "Community"],
-    bestMonths: "Mar – Oct",
-    difficulty: "Easy",
-    highlights: ["Cloud 9 Break", "Sugba Lagoon", "Naked Island", "Magpupungko Rock Pools", "General Luna"],
-    contributors: ["leila", "carlo", "ana"],
-    stories: [
-      { title: "Siargao After the Typhoon: Notes on Return and Resilience", author: "Leila Marcos", authorKey: "leila", likes: 893, date: "20 Apr 2025" },
-      { title: "Cloud 9 at Dawn: A Surfer's Journal", author: "Carlo Reyes", authorKey: "carlo", likes: 312, date: "1 Mar 2025" },
-      { title: "Island Hopping Siargao: The Full Loop", author: "Ana Villanueva", authorKey: "ana", likes: 247, date: "12 Feb 2025" },
-    ],
-    color: "#9E6B5C",
-  },
-  {
-    id: 5,
-    name: "Chocolate Hills",
-    region: "Bohol",
-    province: "Bohol",
-    terrain: "Highlands",
-    coordinate: { lat: 9.8297, lon: 124.1397 },
-    rating: 4.6,
-    reviews: 1650,
-    explorers: 618,
-    pins: 1940,
-    img: "https://images.unsplash.com/photo-1616382093586-84ed7932c216?w=800&h=500&fit=crop&auto=format",
-    gallery: [
-      "https://images.unsplash.com/photo-1632307918787-8cb52566dd35?w=500&h=350&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1672933354004-3cbd9874f099?w=500&h=350&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1768639400843-d604ccce9c3e?w=500&h=350&fit=crop&auto=format",
-    ],
-    desc: "Over 1,200 perfectly cone-shaped hills that turn chocolate brown during dry season. Otherworldly.",
-    longDesc: "The Chocolate Hills are one of the most geologically unique formations in the Philippines. More than 1,200 perfectly symmetrical, grass-covered limestone hills rise from the flat agricultural plains of Bohol's interior — when the grass dries during the dry season (December–May), the hills turn a uniform chocolate brown, giving the formation its name.\n\nThe exact mechanism of their formation is still debated by geologists. The most widely accepted theory suggests they are marine limestone deposits shaped by weathering over millions of years. They were declared a National Geological Monument in 1988 and are a candidate UNESCO World Heritage Site.\n\nBohol is also home to the Tarsier Sanctuary — where the Philippine tarsier, one of the world's smallest primates, lives in a protected forest habitat — and the Loboc River, where floating restaurants and riverside communities offer a glimpse of rural Bohol life. The Chocolate Hills Complex near Carmen has a viewing platform at the top of one hill, though the dawn view from Sagbayan Peak is considered more dramatic.",
-    tags: ["Iconic", "Photography", "Cycling", "Nature"],
-    bestMonths: "Dec – May",
-    difficulty: "Easy",
-    highlights: ["Carmen Viewing Complex", "Sagbayan Peak", "Tarsier Sanctuary", "Loboc River", "Man-Made Forest"],
-    contributors: ["sofia", "marco"],
-    stories: [
-      { title: "Bohol in 72 Hours: Hills, Tarsiers, and River Food", author: "Sofia Reyes", authorKey: "sofia", likes: 341, date: "5 Apr 2025" },
-      { title: "Cycling the Chocolate Hills at Dawn", author: "Marco Buenaventura", authorKey: "marco", likes: 218, date: "20 Jan 2025" },
-    ],
-    color: "#9E6B5C",
-  },
-  {
-    id: 6,
-    name: "Coron Bay",
-    region: "Palawan",
-    province: "Palawan",
-    terrain: "Islands",
-    coordinate: { lat: 11.9986, lon: 120.2043 },
-    rating: 4.9,
-    reviews: 1240,
-    explorers: 489,
-    pins: 1820,
-    img: "https://images.unsplash.com/photo-1688541197205-02bd8c71074d?w=800&h=500&fit=crop&auto=format",
-    gallery: [
-      "https://images.unsplash.com/photo-1695051702427-1c24ce3682e7?w=500&h=350&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1616382093586-84ed7932c216?w=500&h=350&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1609412058473-c199497c3c5d?w=500&h=350&fit=crop&auto=format",
-    ],
-    desc: "World-class wreck diving, pristine lakes hidden in karst cliffs, and stunning sunsets over Coron town.",
-    longDesc: "Coron is the diving capital of the Philippines. During World War II, a Japanese naval fleet sought shelter here from American air attack and was sunk on September 24, 1944. The resulting collection of wartime wrecks — including the Okikawa Maru, Irako, and Kogyo Maru — now lie at depths of 10 to 40 metres and are among the most spectacular wreck dives in the world, encrusted with coral and home to vast populations of fish.\n\nAbove the water, Coron's landscape is equally dramatic. The Kayangan Lake is consistently rated the cleanest lake in Asia and is accessed through a limestone cliff via a short but steep hike. Barracuda Lake, nearby, has a thermocline where fresh and salt water meet at radically different temperatures — divers descend through warm fresh water and enter cold salt water a few metres below the surface.\n\nCoron town, on Busuanga Island, retains the character of a fishing and trading port. The Maquinit Hot Springs are the only saltwater hot springs in the Philippines. The sunsets from the hill behind town, watched from any number of rooftop restaurants, are among the best in the archipelago.",
-    tags: ["Diving", "Island hopping", "Photography", "Heritage"],
-    bestMonths: "Nov – May",
-    difficulty: "Easy–Moderate",
-    highlights: ["WWII Wreck Diving", "Kayangan Lake", "Barracuda Lake", "Maquinit Hot Springs", "Twin Lagoon"],
-    contributors: ["carlo", "leila", "sofia"],
-    stories: [
-      { title: "Coron's Hidden Lakes: Beyond the Wreck Dives", author: "Carlo Reyes", authorKey: "carlo", likes: 412, date: "18 Apr 2025" },
-      { title: "Diving the Japanese Fleet: Coron's WWII Wrecks", author: "Leila Marcos", authorKey: "leila", likes: 567, date: "5 Mar 2025" },
-      { title: "Kayangan Lake at 5am: Empty and Perfect", author: "Sofia Reyes", authorKey: "sofia", likes: 289, date: "28 Jan 2025" },
-    ],
-    color: "#4A78A8",
-  },
-  {
-    id: 7,
-    name: "Vigan City",
-    region: "Ilocos Sur",
-    province: "Ilocos Sur",
-    terrain: "Urban",
-    coordinate: { lat: 17.5747, lon: 120.3869 },
-    rating: 4.5,
-    reviews: 980,
-    explorers: 392,
-    pins: 1430,
-    img: "https://images.unsplash.com/photo-1565565915331-293fd8113954?w=800&h=500&fit=crop&auto=format",
-    gallery: [
-      "https://images.unsplash.com/photo-1711060169357-ed923c9f2156?w=500&h=350&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1688541197205-02bd8c71074d?w=500&h=350&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1632307918787-8cb52566dd35?w=500&h=350&fit=crop&auto=format",
-    ],
-    desc: "The best-preserved Spanish colonial city in Southeast Asia. Cobblestones, ancestral houses, longganisa.",
-    longDesc: "Vigan is the most intact example of a Spanish colonial trading town in Asia. Founded in the 16th century by Juan de Salcedo, the city served as the commercial and political hub of northern Luzon throughout Spanish rule. Its street plan, architecture, and the material culture of its inhabitants reflect 300 years of interaction between indigenous Ilocano culture, Spanish colonialism, and Chinese trade.\n\nThe heritage zone — centred on Calle Crisologo and the surrounding streets — is a UNESCO World Heritage Site. The ancestral houses that line the cobblestone streets are a unique hybrid: Chinese-influenced ground floors built for commerce, Spanish-style upper floors with capiz shell windows and sliding wooden shutters, all unified by the distinctive yellow-ochre render of the facades.\n\nVigan's food culture is as distinctive as its architecture. Ilocano cuisine is defined by fermentation, simplicity, and the bold use of pork: the longganisa here is garlicky and slightly sour; the bagnet is arguably the best fried pork dish in the Philippines; the pinakbet uses vegetables grown in the surrounding Ilocos plains.",
-    tags: ["Heritage", "Food", "Architecture", "UNESCO"],
-    bestMonths: "Nov – Apr",
-    difficulty: "Easy",
-    highlights: ["Calle Crisologo", "Plaza Salcedo", "Bantay Bell Tower", "Syquia Mansion", "Burnay Pottery"],
-    contributors: ["marco", "ramon"],
-    stories: [
-      { title: "Vigan on Foot: A Day in the Heritage Zone", author: "Marco Buenaventura", authorKey: "marco", likes: 312, date: "15 Apr 2025" },
-      { title: "The Food of Ilocos: Longganisa, Bagnet, and Beyond", author: "Ramon Dela Cruz", authorKey: "ramon", likes: 428, date: "2 Mar 2025" },
-    ],
-    color: "#9E6B5C",
-  },
-  {
-    id: 8,
-    name: "Camiguin Island",
-    region: "Northern Mindanao",
-    province: "Camiguin",
-    terrain: "Islands",
-    coordinate: { lat: 9.173, lon: 124.7299 },
-    rating: 4.7,
-    reviews: 720,
-    explorers: 281,
-    pins: 1050,
-    img: "https://images.unsplash.com/photo-1672933354004-3cbd9874f099?w=800&h=500&fit=crop&auto=format",
-    gallery: [
-      "https://images.unsplash.com/photo-1695051702427-1c24ce3682e7?w=500&h=350&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1609412058473-c199497c3c5d?w=500&h=350&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1768639400843-d604ccce9c3e?w=500&h=350&fit=crop&auto=format",
-    ],
-    desc: "More volcanoes than any other island its size. Hot springs, cold springs, waterfalls, and white island.",
-    longDesc: "Camiguin is a small island in Northern Mindanao with more volcanoes per square kilometre than anywhere else in the Philippines. The island itself was formed by volcanic activity and continues to be shaped by it: Hibok-Hibok, the most active volcano, last erupted in 1953 and remains closely monitored. The volcanic geology gives Camiguin its extraordinary diversity of natural features: hot springs that bubble up at the ocean's edge, cold springs in mountain forest, waterfalls fed by year-round rainfall, and the sunken cemetery — a village graveyard that sank beneath the sea during an 1871 eruption and is now visible beneath the water's surface, marked by a large cross.\n\nWhite Island, a tiny uninhabited sandbar visible from the mainland, is one of the most photographed places in Mindanao — a white crescent surrounded by turquoise water with Hibok-Hibok in the background. The Ardent Hot Springs, fed by volcanic heat, are a popular evening soak. The Katibawasan Falls drop 70 metres into a cool pool surrounded by dense forest.\n\nCamiguin's pace is quiet, its roads are calm, and its food is centred on lanzones — the fruit that defines the island's annual October festival.",
-    tags: ["Volcanoes", "Springs", "Diving", "Nature"],
-    bestMonths: "Mar – Sep",
-    difficulty: "Easy–Moderate",
-    highlights: ["White Island", "Ardent Hot Springs", "Sunken Cemetery", "Katibawasan Falls", "Hibok-Hibok"],
-    contributors: ["leila", "sofia"],
-    stories: [
-      { title: "Camiguin: The Island Born from Fire", author: "Leila Marcos", authorKey: "leila", likes: 378, date: "22 Mar 2025" },
-      { title: "Swimming Over the Sunken Cemetery", author: "Sofia Reyes", authorKey: "sofia", likes: 291, date: "8 Feb 2025" },
-    ],
-    color: "#9E6B5C",
-  },
-];
+type Destination = {
+  id: number;
+  name: string;
+  region: string;
+  province: string;
+  terrain: string;
+  coordinate: { lat: number; lon: number };
+  rating: number;
+  reviews: number;
+  explorers: number;
+  pins: number;
+  img: string;
+  gallery: string[];
+  desc: string;
+  longDesc: string;
+  tags: string[];
+  bestMonths: string;
+  difficulty: string;
+  highlights: string[];
+  contributors: string[];
+  stories: Array<{ title: string; author: string; authorKey: string; likes: number; date: string }>;
+  color: string;
+};
 
-type Destination = (typeof DESTINATIONS)[number];
-
+const DESTINATIONS: Destination[] = [];
 const travelCategories = ["All", "Hiking", "Food Place", "Hidden Gems", "Beaches", "Forest", "Culture", "More"];
 
 function formatCoordinates(coordinate: { lat: number; lon: number }): string {
@@ -842,7 +620,7 @@ function DestinationCard({ d, onClick }: { d: Destination; onClick: () => void }
 function ExploreContent() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
-  const [selected, setSelected] = useState<typeof DESTINATIONS[0] | null>(null);
+  const [selected, setSelected] = useState<Destination | null>(null);
 
   const filtered = DESTINATIONS.filter((d) => {
     const matchSearch = d.name.toLowerCase().includes(search.toLowerCase()) || d.region.toLowerCase().includes(search.toLowerCase()) || d.province.toLowerCase().includes(search.toLowerCase());
@@ -920,6 +698,13 @@ function ExploreContent() {
           </div>
         </div>
 
+        {filtered.length === 0 ? (
+          <LargeEmptyState
+            title="No destinations here yet"
+            copy="Try another search term or category to find more public destinations."
+          />
+        ) : null}
+
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap: "1.5rem" }}>
           {filtered.map((d) => (
             <DestinationCard key={d.id} d={d} onClick={() => setSelected(d)} />
@@ -945,4 +730,5 @@ export default function ExplorePage() {
     </GatedPage>
   );
 }
+
 

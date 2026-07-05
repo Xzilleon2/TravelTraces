@@ -17,11 +17,53 @@ import {
 } from "lucide-react";
 import { BADGES, GAMIFIED_USERS, type BadgeId, type GamifiedUser, getLevelFromXp, getXpProgress } from "../components/gamification";
 import { GatedPage } from "../components/GatedPage";
+import type { User } from "../context/AuthContext";
+import type { ApiPin, TravelGroup } from "../services/mappingApi";
+import { listLocalStories, readLocalTable } from "../services/localDb";
 
 const LOCKED_BADGE_LIMIT = 12;
 
 function publicCount(seed: number, fallback: number): number {
   return Number.isFinite(seed) && seed > 0 ? seed : fallback;
+}
+
+function localAvatar(user: User) {
+  if (user.avatar) return user.avatar;
+  const initials = (user.name || user.email || "TT").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="48" fill="#EDEAE0"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#7A4B32">${initials}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+function localUserToGamifiedUser(user: User): GamifiedUser {
+  const stories = listLocalStories().filter((story) => story.ownerId === user.id || story.author === user.name);
+  const pins = readLocalTable<ApiPin>("pins").filter((pin) => pin.creator_id === user.id);
+  const groups = readLocalTable<TravelGroup>("travelGroups").filter((group) => group.owner_id === user.id || group.members.some((member) => member.user_id === user.id));
+  const badges: BadgeId[] = [];
+  if (pins.length > 0) badges.push("first_step");
+  if (stories.length >= 3) badges.push("storyteller");
+  const xp = badges.length * 100;
+  return {
+    id: user.id,
+    name: user.name || user.email,
+    avatar: localAvatar(user),
+    location: user.location || "Location not set",
+    bio: user.bio || "No bio added yet.",
+    xp,
+    storiesCount: stories.length,
+    pinsCount: pins.length,
+    challengesCompleted: badges.length,
+    communitiesJoined: groups.length,
+    badges,
+    joinedDate: user.joinedDate || "recently",
+    recentStories: stories.filter((story) => (story.scope ?? "public") === "public").slice(0, 4).map((story) => ({
+      id: story.id,
+      title: story.title,
+      region: story.region,
+      img: story.img,
+      date: story.date,
+      likes: story.likes,
+    })),
+  };
 }
 
 function Panel({ title, eyebrow, children, action }: { title: string; eyebrow?: string; children: ReactNode; action?: ReactNode }) {
@@ -221,7 +263,8 @@ function PublicProfileView({ user }: { user: GamifiedUser }) {
 function PublicProfileContent() {
   const navigate = useNavigate();
   const { userId } = useParams();
-  const publicUser = userId ? GAMIFIED_USERS[userId] : null;
+  const localUser = userId ? readLocalTable<User>("users").find((user) => user.id === userId) : null;
+  const publicUser = userId ? GAMIFIED_USERS[userId] ?? (localUser ? localUserToGamifiedUser(localUser) : null) : null;
 
   if (!publicUser) {
     return (

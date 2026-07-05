@@ -30,6 +30,7 @@ export type TravelPlanStory = {
   travelPlanName: string;
   subtitle?: string;
   coverImage?: string;
+  coverPosition?: string;
   description?: string;
   likesCount?: number;
   savesCount?: number;
@@ -48,6 +49,7 @@ export type TravelPlanDraftInput = {
   travelPlanName: string;
   subtitle?: string;
   coverImage?: string;
+  coverPosition?: string;
   description?: string;
   stops: Array<ApiLocation & { plannedDay?: number; plannedDate?: string; plannedTime?: string; notes?: string; category?: string }>;
   routeGeometry?: [number, number][];
@@ -89,6 +91,7 @@ export function normalizeTravelPlan(plan: TravelPlanStory): TravelPlanStory {
 
   return {
     ...plan,
+    coverPosition: plan.coverPosition || "center center",
     likesCount: Math.max(0, Number(plan.likesCount) || 0),
     savesCount: Math.max(0, Number(plan.savesCount) || 0),
     commentsCount: Math.max(0, Number(plan.commentsCount) || 0),
@@ -101,7 +104,8 @@ export function normalizeTravelPlan(plan: TravelPlanStory): TravelPlanStory {
 export function readTravelPlanStories(): TravelPlanStory[] {
   if (typeof window === "undefined") return [];
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(TRAVEL_PLAN_STORIES_KEY) ?? "[]") as TravelPlanStory[];
+    const dbRows = window.localStorage.getItem("traveltraces.db.v1.travel_plan_stories");
+    const parsed = JSON.parse(dbRows ?? window.localStorage.getItem(TRAVEL_PLAN_STORIES_KEY) ?? "[]") as TravelPlanStory[];
     return Array.isArray(parsed) ? parsed.map(normalizeTravelPlan) : [];
   } catch {
     return [];
@@ -109,7 +113,10 @@ export function readTravelPlanStories(): TravelPlanStory[] {
 }
 
 export function writeTravelPlanStories(plans: TravelPlanStory[]) {
-  window.localStorage.setItem(TRAVEL_PLAN_STORIES_KEY, JSON.stringify(plans.map(normalizeTravelPlan)));
+  const normalized = plans.map(normalizeTravelPlan);
+  window.localStorage.setItem(TRAVEL_PLAN_STORIES_KEY, JSON.stringify(normalized));
+  window.localStorage.setItem("traveltraces.db.v1.travel_plan_stories", JSON.stringify(normalized));
+  window.dispatchEvent(new CustomEvent("traveltraces:local-db-updated", { detail: { table: "travelPlanStories" } }));
   window.dispatchEvent(new CustomEvent("traveltraces:travel-plan-stories-updated"));
 }
 
@@ -133,6 +140,7 @@ export function createTravelPlanStory(input: TravelPlanDraftInput): TravelPlanSt
     travelPlanName: input.travelPlanName.trim() || "Untitled Travel Plan",
     subtitle: input.subtitle?.trim() || undefined,
     coverImage: input.coverImage,
+    coverPosition: input.coverPosition || "center center",
     description: input.description,
     likesCount: 0,
     savesCount: 0,

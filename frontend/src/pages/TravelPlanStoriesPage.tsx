@@ -53,118 +53,7 @@ type TravelPlanComment = {
   likes: number;
 };
 
-const TRAVEL_PLAN_COMMENTS: Record<string, TravelPlanComment[]> = {
-  "sample-siargao-book": [
-    {
-      id: 1,
-      author: "Ana Villanueva",
-      avatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=80&h=80&fit=crop&auto=format",
-      text: "This feels like a real travel book draft. The route order makes the whole Siargao plan easy to follow.",
-      time: "2h ago",
-      likes: 8,
-    },
-    {
-      id: 2,
-      author: "Carlo Reyes",
-      avatar: "https://images.unsplash.com/photo-1519101739220-83f6a14852ca?w=80&h=80&fit=crop&auto=format",
-      text: "Cloud 9 first, Catangnan at golden hour, then Sugba Lagoon is a strong sequence. I would actually try this.",
-      time: "Yesterday",
-      likes: 5,
-    },
-  ],
-};
-
-const sampleTravelPlans: TravelPlanStory[] = [
-  {
-    id: "sample-siargao-book",
-    ownerId: "sample-mika-santos",
-    ownerName: "Mika Santos",
-    travelPlanName: "Three Days Around Siargao",
-    subtitle: "A completed island route from surf sunrise to lagoon stillness.",
-    coverImage: "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=1200&h=760&fit=crop&auto=format",
-    description:
-      "A completed three-day Siargao route built as one continuous island journey: early surf light at Cloud 9, a warm community sunset at Catangnan Bridge, and a blue-water lagoon day in Del Carmen.",
-    routeGeometry: [
-      [9.8131, 126.1649],
-      [9.8504, 126.1192],
-      [9.9224, 126.0494],
-    ],
-    visibility: "public",
-    published: true,
-    likesCount: 642,
-    savesCount: 214,
-    commentsCount: 2,
-    createdAt: "2026-04-18T08:00:00.000Z",
-    updatedAt: "2026-04-22T18:30:00.000Z",
-    destinations: [
-      {
-        id: "sample-siargao-point-1",
-        order: 1,
-        placeName: "Cloud 9 Boardwalk",
-        coordinate: { lat: 9.8131, lon: 126.1649 },
-        plannedDay: 1,
-        plannedDate: "2026-04-18",
-        plannedTime: "06:00",
-        notes: "Sunrise surf watching before General Luna gets busy.",
-        status: "completed",
-        visibility: "public",
-        category: "Beaches",
-        title: "Morning Swell at Cloud 9",
-        description:
-          "The journey opened before the island was fully awake. I arrived at Cloud 9 while the boardwalk lights were still soft and the horizon was only beginning to turn pale orange. A few surfers were already out beyond the reef, sitting quietly on their boards and waiting for the first clean sets to arrive.\n\nThis stop became the emotional opening page of the plan because it captured the reason people keep returning to the island: not only the surf, but the ceremony around it. Vendors were setting up coffee, locals were greeting each other by name, and travelers who had just arrived stood quietly beside people who had lived with this break for years.",
-        photos: [
-          "https://images.unsplash.com/photo-1672933354004-3cbd9874f099?w=1100&h=720&fit=crop&auto=format",
-          "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=1100&h=720&fit=crop&auto=format",
-          "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=1100&h=720&fit=crop&auto=format",
-        ],
-        dateVisited: "2026-04-18",
-      },
-      {
-        id: "sample-siargao-point-2",
-        order: 2,
-        placeName: "Catangnan-Cabitoonan Bridge",
-        coordinate: { lat: 9.8504, lon: 126.1192 },
-        plannedDay: 1,
-        plannedDate: "2026-04-18",
-        plannedTime: "16:45",
-        notes: "Moved from Day 2 to Day 1 after the weather cleared.",
-        status: "completed",
-        visibility: "public",
-        category: "Culture",
-        title: "Golden Hour at Catangnan Bridge",
-        description:
-          "Catangnan Bridge was originally planned for the second day, but the weather cleared so beautifully that I moved it into the first afternoon. After the morning at Cloud 9, this stop gave the day a slower, more local rhythm: motorcycles passing in both directions, small groups leaning on the railings, and kids timing their jumps into the river below whenever the light hit the water just right.\n\nWhat made the bridge memorable was how ordinary and cinematic it felt at the same time. It was simply a crossing point that had become a gathering place. The sunset turned the concrete warm, the river reflected the sky in broken strips, and the whole scene felt like the middle chapter of a travel book.",
-        photos: [
-          "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1100&h=720&fit=crop&auto=format",
-          "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1100&h=720&fit=crop&auto=format",
-        ],
-        dateVisited: "2026-04-18",
-      },
-      {
-        id: "sample-siargao-point-3",
-        order: 3,
-        placeName: "Sugba Lagoon",
-        coordinate: { lat: 9.9224, lon: 126.0494 },
-        plannedDay: 2,
-        plannedDate: "2026-04-19",
-        plannedTime: "10:30",
-        notes: "Boat transfer from Del Carmen, best visited before lunch crowds.",
-        status: "completed",
-        visibility: "public",
-        category: "Hidden Gems",
-        title: "Blue Silence in Sugba Lagoon",
-        description:
-          "The last stop began with the boat transfer from Del Carmen, passing through stretches of mangroves that made the route feel protected from the louder parts of the island. Sugba Lagoon opened slowly, first as narrow channels of green water and then as a wider blue space surrounded by limestone, trees, and floating platforms.\n\nThis destination completed the travel plan because it gave the album its closing image: water changing color under the sun, kayaks moving between shadows, and everyone drifting into their own version of stillness.",
-        photos: [
-          "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1100&h=720&fit=crop&auto=format",
-          "https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?w=1100&h=720&fit=crop&auto=format",
-          "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1100&h=720&fit=crop&auto=format",
-        ],
-        dateVisited: "2026-04-19",
-      },
-    ],
-  },
-];
+const TRAVEL_PLAN_COMMENTS: Record<string, TravelPlanComment[]> = {};
 
 function planCover(plan: TravelPlanStory): string | null {
   return plan.coverImage || null;
@@ -173,7 +62,7 @@ function planCover(plan: TravelPlanStory): string | null {
 function PlanCoverFrame({ plan, height }: { plan: TravelPlanStory; height: number }) {
   const cover = planCover(plan);
   if (cover) {
-    return <img src={cover} alt={plan.travelPlanName} style={{ width: "100%", height, objectFit: "cover", display: "block" }} />;
+    return <img src={cover} alt={plan.travelPlanName} style={{ width: "100%", height, objectFit: "cover", objectPosition: plan.coverPosition ?? "center center", display: "block" }} />;
   }
   return (
     <div style={{ width: "100%", height, display: "grid", placeItems: "center", background: "linear-gradient(135deg, #EFE7DC, #FBF7F0)", borderBottom: "1px solid rgba(58,42,34,0.1)", color: "#7A685E", fontFamily: "var(--font-label)", fontSize: "0.78rem", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase" }}>
@@ -367,6 +256,11 @@ export function TravelPlanArticleView({
     commitPlan({ ...plan, coverImage: coverImage.trim() || undefined });
   };
 
+  const updateCoverPosition = (coverPosition: string) => {
+    if (!editable) return;
+    commitPlan({ ...plan, coverPosition });
+  };
+
   const submitComment = () => {
     if (!commentInput.trim()) return;
     setComments((current) => [
@@ -460,7 +354,7 @@ export function TravelPlanArticleView({
                 Choose the cover image for this Travel Plan card before publishing. This is no longer optional.
               </p>
               {plan.coverImage ? (
-                <img src={plan.coverImage} alt={`${plan.travelPlanName} cover`} style={{ width: "100%", height: "clamp(180px, 32vw, 300px)", objectFit: "cover", borderRadius: "0.45rem", marginBottom: "1rem", display: "block" }} />
+                <img src={plan.coverImage} alt={`${plan.travelPlanName} cover`} style={{ width: "100%", height: "clamp(180px, 32vw, 300px)", objectFit: "cover", objectPosition: plan.coverPosition ?? "center center", borderRadius: "0.45rem", marginBottom: "1rem", display: "block" }} />
               ) : (
                 <div style={{ display: "grid", placeItems: "center", height: "clamp(160px, 28vw, 260px)", border: "1px dashed rgba(58,42,34,0.26)", backgroundColor: "#FBF7F0", borderRadius: "0.45rem", marginBottom: "1rem", fontFamily: "var(--font-label)", fontSize: "0.76rem", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "#7A685E" }}>
                   Add cover photo here
@@ -487,6 +381,36 @@ export function TravelPlanArticleView({
                   }}
                   style={{ fontFamily: "var(--font-ui)", color: "#3A2A22" }}
                 />
+                {plan.coverImage ? (
+                  <div style={{ display: "grid", gap: "0.45rem" }}>
+                    <span style={{ fontFamily: "var(--font-label)", fontSize: "0.66rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "#7A4B32" }}>Visible crop area</span>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.35rem" }}>
+                      {[
+                        ["TL", "left top"],
+                        ["T", "center top"],
+                        ["TR", "right top"],
+                        ["L", "left center"],
+                        ["C", "center center"],
+                        ["R", "right center"],
+                        ["BL", "left bottom"],
+                        ["B", "center bottom"],
+                        ["BR", "right bottom"],
+                      ].map(([label, value]) => {
+                        const active = (plan.coverPosition ?? "center center") === value;
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => updateCoverPosition(value)}
+                            style={{ minHeight: 32, border: `1px solid ${active ? "#3A2A22" : "rgba(58,42,34,0.14)"}`, borderRadius: "0.35rem", background: active ? "#3A2A22" : "#FBF7F0", color: active ? "#FBF7F0" : "#3A2A22", fontFamily: "var(--font-label)", fontSize: "0.66rem", fontWeight: 800, cursor: "pointer" }}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </section>
           ) : null}
@@ -778,10 +702,7 @@ function TravelPlanStoriesContent() {
     };
   }, []);
 
-  const allPlans = useMemo(() => {
-    const savedIds = new Set(plans.map((plan) => plan.id));
-    return [...plans, ...sampleTravelPlans.filter((plan) => !savedIds.has(plan.id))];
-  }, [plans]);
+  const allPlans = useMemo(() => plans, [plans]);
 
   const publicPlans = useMemo(() => allPlans.filter(isPublishedCompletedPlan).sort((a, b) => travelPlanPopularity(b) - travelPlanPopularity(a)), [allPlans]);
 
@@ -900,6 +821,27 @@ function TravelPlanStoriesContent() {
           </article>
         )}
 
+        {filteredPlans.length === 0 ? (
+          <div
+            role="status"
+            style={{
+              border: "1px dashed rgba(58,42,34,0.2)",
+              backgroundColor: "#FFF9F0",
+              borderRadius: "0.5rem",
+              padding: "clamp(2rem, 5vw, 4rem)",
+              textAlign: "center",
+              boxShadow: "0 18px 42px rgba(58,42,34,0.06)",
+            }}
+          >
+            <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "clamp(2rem, 5vw, 3.2rem)", fontWeight: 600, lineHeight: 1.05, color: "#3A2A22" }}>
+              No TravelPlan here yet
+            </h2>
+            <p style={{ margin: "1rem auto 0", maxWidth: 560, fontFamily: "var(--font-body)", fontSize: "1.05rem", lineHeight: 1.8, color: "#5B4A40" }}>
+              Try another search term or category to find more public travel stories.
+            </p>
+          </div>
+        ) : null}
+
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 280px), 1fr))", gap: "1.5rem" }}>
           {filteredPlans.slice(1).map((plan) => (
             <article
@@ -955,3 +897,5 @@ export default function TravelPlanStoriesPage() {
     </GatedPage>
   );
 }
+
+

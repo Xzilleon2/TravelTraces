@@ -35,6 +35,17 @@ const mapScopes: Array<{ value: MapScope; label: string }> = [
   { value: "public", label: "Public Map" },
   { value: "group", label: "Group Map" },
 ];
+const photoPositions = [
+  { label: "Top left", short: "TL", value: "left top" },
+  { label: "Top", short: "T", value: "center top" },
+  { label: "Top right", short: "TR", value: "right top" },
+  { label: "Left", short: "L", value: "left center" },
+  { label: "Center", short: "C", value: "center center" },
+  { label: "Right", short: "R", value: "right center" },
+  { label: "Bottom left", short: "BL", value: "left bottom" },
+  { label: "Bottom", short: "B", value: "center bottom" },
+  { label: "Bottom right", short: "BR", value: "right bottom" },
+];
 
 export function MarkerFormModal({ open, location, scope, onScopeChange, onClose, onSave, busy }: Props) {
   const [placeName, setPlaceName] = useState("");
@@ -88,6 +99,22 @@ export function MarkerFormModal({ open, location, scope, onScopeChange, onClose,
       });
     }
     setPhotos((current) => [...current, ...next]);
+  };
+
+  const updatePhotoPosition = (previewUrl: string, objectPosition: string) => {
+    setPhotos((current) =>
+      current.map((photo) =>
+        photo.previewUrl === previewUrl
+          ? {
+              ...photo,
+              attachment: {
+                ...photo.attachment,
+                object_position: objectPosition,
+              },
+            }
+          : photo,
+      ),
+    );
   };
 
   return (
@@ -207,18 +234,47 @@ export function MarkerFormModal({ open, location, scope, onScopeChange, onClose,
             </button>
           </div>
           {photos.length > 0 && (
-            <div className="mt-3 grid grid-cols-3 gap-2">
+            <div className="mt-3 grid gap-3">
               {photos.map((photo) => (
-                <div key={photo.previewUrl} className="relative">
-                  <img src={photo.previewUrl} alt="" className="h-20 w-full rounded border border-[#3A2A22]/15 object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => setPhotos((current) => current.filter((item) => item.previewUrl !== photo.previewUrl))}
-                    className="absolute right-1 top-1 rounded bg-[#1A1A1A]/75 p-1 text-white"
-                    aria-label="Remove photo"
-                  >
-                    <X size={12} />
-                  </button>
+                <div key={photo.previewUrl} className="rounded-lg border border-[#3A2A22]/12 bg-white p-2">
+                  <div className="relative">
+                    <img
+                      src={photo.previewUrl}
+                      alt=""
+                      className="h-28 w-full rounded border border-[#3A2A22]/15 object-cover"
+                      style={{ objectPosition: photo.attachment.object_position ?? "center center" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPhotos((current) => current.filter((item) => item.previewUrl !== photo.previewUrl))}
+                      className="absolute right-1 top-1 rounded bg-[#1A1A1A]/75 p-1 text-white"
+                      aria-label="Remove photo"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                  <div className="mt-2">
+                    <span className="mb-1 block font-[var(--font-label)] text-[0.62rem] font-bold uppercase tracking-[0.08em] text-[#6B5A50]">Visible crop area</span>
+                    <div className="grid grid-cols-3 gap-1">
+                      {photoPositions.map((position) => {
+                        const active = (photo.attachment.object_position ?? "center center") === position.value;
+                        return (
+                          <button
+                            key={position.value}
+                            type="button"
+                            onClick={() => updatePhotoPosition(photo.previewUrl, position.value)}
+                            className={`min-h-7 rounded border text-[0.62rem] font-bold transition ${
+                              active ? "border-[#3A2A22] bg-[#3A2A22] text-[#F5F0E8]" : "border-[#3A2A22]/12 bg-[#F5F0E8] text-[#3A2A22]"
+                            }`}
+                            aria-label={`Show ${position.label.toLowerCase()} of photo`}
+                            title={position.label}
+                          >
+                            {position.short}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

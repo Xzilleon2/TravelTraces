@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Search, MapPin, Clock, Heart, Bookmark, Share2, ArrowLeft, ChevronLeft, ChevronRight, Send, MessageCircle, Compass, Mountain, Utensils, Gem, Waves, TreePine, Landmark, BookOpen, CalendarDays, CheckCircle2, FileText, LockKeyhole, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { LargeEmptyState } from "../components/LargeEmptyState";
 import { GatedPage } from "../components/GatedPage";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -16,9 +17,19 @@ import {
   type TravelPlanStory,
 } from "../services/travelPlanStories";
 import { deletePin, listPins, type MapScope } from "../services/mappingApi";
+import { publishWorkspaceEvent } from "../utils/workspaceSync";
+import { deleteLocalStoryCascade, listLocalStories, writeLocalStories as writeLocalDbStories, type LocalStoryRecord } from "../services/localDb";
+
+type StoryPhotoFrame = string | {
+  preview_url?: string;
+  thumbnail_url?: string;
+  data_url?: string;
+  object_position?: string;
+};
 
 export const SAVED_STORIES_KEY = "traveltraces.savedStories";
 export const STORY_COLLECTIONS_KEY = "traveltraces.storyCollections";
+export const DELETED_STORY_PIN_IDS_KEY = "traveltraces.deletedStoryPinIds";
 
 const AUTHOR_KEY: Record<string, string> = {
   "Carlo Reyes": "carlo",
@@ -29,158 +40,11 @@ const AUTHOR_KEY: Record<string, string> = {
   "Sofia Reyes": "sofia",
 };
 
-const STORY_COMMENTS: Record<number, { id: number; author: string; avatar: string; text: string; time: string; likes: number }[]> = {
-  1: [
-    { id: 1, author: "Ana Villanueva", avatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=40&h=40&fit=crop&auto=format", text: "Tour C and D are seriously underrated! I did Tour C last March and had the whole Shimizu area almost to ourselves.", time: "2 days ago", likes: 14 },
-    { id: 2, author: "Ramon Dela Cruz", avatar: "https://images.unsplash.com/photo-1519101739220-83f6a14852ca?w=40&h=40&fit=crop&auto=format", text: "Nena's kare-kare with tamilok — that's a bucket list meal right there. Never knew about the covered market!", time: "1 day ago", likes: 8 },
-    { id: 3, author: "Sofia Reyes", avatar: "https://images.unsplash.com/photo-1672933278668-5be5957a8681?w=40&h=40&fit=crop&auto=format", text: "This is exactly the kind of honest review we need more of on TravelTraces. Thank you for this Carlo!", time: "5 hours ago", likes: 21 },
-  ],
-  2: [
-    { id: 1, author: "Leila Marcos", avatar: "https://images.unsplash.com/photo-1639526473371-e68e5336df56?w=40&h=40&fit=crop&auto=format", text: "The vatang weaving description gave me chills. I've been wanting to go to Batanes for years.", time: "3 days ago", likes: 17 },
-    { id: 2, author: "Marco Buenaventura", avatar: "https://images.unsplash.com/photo-1565565915331-293fd8113954?w=40&h=40&fit=crop&auto=format", text: "Valugan boulder beach at sunrise is on my list now. That pink sky sounds unreal.", time: "1 day ago", likes: 11 },
-  ],
-  3: [
-    { id: 1, author: "Carlo Reyes", avatar: "https://images.unsplash.com/photo-1519101739220-83f6a14852ca?w=40&h=40&fit=crop&auto=format", text: "The detail about the woodpecker as an environmental monitor blew my mind. Nature as science instrument.", time: "4 days ago", likes: 32 },
-  ],
-  4: [
-    { id: 1, author: "Ana Villanueva", avatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=40&h=40&fit=crop&auto=format", text: "I was there two months before Odette. Seeing it rebuilt means so much. The resilience of Siargao is inspiring.", time: "2 days ago", likes: 45 },
-    { id: 2, author: "Sofia Reyes", avatar: "https://images.unsplash.com/photo-1672933278668-5be5957a8681?w=40&h=40&fit=crop&auto=format", text: "The uneven recovery point is so important. Easy to miss that when only the luxury end gets coverage.", time: "1 day ago", likes: 29 },
-    { id: 3, author: "Ramon Dela Cruz", avatar: "https://images.unsplash.com/photo-1519101739220-83f6a14852ca?w=40&h=40&fit=crop&auto=format", text: "Odette took so much from the island. Good to read that people are rebuilding with that spirit.", time: "12 hours ago", likes: 18 },
-  ],
-  5: [
-    { id: 1, author: "Leila Marcos", avatar: "https://images.unsplash.com/photo-1639526473371-e68e5336df56?w=40&h=40&fit=crop&auto=format", text: "The fermentation and contrast flavors description — Kapampangan food is something else entirely.", time: "3 days ago", likes: 22 },
-  ],
-  6: [
-    { id: 1, author: "Carlo Reyes", avatar: "https://images.unsplash.com/photo-1519101739220-83f6a14852ca?w=40&h=40&fit=crop&auto=format", text: "Sixty person limit for overnight camping is brilliant. Keeps the magic alive. Booking this ASAP.", time: "5 days ago", likes: 9 },
-    { id: 2, author: "Marco Buenaventura", avatar: "https://images.unsplash.com/photo-1565565915331-293fd8113954?w=40&h=40&fit=crop&auto=format", text: "Manong Eddie sounds like a living encyclopedia of Hundred Islands. Legend.", time: "2 days ago", likes: 13 },
-  ],
-};
+const STORY_COMMENTS: Record<number, { id: number; author: string; avatar: string; text: string; time: string; likes: number }[]> = {};
 
-export const STORY_PHOTOS: Record<number, string[]> = {
-  1: [
-    "https://images.unsplash.com/photo-1632307918787-8cb52566dd35?w=1100&h=720&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1100&h=720&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?w=1100&h=720&fit=crop&auto=format",
-  ],
-  2: [
-    "https://images.unsplash.com/photo-1768639400843-d604ccce9c3e?w=1100&h=720&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1100&h=720&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1100&h=720&fit=crop&auto=format",
-  ],
-  3: [
-    "https://images.unsplash.com/photo-1609412058473-c199497c3c5d?w=1100&h=720&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1100&h=720&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1100&h=720&fit=crop&auto=format",
-  ],
-  4: [
-    "https://images.unsplash.com/photo-1672933354004-3cbd9874f099?w=1100&h=720&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=1100&h=720&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1506929562872-bb421503ef21?w=1100&h=720&fit=crop&auto=format",
-  ],
-  5: [
-    "https://images.unsplash.com/photo-1711060169357-ed923c9f2156?w=1100&h=720&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1100&h=720&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=1100&h=720&fit=crop&auto=format",
-  ],
-  6: [
-    "https://images.unsplash.com/photo-1688541197205-02bd8c71074d?w=1100&h=720&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1100&h=720&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1493558103817-58b2924bce98?w=1100&h=720&fit=crop&auto=format",
-  ],
-};
+export const STORY_PHOTOS: Record<number, string[]> = {};
 
-export const STORIES = [
-  {
-    id: 1,
-    title: "48 Hours in El Nido: What the Guidebooks Don't Tell You",
-    author: "Carlo Reyes",
-    authorAvatar: "https://images.unsplash.com/photo-1519101739220-83f6a14852ca?w=48&h=48&fit=crop&auto=format",
-    region: "Palawan",
-    readTime: "8 min",
-    date: "12 May 2025",
-    likes: 418,
-    saves: 203,
-    img: "https://images.unsplash.com/photo-1632307918787-8cb52566dd35?w=800&h=500&fit=crop&auto=format",
-    category: "Beaches",
-    excerpt: "The coves are stunning, yes — but nobody tells you about the hour-long boat queue at Nacpan, the food stalls that close by 9pm, or the fact that Tour A and Tour B hit the same spots. Here's the trip I wish someone had written for me.",
-    body: `It was supposed to be a straightforward two-night trip. Pack light, catch the morning flight to Puerto Princesa, take the van to El Nido, collapse into a hammock, repeat. Instead, I found myself at 6am standing at the port watching three other tour boats load passengers in exactly the same order as mine.\n\nThe lagoons are genuinely spectacular. Big Lagoon hit me with that specific vertigo you get when reality seems too saturated to be real — the limestone walls rising thirty metres overhead, the kayak cutting soundlessly through water so clear you can see your paddle shadow on the bottom. That moment is real, and no amount of tourist traffic can fully ruin it.\n\nBut here's what nobody wrote: Shimizu Island, the snorkelling stop on Tour A, has been so thoroughly visited that the coral closest to the shore is largely dead. The fish are still there — the giant parrotfish and the clownfish that every kid photographs through a snorkel mask — but the structure they depend on is bleaching. I watched a French tourist standing in the middle of a coral garden to get a selfie.\n\nThe food in El Nido town itself is better than people say. Skip the Instagram restaurants on Calle Hama and walk fifteen minutes to the covered market on Real Street. A local woman named Nena makes kare-kare with tamilok — the woodworm mollusc that the Palawenos eat raw with vinegar — and it is the single most surprising meal I've had in the Philippines.\n\nMy advice: book Tour C and Tour D instead of A and B. The boats are smaller, the stops are quieter, and you'll likely be with eight people instead of thirty-two.`,
-  },
-  {
-    id: 2,
-    title: "The Road to Batanes: Chasing the Last Frontier's Last Sunsets",
-    author: "Ana Villanueva",
-    authorAvatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=48&h=48&fit=crop&auto=format",
-    region: "Batanes",
-    readTime: "12 min",
-    date: "3 May 2025",
-    likes: 632,
-    saves: 341,
-    img: "https://images.unsplash.com/photo-1768639400843-d604ccce9c3e?w=800&h=500&fit=crop&auto=format",
-    category: "Culture",
-    excerpt: "Batanes feels like the Philippines held its breath and forgot to exhale. Rolling hills, stone houses that have survived typhoons for three centuries, and an Ivatan culture that has its own language, its own weaving, and its own relationship with the sea.",
-    body: `The flight from Tuguegarao to Basco is forty-five minutes in a propeller plane with twelve seats. You cross the Luzon Strait at low altitude and, if the pilot takes the coastal route, you see the Babuyan Islands laid out below you like green stones dropped on blue cloth.\n\nBatanes is the northernmost province of the Philippines. On a clear day from Naidi Hills, you can see Taiwan. The Batan, Sabtang, and Itbayat islands together have a population of about eighteen thousand people, most of them Ivatan — one of the few Philippine ethnic groups that maintained a distinct material culture through colonisation.\n\nThe vatang is the traditional raincoat, woven from the leaves of the voyavoy palm. Fishermen wear them when they take their boats out in the typhoon season. I watched a woman in Ivana weaving one in her front yard, her hands moving with a speed that suggested she had been doing this for fifty years, which she had.\n\nThe roads on Batan are good. A scooter costs three hundred pesos a day to rent and will take you to every viewpoint, every stone church, every beach. I rode mine to the Valugan boulder beach at sunrise and sat among the rounded volcanic stones while the sky went from grey to orange to the specific pink that Batanes seems to specialise in.`,
-  },
-  {
-    id: 3,
-    title: "Three Weeks Among the Ifugao: Rice Terraces and Slow Time",
-    author: "Ramon Dela Cruz",
-    authorAvatar: "https://images.unsplash.com/photo-1519101739220-83f6a14852ca?w=48&h=48&fit=crop&auto=format",
-    region: "Cordillera",
-    readTime: "15 min",
-    date: "28 Apr 2025",
-    likes: 521,
-    saves: 287,
-    img: "https://images.unsplash.com/photo-1609412058473-c199497c3c5d?w=800&h=500&fit=crop&auto=format",
-    category: "Hiking",
-    excerpt: "I came to Banaue for a weekend. I stayed three weeks. The rice terraces are a UNESCO site, yes, but what kept me was the community — the muyong irrigation system, the mumbaki priests, the uyauy feast. This is the Philippines at its oldest.",
-    body: `The terrace system took two thousand years to build. That is not a figure I could hold in my head when I first arrived — it is too large to be meaningful. After three weeks, it started to matter.\n\nThe Ifugao do not plant rice once a year. They plant it when the conditions are right: when the muyong water level in the private forest ponds reaches a certain point, when the woodpecker calls in the way that signals the season, when the mumbaki has performed the right rituals. This is not superstition layered over agriculture. It is a system of environmental monitoring refined over a hundred generations.\n\nI stayed with a family in Batad, the amphitheatre terrace cluster that requires a forty-minute walk from the nearest road. The matriarch, Lolita, showed me how to thin rice seedlings at dawn while the mist was still in the valley. Her hands moved thirty times faster than mine.`,
-  },
-  {
-    id: 4,
-    title: "Siargao After the Typhoon: Notes on Return and Resilience",
-    author: "Leila Marcos",
-    authorAvatar: "https://images.unsplash.com/photo-1639526473371-e68e5336df56?w=48&h=48&fit=crop&auto=format",
-    region: "Surigao del Norte",
-    readTime: "10 min",
-    date: "20 Apr 2025",
-    likes: 893,
-    saves: 412,
-    img: "https://images.unsplash.com/photo-1672933354004-3cbd9874f099?w=800&h=500&fit=crop&auto=format",
-    category: "Beaches",
-    excerpt: "Typhoon Odette hit Siargao in December 2021 and flattened it. Three years later, I returned to the island where I'd spent six months before the storm. What I found was not what I expected.",
-    body: `The coconut palms along the road from the airport were the first thing I noticed. Three years after Odette, most of them have grown back to maybe a third of their pre-storm height — thin, sparse, the kind of young that looks fragile. The island is re-leafing itself.\n\nGeneral Luna, the surf town, is largely rebuilt. The boards-and-bamboo aesthetic has been replaced with something more permanent — concrete posts, corrugated iron, a few proper buildings. Some of the restaurants I knew are gone. A dozen new ones have appeared. The Cloud 9 break itself is unchanged: still left-hander, still barreling, still full of surfers at first light.\n\nWhat surprised me was the community's attitude. I'd expected grief, or at least a kind of subdued quality. Instead I found something more like determination made ordinary — people who had rebuilt once and knew they could do it again. The surfers talked about the wave the way they always had, as if the storm was just a particularly bad set season.\n\nThe island's recovery is real but uneven. The luxury resort north of town is fully operational. Some of the smaller guesthouses on the eastern coast are still closed, their owners still in the process of navigating insurance claims and building permits.`,
-  },
-  {
-    id: 5,
-    title: "Eating My Way Through Pampanga: The Philippines' Culinary Heart",
-    author: "Marco Buenaventura",
-    authorAvatar: "https://images.unsplash.com/photo-1565565915331-293fd8113954?w=48&h=48&fit=crop&auto=format",
-    region: "Pampanga",
-    readTime: "9 min",
-    date: "14 Apr 2025",
-    likes: 734,
-    saves: 367,
-    img: "https://images.unsplash.com/photo-1711060169357-ed923c9f2156?w=800&h=500&fit=crop&auto=format",
-    category: "Food Place",
-    excerpt: "Pampanga is where Philippine cuisine lives at its most inventive. Sisig was born here. So was the tocino that the entire country eats for breakfast. Three days, twelve meals, and one very full notebook.",
-    body: `Capampangan food is defined by fermentation, by the contrast between the very sour and the very rich, and by a willingness to use parts of the animal that the rest of the country politely avoids. This is not adventurism for its own sake. It is an old cuisine with centuries of logic behind it.\n\nSisig at Aling Lucing's — the original, in Angeles — is served on a sizzling metal plate, still crisping when it arrives, fatty and sour with calamansi. The version that became a global Filipino food trend started here in a market stall and has been adapted perhaps ten thousand times since. The original is still the best version I've eaten.\n\nKare-kare from a Kapampangan kitchen is a different thing from the Manila restaurant version. The peanut sauce is thicker, the oxtail cooked until it gives at a touch, and the bagoong alamang that comes alongside it is made in-house — fermented, purple, funky, and essential.`,
-  },
-  {
-    id: 6,
-    title: "Hundred Islands: The National Park Nobody Talks About",
-    author: "Sofia Reyes",
-    authorAvatar: "https://images.unsplash.com/photo-1672933278668-5be5957a8681?w=48&h=48&fit=crop&auto=format",
-    region: "Pangasinan",
-    readTime: "7 min",
-    date: "8 Apr 2025",
-    likes: 289,
-    saves: 142,
-    img: "https://images.unsplash.com/photo-1688541197205-02bd8c71074d?w=800&h=500&fit=crop&auto=format",
-    category: "Hidden Gems",
-    excerpt: "Sixty-two kilometres north of Dagupan, 123 islands rise from Lingayen Gulf. Most Filipinos haven't been. Most tourists go to Palawan instead. The islands are almost entirely yours.",
-    body: `The boat from Lucap Wharf takes twelve minutes to reach the first island cluster. There is no resort on any of the 123 islands — just a few picnic huts, some kayak rental operations, and a beach camping permit system that limits overnight visitors to sixty people.\n\nI arrived on a Tuesday in low season. The boatman, Manong Eddie, had been running tours here for twenty-two years. He knew which islands were good for snorkelling (Marcos Island, which has a cave), which for swimming (Children's Island, sand flat at low tide), and which to simply sit on and watch the sea.\n\nThe islands themselves are limestone formations — same geological family as El Nido but much older, more weathered, covered in thick shrub and the occasional acacia. At sunset the whole cluster turns from green to orange to silhouette.`,
-  },
-];
+export const STORIES: TravelStory[] = [];
 
 const categories = ["All", "Hiking", "Food Place", "Hidden Gems", "Beaches", "Forest", "Culture", "More"];
 const storyScopes = [
@@ -201,27 +65,25 @@ const STORY_CATEGORY_ICON: Record<string, typeof Compass> = {
 };
 export const LOCAL_STORIES_KEY = "traveltraces.localStories";
 
-export type TravelStory = (typeof STORIES)[number] & {
-  photos?: string[];
-  storyPoint?: { place: string; coordinate: { lat: number; lon: number } };
-  scope?: MapScope;
-  ownerId?: string;
-  groupIds?: string[];
-  local?: boolean;
-};
+export type TravelStory = LocalStoryRecord;
 
 function readLocalStories(): TravelStory[] {
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(LOCAL_STORIES_KEY) ?? "[]") as TravelStory[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  return listLocalStories() as TravelStory[];
 }
 
 function writeLocalStories(stories: TravelStory[]) {
-  window.localStorage.setItem(LOCAL_STORIES_KEY, JSON.stringify(stories));
-  window.dispatchEvent(new CustomEvent("traveltraces:local-stories-updated"));
+  writeLocalDbStories(stories);
+}
+
+function rememberDeletedStoryPin(storyId: number) {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(DELETED_STORY_PIN_IDS_KEY) ?? "[]") as number[];
+    const current = Array.isArray(parsed) ? parsed.map(Number).filter(Number.isFinite) : [];
+    window.localStorage.setItem(DELETED_STORY_PIN_IDS_KEY, JSON.stringify(Array.from(new Set([storyId, ...current]))));
+  } catch {
+    window.localStorage.setItem(DELETED_STORY_PIN_IDS_KEY, JSON.stringify([storyId]));
+  }
+  window.dispatchEvent(new CustomEvent("traveltraces:story-pin-deleted", { detail: { storyId } }));
 }
 
 function readSavedStoryIds(): number[] {
@@ -251,6 +113,61 @@ function formatStoryCoordinates(point?: { coordinate: { lat: number; lon: number
   return point ? `${point.coordinate.lat.toFixed(4)}, ${point.coordinate.lon.toFixed(4)}` : "";
 }
 
+function estimateStoryReadTime(story: Pick<TravelStory, "body" | "excerpt" | "readTime">): string {
+  const existing = String(story.readTime ?? "").trim();
+  if (existing && !/draft/i.test(existing)) return existing.replace(/\s*read$/i, "");
+  const source = `${story.body ?? ""} ${story.excerpt ?? ""}`.trim();
+  const words = source ? source.split(/\s+/).filter(Boolean).length : 0;
+  return `${Math.max(1, Math.ceil(words / 180))} min`;
+}
+
+function isSensitiveStory(story: Pick<TravelStory, "title" | "category" | "excerpt" | "body" | "region">): boolean {
+  const text = [story.title, story.category, story.excerpt, story.body, story.region].join(" ").toLowerCase();
+  return /\b(wildlife|endangered|protected|habitat|sanctuary|nesting|conservation|eagle|tarsier|turtle|marine reserve|coral reef|reef sanctuary)\b/.test(text);
+}
+
+function cleanLocationParts(value?: string): string[] {
+  const rawParts = String(value ?? "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const seen = new Set<string>();
+  const streetLevelPattern = /\b(purok|road|rd\.?|street|st\.?|avenue|ave\.?|barangay|brgy\.?|blk|block|lot|phase|subdivision|sitio|zone|proper|drive|dr\.?)\b/i;
+  return rawParts.filter((part) => {
+    const normalized = part.replace(/\s+/g, " ").toLowerCase();
+    if (!normalized || seen.has(normalized)) return false;
+    seen.add(normalized);
+    if (/^\d{4,6}$/.test(normalized)) return false;
+    return !streetLevelPattern.test(normalized);
+  });
+}
+
+function generalizeStoryLocation(story: Pick<TravelStory, "title" | "category" | "excerpt" | "body" | "region" | "storyPoint">): string {
+  const sensitive = isSensitiveStory(story);
+  const source = story.storyPoint?.place ?? story.region;
+  const parts = cleanLocationParts(source);
+  const withoutCountry = parts.filter((part) => part.toLowerCase() !== "philippines");
+  const usable = withoutCountry.length ? withoutCountry : parts;
+  if (!usable.length) return sensitive ? "Protected location" : "Location shared privately";
+  if (sensitive) return usable.slice(-2).join(", ") || "Protected location";
+  return usable.slice(0, 2).join(", ");
+}
+
+function shouldHidePreciseLocation(story: Pick<TravelStory, "title" | "category" | "excerpt" | "body" | "region">): boolean {
+  return isSensitiveStory(story);
+}
+
+function storyPhotoUrl(photo: StoryPhotoFrame | undefined, fallback = ""): string {
+  if (!photo) return fallback;
+  if (typeof photo === "string") return photo;
+  return String(photo.data_url ?? photo.preview_url ?? photo.thumbnail_url ?? fallback);
+}
+
+function storyPhotoPosition(photo: StoryPhotoFrame | undefined, fallback = "center center"): string {
+  if (!photo || typeof photo === "string") return fallback;
+  return typeof photo.object_position === "string" && photo.object_position.trim() ? photo.object_position : fallback;
+}
+
 export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext, onDelete }: {
   story: TravelStory;
   onBack: () => void;
@@ -272,8 +189,32 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
   const localPhotos = Array.isArray(story.photos) && story.photos.length ? story.photos : null;
   const photos = localPhotos ?? STORY_PHOTOS[story.id] ?? [story.img];
   const activePhoto = photos[photoIndex] ?? photos[0];
+  const activePhotoUrl = storyPhotoUrl(activePhoto, story.img);
+  const activePhotoPosition = storyPhotoPosition(activePhoto, story.imagePosition ?? "center center");
   const hasMultiplePhotos = photos.length > 1;
   const storyPoint = story.storyPoint ?? STORY_MAP_POINTS[story.id];
+  const storyLocation = generalizeStoryLocation(story);
+  const storyReadTime = estimateStoryReadTime(story);
+  const preciseLocationHidden = shouldHidePreciseLocation(story);
+  const visibleLikes = story.likes + (liked ? 1 : 0);
+  const actionButtonStyle = (active = false): React.CSSProperties => ({
+    display: "inline-flex",
+    minHeight: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.42rem",
+    padding: "0.5rem 0.85rem",
+    border: "1px solid",
+    borderColor: active ? "#C4713A" : "rgba(58,42,34,0.22)",
+    borderRadius: "999px",
+    background: active ? "rgba(196,113,58,0.1)" : "#FBF7F0",
+    color: active ? "#9E4F27" : "#4A3A32",
+    cursor: "pointer",
+    fontSize: "0.8rem",
+    fontFamily: "var(--font-ui)",
+    fontWeight: 700,
+    lineHeight: 1,
+  });
 
   useEffect(() => {
     setLiked(false);
@@ -372,34 +313,45 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
           <p style={{ fontFamily: "var(--font-body)", fontSize: "clamp(1.05rem, 2vw, 1.35rem)", lineHeight: 1.65, color: "#4A4A3A", margin: "0 0 1.35rem" }}>{story.excerpt}</p>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", borderTop: "1px solid rgba(58,42,34,0.14)", borderBottom: "1px solid rgba(58,42,34,0.14)", padding: "1rem 0", flexWrap: "wrap" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.8rem", flex: "1 1 22rem", minWidth: 0 }}>
               <button onClick={() => viewProfile(story.author)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
                 <img src={story.authorAvatar} alt={story.author} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", display: "block" }} />
               </button>
-              <div>
-                <button onClick={() => viewProfile(story.author)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: "0.94rem", color: "#1A1A1A" }}>{story.author}</button>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: "#6B5A50", flexWrap: "wrap", marginTop: "0.15rem" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.82rem", fontFamily: "var(--font-ui)" }}><MapPin size={12} />{story.region}, Philippines</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.82rem", fontFamily: "var(--font-ui)" }}><Clock size={12} />Posted {story.date}</span>
-                  <span style={{ fontSize: "0.82rem", fontFamily: "var(--font-ui)" }}>{story.readTime} read</span>
+              <div style={{ minWidth: 0, flex: "1 1 auto" }}>
+                <button onClick={() => viewProfile(story.author)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "var(--font-ui)", fontWeight: 800, fontSize: "0.96rem", color: "#1A1A1A" }}>{story.author}</button>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#5B4A40", flexWrap: "nowrap", marginTop: "0.22rem", fontFamily: "var(--font-ui)", fontSize: "0.8rem", minWidth: 0, overflow: "hidden" }}>
+                  <span aria-label="Generalized story location" title={storyLocation} style={{ display: "inline-flex", alignItems: "center", gap: "0.28rem", color: "#5B4A40", minWidth: 0, maxWidth: "min(16rem, 44vw)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><MapPin size={13} strokeWidth={2} style={{ flex: "0 0 auto" }} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{storyLocation}</span></span>
+                  <span aria-hidden="true" style={{ color: "#9E8E7D" }}>•</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "0.28rem", color: "#5B4A40" }}><Clock size={13} strokeWidth={2} />Posted {story.date}</span>
+                  <span aria-hidden="true" style={{ color: "#9E8E7D" }}>•</span>
+                  <span style={{ color: "#5B4A40", whiteSpace: "nowrap" }}>{storyReadTime} read</span>
+                  {preciseLocationHidden ? (
+                    <>
+                      <span aria-hidden="true" style={{ color: "#9E8E7D" }}>•</span>
+                      <span style={{ color: "#7A4A36", fontWeight: 700, whiteSpace: "nowrap" }}>Precise location protected</span>
+                    </>
+                  ) : null}
                 </div>
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-              <button onClick={() => setLiked((v) => !v)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid", borderColor: liked ? "#C4713A" : "rgba(58,42,34,0.2)", borderRadius: "999px", background: liked ? "rgba(196,113,58,0.08)" : "none", color: liked ? "#C4713A" : "#6B5A50", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
-                <Heart size={14} fill={liked ? "#C4713A" : "none"} /> {story.likes + (liked ? 1 : 0)}
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flex: "0 0 auto", flexWrap: "wrap", marginLeft: "auto" }}>
+              <button onClick={() => setLiked((v) => !v)} style={actionButtonStyle(liked)} aria-label={liked ? "Unlike story" : "Like story"}>
+                <Heart size={15} strokeWidth={2} fill={liked ? "#C4713A" : "none"} /> {visibleLikes > 0 ? visibleLikes : "Like"}
               </button>
-              <button onClick={handleSaveStory} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid", borderColor: saved ? "#3A2A22" : "rgba(58,42,34,0.2)", borderRadius: "999px", background: saved ? "rgba(58,42,34,0.08)" : "none", color: saved ? "#3A2A22" : "#6B5A50", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
-                <Bookmark size={14} fill={saved ? "#3A2A22" : "none"} /> Save
+              <button onClick={handleSaveStory} style={actionButtonStyle(saved)} aria-label={saved ? "Remove saved story" : "Save story"}>
+                <Bookmark size={15} strokeWidth={2} fill={saved ? "#C4713A" : "none"} /> Save
               </button>
-              <button style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid rgba(58,42,34,0.2)", borderRadius: "999px", background: "none", color: "#6B5A50", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
-                <Share2 size={14} /> Share
+              <button style={actionButtonStyle()} aria-label="Share story">
+                <Share2 size={15} strokeWidth={2} /> Share
               </button>
               {story.local && onDelete ? (
-                <button onClick={() => onDelete(story)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid rgba(178,59,46,0.3)", borderRadius: "999px", background: "rgba(178,59,46,0.08)", color: "#8A2F25", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
-                  <Trash2 size={14} /> Delete
-                </button>
+                <>
+                  <span aria-hidden="true" style={{ width: 1, height: 28, background: "rgba(58,42,34,0.18)", margin: "0 0.15rem" }} />
+                  <button onClick={() => onDelete(story)} style={{ ...actionButtonStyle(), borderColor: "rgba(138,47,37,0.42)", background: "#FBF7F0", color: "#7F2F25" }} aria-label={`Delete ${story.title}`}>
+                    <Trash2 size={15} strokeWidth={2} /> Delete
+                  </button>
+                </>
               ) : null}
             </div>
           </div>
@@ -407,7 +359,7 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
 
         {/* Photo carousel */}
         <figure style={{ position: "relative", margin: "0 0 2.5rem" }}>
-          <img src={activePhoto} alt={`${story.title} photo ${photoIndex + 1}`} style={{ width: "100%", height: "clamp(300px, 58vw, 620px)", objectFit: "cover", display: "block", borderRadius: "0.35rem" }} />
+          <img src={activePhotoUrl} alt={`${story.title} photo ${photoIndex + 1}`} style={{ width: "100%", height: "clamp(300px, 58vw, 620px)", objectFit: "cover", objectPosition: activePhotoPosition, display: "block", borderRadius: "0.35rem" }} />
           {hasMultiplePhotos && (
             <>
               <button
@@ -436,8 +388,8 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
               </div>
             </>
           )}
-          <figcaption style={{ width: "min(100%, 780px)", margin: "0.75rem auto 0", fontFamily: "var(--font-ui)", fontSize: "0.82rem", color: "#6B6B5A" }}>
-            Photo {photoIndex + 1} of {photos.length} from {story.region}.
+          <figcaption style={{ width: "min(100%, 780px)", margin: "0.75rem auto 0", fontFamily: "var(--font-ui)", fontSize: "0.82rem", color: "#5B4A40" }}>
+            Photo {photoIndex + 1} of {photos.length} from {storyLocation}.
           </figcaption>
         </figure>
 
@@ -456,9 +408,9 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
                 <div>
                   <p style={{ margin: "0 0 0.35rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#9E6B5C" }}>Share your own trace</p>
                   <h3 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.35rem", fontWeight: 600, color: "#3A2A22", lineHeight: 1.1 }}>Want to share your own story of this location?</h3>
-                  <p style={{ margin: "0.45rem 0 0", fontFamily: "var(--font-body)", color: "#5B4A40", lineHeight: 1.6 }}>Pin {storyPoint.place} on your map and write what happened there.</p>
+                  <p style={{ margin: "0.45rem 0 0", fontFamily: "var(--font-body)", color: "#5B4A40", lineHeight: 1.6 }}>Pin {storyLocation} on your map and write what happened there.</p>
                   <p style={{ margin: "0.35rem 0 0", fontFamily: "var(--font-ui)", color: "#3A2A22", fontSize: "0.84rem", fontWeight: 700 }}>
-                    Coordinates: {formatStoryCoordinates(storyPoint)}
+                    {preciseLocationHidden ? "Exact coordinates are protected for this story." : `Approximate pin: ${formatStoryCoordinates(storyPoint)}`}
                   </p>
                 </div>
                 <div style={{ display: "flex", gap: "0.65rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -969,6 +921,15 @@ function StoriesContent() {
     return matchSearch && matchCat && matchScope;
   });
 
+  useEffect(() => {
+    if (activeStory === null) return;
+    const story = allStories.find((item) => item.id === activeStory);
+    if (!story) return;
+    const storyScope = story.scope ?? "public";
+    const nextScope: StoryScopeFilter = storyScope === "group" ? "group" : storyScope === "private" || isOwnStory(story) ? "mine" : "public";
+    setScopeFilter((current) => (current === nextScope ? current : nextScope));
+  }, [activeStory, allStories, user?.id, user?.name]);
+
   const scopeCounts = {
     public: allStories.filter((story) => (story.scope ?? "public") === "public").length,
     mine: allStories.filter(isOwnStory).length,
@@ -980,7 +941,11 @@ function StoriesContent() {
   const deletePostedStory = async (story: TravelStory) => {
     if (!story.local) return;
     const nextLocalStories = readLocalStories().filter((item) => item.id !== story.id);
+    deleteLocalStoryCascade(story.id);
     writeLocalStories(nextLocalStories);
+    rememberDeletedStoryPin(story.id);
+    publishWorkspaceEvent({ type: "pin.deleted", pinId: `story-${story.id}`, storyId: story.id });
+    publishWorkspaceEvent({ type: "pin.deleted", pinId: `local-marker-${story.id}`, storyId: story.id });
     setLocalStories(nextLocalStories);
     writeSavedStoryIds(readSavedStoryIds().filter((id) => id !== story.id));
     try {
@@ -997,11 +962,17 @@ function StoriesContent() {
     if (user) {
       try {
         const pins = await listPins(user.id, user.groupIds ?? []);
-        const matchingPin = pins.find((pin) => {
+        const matchingPins = pins.filter((pin) => {
           const media = pin.media as { storyDraftId?: unknown; storyId?: unknown } | null;
-          return Number(media?.storyDraftId ?? media?.storyId) === story.id;
+          const linkedStoryId = Number(media?.storyId ?? media?.storyDraftId);
+          return (
+            linkedStoryId === story.id ||
+            pin.pin_id === `story-${story.id}` ||
+            pin.pin_id === `local-marker-${story.id}` ||
+            pin.post_id === `story-${story.id}`
+          );
         });
-        if (matchingPin) await deletePin(matchingPin.pin_id, user.id);
+        await Promise.all(matchingPins.map((pin) => deletePin(pin.pin_id, user.id)));
       } catch {
         // Local prototype stories are still removed immediately; backend pin cleanup is best-effort.
       }
@@ -1111,17 +1082,16 @@ function StoriesContent() {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="story-empty-state">
-            <BookOpen size={26} />
-            <h2>No stories here yet</h2>
-            <p>
-              {scopeFilter === "mine"
+          <LargeEmptyState
+            title="No stories here yet"
+            copy={
+              scopeFilter === "mine"
                 ? "Your posted stories will appear here after you drop a marker and save it as a story."
                 : scopeFilter === "group"
                   ? "Group stories will appear here when a story is shared to one of your travel groups."
-                  : "Try another search term or category to find more public travel stories."}
-            </p>
-          </div>
+                  : "Try another search term or category to find more public travel stories."
+            }
+          />
         ) : null}
 
         {/* Featured story */}
@@ -1131,7 +1101,7 @@ function StoriesContent() {
             style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0", borderRadius: "0.25rem", overflow: "hidden", backgroundColor: "#EDEAE0", marginBottom: "2rem", cursor: "pointer" }}
             className="featured-story-grid"
           >
-            <img src={filtered[0].img} alt={filtered[0].title} style={{ width: "100%", height: 380, objectFit: "cover", display: "block" }} />
+            <img src={filtered[0].img} alt={filtered[0].title} style={{ width: "100%", height: 380, objectFit: "cover", objectPosition: filtered[0].imagePosition ?? "center center", display: "block" }} />
             <div style={{ padding: "2.5rem", display: "flex", flexDirection: "column", justifyContent: "center" }}>
               <span style={{ fontFamily: "var(--font-label)", fontSize: "0.7rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#C4713A", marginBottom: "0.75rem" }}>{filtered[0].category}</span>
               <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.75rem", fontWeight: 600, color: "#3A2A22", lineHeight: 1.3, marginBottom: "1rem" }}>{filtered[0].title}</h2>
@@ -1139,10 +1109,10 @@ function StoriesContent() {
               <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                 <div>
                   <p style={{ fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: "0.875rem", color: "#1A1A1A" }}>{filtered[0].author}</p>
-                  <div style={{ display: "flex", gap: "0.75rem", color: "#6B6B5A", marginTop: "0.2rem" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.78rem", fontFamily: "var(--font-ui)" }}><MapPin size={11} />{filtered[0].region}</span>
-                    {STORY_MAP_POINTS[filtered[0].id] ? <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.78rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}><Compass size={11} />{formatStoryCoordinates(STORY_MAP_POINTS[filtered[0].id])}</span> : null}
-                    <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.78rem", fontFamily: "var(--font-ui)" }}><Clock size={11} />{filtered[0].readTime}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.45rem", color: "#5B4A40", marginTop: "0.2rem", flexWrap: "wrap" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.78rem", fontFamily: "var(--font-ui)" }}><MapPin size={12} strokeWidth={2} />{generalizeStoryLocation(filtered[0])}</span>
+                    <span aria-hidden="true" style={{ color: "#9E8E7D" }}>•</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.78rem", fontFamily: "var(--font-ui)" }}><Clock size={12} strokeWidth={2} />{estimateStoryReadTime(filtered[0])}</span>
                   </div>
                 </div>
               </div>
@@ -1160,15 +1130,13 @@ function StoriesContent() {
               onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.1)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
             >
-              <img src={s.img} alt={s.title} style={{ width: "100%", height: 180, objectFit: "cover", display: "block" }} />
+              <img src={s.img} alt={s.title} style={{ width: "100%", height: 180, objectFit: "cover", objectPosition: s.imagePosition ?? "center center", display: "block" }} />
               <div style={{ padding: "1.25rem" }}>
                 <span style={{ fontFamily: "var(--font-label)", fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#C4713A" }}>{s.category}</span>
                 <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.15rem", fontWeight: 600, color: "#3A2A22", lineHeight: 1.35, margin: "0.4rem 0 0.75rem" }}>{s.title}</h3>
-                {STORY_MAP_POINTS[s.id] ? (
-                  <p style={{ display: "flex", alignItems: "center", gap: "0.35rem", margin: "0 0 0.75rem", fontFamily: "var(--font-ui)", fontSize: "0.74rem", color: "#6B5A50", fontWeight: 700 }}>
-                    <Compass size={12} color="#9E6B5C" /> {formatStoryCoordinates(STORY_MAP_POINTS[s.id])}
-                  </p>
-                ) : null}
+                <p style={{ display: "flex", alignItems: "center", gap: "0.35rem", margin: "0 0 0.75rem", fontFamily: "var(--font-ui)", fontSize: "0.76rem", color: "#5B4A40", fontWeight: 700 }}>
+                  <MapPin size={13} strokeWidth={2} color="#9E6B5C" /> {generalizeStoryLocation(s)}
+                </p>
                 <p style={{ fontFamily: "var(--font-body)", fontSize: "0.875rem", color: "#4A4A3A", lineHeight: 1.6, marginBottom: "1rem" }}>{s.excerpt.slice(0, 120)}…</p>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
@@ -1176,8 +1144,8 @@ function StoriesContent() {
                     <p style={{ fontFamily: "var(--font-ui)", fontSize: "0.75rem", color: "#6B6B5A" }}>{s.date}</p>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: "#6B6B5A" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.78rem", fontFamily: "var(--font-ui)" }}><Heart size={12} /> {s.likes}</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.78rem", fontFamily: "var(--font-ui)" }}><Clock size={12} /> {s.readTime}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.78rem", fontFamily: "var(--font-ui)" }}><Heart size={12} strokeWidth={2} /> {s.likes > 0 ? s.likes : "New"}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.78rem", fontFamily: "var(--font-ui)" }}><Clock size={12} strokeWidth={2} /> {estimateStoryReadTime(s)}</span>
                   </div>
                 </div>
               </div>
@@ -1249,27 +1217,29 @@ function StoriesContent() {
           justify-items: center;
           gap: 0.65rem;
           margin: 2rem 0;
-          border: 1px dashed rgba(58,42,34,0.22);
-          border-radius: 0.55rem;
-          background: #FBF7F0;
-          padding: 3rem 1.5rem;
+          border: 1px dashed rgba(58, 42, 34, 0.2);
+          border-radius: 0.5rem;
+          background: rgb(255, 249, 240);
+          padding: clamp(2rem, 5vw, 4rem);
           text-align: center;
           color: #3A2A22;
+          box-shadow: rgba(58, 42, 34, 0.06) 0px 18px 42px;
         }
 
         .story-empty-state h2 {
           margin: 0;
           font-family: var(--font-display);
-          font-size: 1.85rem;
+          font-size: clamp(2rem, 5vw, 3.2rem);
           font-weight: 600;
+          line-height: 1.05;
         }
 
         .story-empty-state p {
-          margin: 0;
-          max-width: 32rem;
+          margin: 1rem auto 0;
+          max-width: 35rem;
           font-family: var(--font-body);
-          font-size: 0.98rem;
-          line-height: 1.7;
+          font-size: 1.05rem;
+          line-height: 1.8;
           color: #5B4A40;
         }
 
@@ -1290,3 +1260,4 @@ export default function StoriesPage() {
     </GatedPage>
   );
 }
+

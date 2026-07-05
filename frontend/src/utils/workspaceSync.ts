@@ -2,6 +2,7 @@ import type { ApiPin, ApiRoute } from "../services/mappingApi";
 
 export type WorkspaceSyncEvent =
   | { type: "pin.created"; pin: ApiPin }
+  | { type: "pin.deleted"; pinId?: string; storyId?: number }
   | { type: "route.updated"; route: ApiRoute };
 
 const CHANNEL_NAME = "travelplaces-map-workspace";

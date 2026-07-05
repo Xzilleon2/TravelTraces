@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { fetchCurrentUser, loginWithBackend, logoutFromBackend, signupWithBackend, type AuthUser } from "../services/authApi";
+import { readLocalTable, upsertLocalRow } from "../services/localDb";
 
 export type Plan = "free" | "explorer" | "pathfinder";
 
@@ -54,83 +55,41 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const MOCK_USER: User = {
-  id: "demo-user",
-  name: "Maria Santos",
-  email: "maria@traveltraces.app",
-  avatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=80&h=80&fit=crop&auto=format",
-  bio: "Island hopper - Storyteller - Palawan enthusiast.",
-  nationality: "Filipino",
-  location: "Quezon City, Metro Manila",
-  joinedDate: "March 2023",
-  pinsCount: 94,
-  storiesCount: 18,
-  followersCount: 1240,
-  followingCount: 312,
+const EMPTY_USER_TEMPLATE: User = {
+  id: "",
+  name: "",
+  email: "",
+  avatar: "",
+  bio: "",
+  nationality: "",
+  location: "",
+  joinedDate: "",
+  pinsCount: 0,
+  storiesCount: 0,
+  followersCount: 0,
+  followingCount: 0,
   plan: "free",
-  groupIds: ["traveltraces-circle"],
-  friends: [
-    {
-      id: "ana",
-      name: "Ana Villanueva",
-      location: "Quezon City",
-      avatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=80&h=80&fit=crop&auto=format",
-      lat: 14.676,
-      lon: 121.0437,
-    },
-    {
-      id: "carlo",
-      name: "Carlo Reyes",
-      location: "Cebu City",
-      avatar: "https://images.unsplash.com/photo-1519101739220-83f6a14852ca?w=80&h=80&fit=crop&auto=format",
-      lat: 10.3157,
-      lon: 123.8854,
-    },
-    {
-      id: "leila",
-      name: "Leila Marcos",
-      location: "Davao City",
-      avatar: "https://images.unsplash.com/photo-1639526473371-e68e5336df56?w=80&h=80&fit=crop&auto=format",
-      lat: 7.1907,
-      lon: 125.4553,
-    },
-  ],
-  followers: [
-    {
-      id: "ramon",
-      name: "Ramon Dela Cruz",
-      location: "Baguio City",
-      avatar: "https://images.unsplash.com/photo-1565565915331-293fd8113954?w=80&h=80&fit=crop&auto=format",
-      lat: 16.4023,
-      lon: 120.596,
-    },
-    {
-      id: "sofia",
-      name: "Sofia Reyes",
-      location: "Iloilo City",
-      avatar: "https://images.unsplash.com/photo-1688541197205-02bd8c71074d?w=80&h=80&fit=crop&auto=format",
-      lat: 10.7202,
-      lon: 122.5621,
-    },
-    {
-      id: "marco",
-      name: "Marco Buenaventura",
-      location: "Manila",
-      avatar: "https://images.unsplash.com/photo-1672933354004-3cbd9874f099?w=80&h=80&fit=crop&auto=format",
-      lat: 14.5995,
-      lon: 120.9842,
-    },
-  ],
+  groupIds: [],
+  friends: [],
+  followers: [],
 };
 
 function userFromAuth(auth: AuthUser, fallbackName?: string): User {
   return {
-    ...MOCK_USER,
+    ...EMPTY_USER_TEMPLATE,
     id: auth.user_id,
     email: auth.email,
     name: fallbackName ?? auth.email.split("@")[0],
-    groupIds: auth.group_ids.length ? auth.group_ids : MOCK_USER.groupIds,
+    groupIds: auth.group_ids,
   };
+}
+
+function readStoredUser(userId: string): User | null {
+  return readLocalTable<User>("users").find((row) => row.id === userId) ?? null;
+}
+
+function persistStoredUser(user: User): User {
+  return upsertLocalRow<User>("users", user, (row) => row.id);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -143,7 +102,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void fetchCurrentUser()
       .then((auth) => {
-        if (auth) setUser(userFromAuth(auth));
+        if (auth) {
+          const authUser = userFromAuth(auth);
+          const storedUser = readStoredUser(authUser.id);
+          const nextUser = persistStoredUser(storedUser ? { ...authUser, ...storedUser, id: authUser.id, email: storedUser.email || authUser.email } : authUser);
+          setUser(nextUser);
+        }
       })
       .finally(() => setAuthReady(true));
   }, []);
@@ -152,7 +116,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setAuthError(null);
       const auth = await loginWithBackend(email, password);
-      setUser(userFromAuth(auth));
+      const authUser = userFromAuth(auth);
+      const storedUser = readStoredUser(authUser.id);
+      setUser(persistStoredUser(storedUser ? { ...authUser, ...storedUser, id: authUser.id, email: storedUser.email || authUser.email } : authUser));
       setAuthModalOpen(false);
       return { ok: true };
     } catch (error) {
@@ -166,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setAuthError(null);
       const auth = await signupWithBackend(name, email, password);
-      setUser(userFromAuth(auth, name));
+      setUser(persistStoredUser(userFromAuth(auth, name)));
       setAuthModalOpen(false);
       return { ok: true };
     } catch (error) {
@@ -187,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const updateUser = (updated: User) => {
-    setUser(updated);
+    setUser(persistStoredUser(updated));
   };
 
   const openAuthModal = (mode: "login" | "signup" = "login") => {

@@ -1,24 +1,40 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { Award, BookOpen, CheckCircle2, Compass, Lock, MapPin, Mountain, Search, ShieldCheck, UserPlus, Users } from "lucide-react";
 import { GatedPage } from "../components/GatedPage";
-import { GAMIFIED_USERS } from "../components/gamification";
+import { useAuth } from "../context/AuthContext";
+import type { User } from "../context/AuthContext";
+import type { ApiPin, TravelGroup } from "../services/mappingApi";
+import { listLocalStories, readLocalTable } from "../services/localDb";
 
-const TRAVELLERS = [
-  { id: 1, profileKey: "carlo", name: "Allen John Bautista", handle: "@allenbautista", location: "Cebu City", avatar: "https://images.unsplash.com/photo-1519101739220-83f6a14852ca?w=80&h=80&fit=crop&auto=format", pins: 142, stories: 24, followers: 3210, bio: "Freediving instructor and island hopper. Palawan-based, born in Leyte.", islands: 142, rank: 1 },
-  { id: 2, profileKey: "ana", name: "Hershey Nicolle Tabanao", handle: "@hersheytabanao", location: "Davao City", avatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=80&h=80&fit=crop&auto=format", pins: 98, stories: 18, followers: 2140, bio: "Travel writer and photographer. Batanes is my second home.", islands: 98, rank: 2 },
-  { id: 3, profileKey: "ramon", name: "Richard Redera Layar", handle: "@richardlayar", location: "Baguio City", avatar: "https://images.unsplash.com/photo-1565565915331-293fd8113954?w=80&h=80&fit=crop&auto=format", pins: 87, stories: 31, followers: 1890, bio: "Cultural explorer and long-form writer. Cordillera born.", islands: 87, rank: 3 },
-  { id: 4, profileKey: "leila", name: "Jenny Mae Velarde", handle: "@jennyvelarde", location: "Davao City", avatar: "https://images.unsplash.com/photo-1639526473371-e68e5336df56?w=80&h=80&fit=crop&auto=format", pins: 76, stories: 14, followers: 1640, bio: "Mindanao advocate and surf coach based in Siargao.", islands: 76, rank: 4 },
-  { id: 5, profileKey: "marco", name: "Marco Buenaventura", handle: "@marcobuen", location: "Manila", avatar: "https://images.unsplash.com/photo-1672933354004-3cbd9874f099?w=80&h=80&fit=crop&auto=format", pins: 63, stories: 22, followers: 1320, bio: "Food and travel. Pampanga to Mindanao, one meal at a time.", islands: 63, rank: 5 },
-  { id: 6, profileKey: "sofia", name: "Sofia Reyes", handle: "@sofiareyes", location: "Iloilo City", avatar: "https://images.unsplash.com/photo-1688541197205-02bd8c71074d?w=80&h=80&fit=crop&auto=format", pins: 54, stories: 9, followers: 980, bio: "Hidden gems specialist. Visayas-based, always planning the next escape.", islands: 54, rank: 6 },
-];
+type Traveller = {
+  id: number;
+  profileKey: string;
+  name: string;
+  handle: string;
+  location: string;
+  avatar: string;
+  pins: number;
+  stories: number;
+  followers: number;
+  bio: string;
+  islands: number;
+  rank: number;
+  level: number;
+};
 
-const CHALLENGES = [
-  { id: 1, title: "Island Hopper 100", desc: "Visit 100 unique islands across the Philippine archipelago.", progress: 94, total: 100, participants: 3240, badge: "🏝️" },
-  { id: 2, title: "Cordillera Circuit", desc: "Complete the full Cordillera mountain province loop.", progress: 6, total: 8, participants: 840, badge: "⛰️" },
-  { id: 3, title: "7 Island Groups", desc: "Visit at least one island in each of the 7 major island groups.", progress: 5, total: 7, participants: 2100, badge: "🗺️" },
-  { id: 4, title: "Story Teller", desc: "Publish 10 long-form travel narratives.", progress: 18, total: 10, participants: 1560, badge: "✍️", completed: true },
-];
+type Challenge = {
+  id: number;
+  title: string;
+  desc: string;
+  progress: number;
+  total: number;
+  participants: number;
+  badge: string;
+  completed?: boolean;
+};
+
+const CHALLENGES: Challenge[] = [];
 const CHALLENGE_ICONS: Record<number, typeof Award> = {
   1: MapPin,
   2: Mountain,
@@ -28,7 +44,28 @@ const CHALLENGE_ICONS: Record<number, typeof Award> = {
 
 const tabs = ["Travellers", "Rankings", "Challenges"];
 
-function TravellerCard({ t, onViewProfile }: { t: typeof TRAVELLERS[0]; onViewProfile: (profileKey: string) => void }) {
+function localUserAvatar(user: User) {
+  if (user.avatar) return user.avatar;
+  const initials = (user.name || user.email || "TT").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="48" fill="#EDEAE0"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#7A4B32">${initials}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+function localUserLevel(input: { pins: number; stories: number; groups: number }) {
+  const unlocked = [input.pins > 0, input.stories >= 3, input.groups > 0, input.pins + input.stories >= 10].filter(Boolean).length;
+  return unlocked;
+}
+
+function emptyPanel(title: string, copy: string) {
+  return (
+    <div style={{ border: "1px dashed rgba(58, 42, 34, 0.2)", backgroundColor: "rgb(255, 249, 240)", borderRadius: "0.5rem", padding: "clamp(2rem, 5vw, 4rem)", textAlign: "center", boxShadow: "rgba(58, 42, 34, 0.06) 0px 18px 42px" }}>
+      <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "clamp(1.8rem, 4vw, 2.7rem)", fontWeight: 600, lineHeight: 1.1, color: "#3A2A22" }}>{title}</h2>
+      <p style={{ margin: "1rem auto 0", maxWidth: 560, fontFamily: "var(--font-body)", fontSize: "1.05rem", lineHeight: 1.8, color: "#5B4A40" }}>{copy}</p>
+    </div>
+  );
+}
+
+function TravellerCard({ t, onViewProfile }: { t: Traveller; onViewProfile: (profileKey: string) => void }) {
   const [following, setFollowing] = useState(false);
   return (
     <div style={{ backgroundColor: "#EDEAE0", borderRadius: "0.25rem", padding: "1.5rem", display: "flex", gap: "1.25rem" }}>
@@ -78,17 +115,67 @@ function TravellerCard({ t, onViewProfile }: { t: typeof TRAVELLERS[0]; onViewPr
 }
 
 function CommunityContent() {
+  const { user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState("Travellers");
   const [search, setSearch] = useState("");
+  const [users, setUsers] = useState<User[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
   const navigate = useNavigate();
 
   const viewProfile = (profileKey: string) => {
-    if (GAMIFIED_USERS[profileKey]) navigate(`/profile/${profileKey}`);
+    navigate(`/profile/${profileKey}`);
   };
 
-  const filtered = TRAVELLERS.filter((t) =>
+  useEffect(() => {
+    const refresh = () => {
+      setUsers(readLocalTable<User>("users"));
+      setRefreshKey((value) => value + 1);
+    };
+    refresh();
+    window.addEventListener("traveltraces:local-db-updated", refresh);
+    window.addEventListener("traveltraces:local-stories-updated", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("traveltraces:local-db-updated", refresh);
+      window.removeEventListener("traveltraces:local-stories-updated", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
+  const travellers = useMemo<Traveller[]>(() => {
+    const stories = listLocalStories();
+    const pins = readLocalTable<ApiPin>("pins");
+    const groups = readLocalTable<TravelGroup>("travelGroups");
+    const rows = users.map((user, index) => {
+      const userStories = stories.filter((story) => story.ownerId === user.id || story.author === user.name);
+      const userPins = pins.filter((pin) => pin.creator_id === user.id);
+      const userGroups = groups.filter((group) => group.owner_id === user.id || group.members.some((member) => member.user_id === user.id));
+      const level = localUserLevel({ pins: userPins.length, stories: userStories.length, groups: userGroups.length });
+      return {
+        id: index + 1,
+        profileKey: user.id,
+        name: user.name || user.email,
+        handle: `@${(user.name || user.email.split("@")[0]).toLowerCase().replace(/[^a-z0-9]+/g, "")}`,
+        location: user.location || "Location not set",
+        avatar: localUserAvatar(user),
+        pins: userPins.length,
+        stories: userStories.length,
+        followers: 0,
+        bio: user.bio || "No bio added yet.",
+        islands: userPins.length,
+        rank: 0,
+        level,
+      };
+    });
+    return rows
+      .sort((a, b) => b.level - a.level || b.stories - a.stories || b.pins - a.pins || a.name.localeCompare(b.name))
+      .map((traveller, index) => ({ ...traveller, rank: index + 1 }));
+  }, [refreshKey, users]);
+
+  const filtered = travellers.filter((t) =>
     t.name.toLowerCase().includes(search.toLowerCase()) || t.handle.toLowerCase().includes(search.toLowerCase())
   );
+  const visibleTravellers = currentUser ? filtered.filter((traveller) => traveller.profileKey !== currentUser.id) : filtered;
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F5F0E8", padding: "3rem 1.5rem" }}>
@@ -115,22 +202,23 @@ function CommunityContent() {
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search travellers…" style={{ width: "100%", padding: "0.75rem 1rem 0.75rem 2.5rem", backgroundColor: "#EDEAE0", border: "1px solid rgba(58,42,34,0.15)", borderRadius: "0.25rem", fontSize: "0.9rem", color: "#1A1A1A", fontFamily: "var(--font-ui)", outline: "none", boxSizing: "border-box" }} />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 400px), 1fr))", gap: "1rem" }}>
-              {filtered.map((t) => <TravellerCard key={t.id} t={t} onViewProfile={viewProfile} />)}
+              {visibleTravellers.map((t) => <TravellerCard key={t.id} t={t} onViewProfile={viewProfile} />)}
             </div>
+            {!visibleTravellers.length ? emptyPanel("No travellers here yet", "Registered TravelTraces users will appear here once they create a local account.") : null}
           </>
         )}
 
         {activeTab === "Rankings" && (
-          <div style={{ overflowX: "auto" }}>
+          travellers.length ? <div style={{ overflowX: "auto" }}>
             <div style={{ backgroundColor: "#EDEAE0", borderRadius: "0.25rem", overflow: "hidden", minWidth: 620 }}>
               <div style={{ padding: "1rem 1.5rem", borderBottom: "1px solid rgba(58,42,34,0.1)", display: "grid", gridTemplateColumns: "40px 1fr 80px 80px 80px", gap: "1rem", alignItems: "center" }}>
                 <span style={{ fontFamily: "var(--font-label)", fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#6B6B5A" }}>#</span>
                 <span style={{ fontFamily: "var(--font-label)", fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#6B6B5A" }}>Traveller</span>
-                <span style={{ fontFamily: "var(--font-label)", fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#6B6B5A", textAlign: "center" }}>Islands</span>
+                <span style={{ fontFamily: "var(--font-label)", fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#6B6B5A", textAlign: "center" }}>Level</span>
                 <span style={{ fontFamily: "var(--font-label)", fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#6B6B5A", textAlign: "center" }}>Stories</span>
-                <span style={{ fontFamily: "var(--font-label)", fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#6B6B5A", textAlign: "center" }}>Followers</span>
+                <span style={{ fontFamily: "var(--font-label)", fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#6B6B5A", textAlign: "center" }}>Pins</span>
               </div>
-              {TRAVELLERS.map((t) => (
+              {travellers.map((t) => (
                 <div key={t.id} style={{ padding: "1rem 1.5rem", borderBottom: "1px solid rgba(58,42,34,0.06)", display: "grid", gridTemplateColumns: "40px 1fr 80px 80px 80px", gap: "1rem", alignItems: "center" }}>
                   <div style={{ width: 28, height: 28, borderRadius: "50%", backgroundColor: t.rank <= 3 ? "#C4713A" : "#D8D4C8", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <span style={{ fontFamily: "var(--font-label)", fontWeight: 700, fontSize: "0.8rem", color: t.rank <= 3 ? "#F5F0E8" : "#6B6B5A" }}>{t.rank}</span>
@@ -144,13 +232,13 @@ function CommunityContent() {
                       <p style={{ fontFamily: "var(--font-ui)", fontSize: "0.75rem", color: "#6B6B5A" }}>{t.location}</p>
                     </div>
                   </div>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", fontWeight: 600, color: "#3A2A22", textAlign: "center" }}>{t.islands}</div>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", fontWeight: 600, color: "#3A2A22", textAlign: "center" }}>{t.level}</div>
                   <div style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", fontWeight: 600, color: "#3A2A22", textAlign: "center" }}>{t.stories}</div>
-                  <div style={{ fontFamily: "var(--font-ui)", fontSize: "0.875rem", color: "#4A4A3A", textAlign: "center" }}>{t.followers.toLocaleString()}</div>
+                  <div style={{ fontFamily: "var(--font-ui)", fontSize: "0.875rem", color: "#4A4A3A", textAlign: "center" }}>{t.pins.toLocaleString()}</div>
                 </div>
               ))}
             </div>
-          </div>
+          </div> : emptyPanel("No rankings yet", "Rankings will appear after local users register and begin posting stories or creating pins.")
         )}
 
         {activeTab === "Challenges" && (
@@ -191,6 +279,7 @@ function CommunityContent() {
                 </article>
               );
             })}
+            {!CHALLENGES.length ? emptyPanel("No challenges here yet", "Challenges will appear once you add local achievement rules for the prototype.") : null}
           </div>
         )}
 
@@ -206,3 +295,4 @@ export default function CommunityPage() {
     </GatedPage>
   );
 }
+

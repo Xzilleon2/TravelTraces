@@ -30,8 +30,9 @@ import { GatedPage } from "../components/GatedPage";
 import { useAuth, type User } from "../context/AuthContext";
 import type { ApiPin, TouristSpot, TravelGroup } from "../services/mappingApi";
 import { deleteTouristSpot, listPins, listTouristSpots, listTravelGroups } from "../services/mappingApi";
+import { listLocalStories, readLocalTable } from "../services/localDb";
 import { readTravelPlanStories, totalTravelDays, travelPlanStatus, type TravelPlanDestination, type TravelPlanStory } from "../services/travelPlanStories";
-import { LOCAL_STORIES_KEY, SAVED_STORIES_KEY } from "./StoriesPage";
+import { SAVED_STORIES_KEY } from "./StoriesPage";
 import { TravelPlanArticleView } from "./TravelPlanStoriesPage";
 
 const tabs = ["Overview", "Achievements", "Saved Places", "Draft Plans", "Travel Groups", "Calendar", "Settings"] as const;
@@ -78,11 +79,11 @@ function maskEmail(email: string): string {
   return `${visible}${"*".repeat(Math.max(3, name.length - visible.length))}@${domain}`;
 }
 
-function calculateLevel(input: { pins: number; stories: number; savedPlaces: number; groups: number }) {
-  const points = input.pins * 18 + input.stories * 24 + input.savedPlaces * 8 + input.groups * 30;
-  const level = Math.max(1, Math.floor(points / 120) + 1);
-  const currentFloor = (level - 1) * 120;
-  const nextFloor = level * 120;
+function calculateLevel(input: { unlockedAchievements: number }) {
+  const points = input.unlockedAchievements * 100;
+  const level = points === 0 ? 0 : Math.floor(points / 100);
+  const currentFloor = level * 100;
+  const nextFloor = (level + 1) * 100;
   const progress = Math.min(100, Math.round(((points - currentFloor) / Math.max(1, nextFloor - currentFloor)) * 100));
   return { level, points, progress, nextLevelPoints: nextFloor };
 }
@@ -166,7 +167,7 @@ function BadgeCard({ badge }: { badge: ReturnType<typeof buildBadges>[number] })
 
 function EmptyState({ icon: Icon, title, copy }: { icon: LucideIcon; title: string; copy: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-[#3A2A22]/20 bg-[#FFF9F0] p-6 text-center">
+    <div className="col-span-full mx-auto w-full max-w-3xl rounded-lg border border-dashed border-[#3A2A22]/20 bg-[#FFF9F0] p-[clamp(2rem,5vw,4rem)] text-center shadow-[0_18px_42px_rgba(58,42,34,0.06)]">
       <Icon className="mx-auto mb-3 text-[#7A4B32]" size={26} />
       <h3 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2C211C]">{title}</h3>
       <p className="m-0 mx-auto mt-2 max-w-md text-sm leading-6 text-[#5E4B40]">{copy}</p>
@@ -192,7 +193,7 @@ function DraftPlanCard({ plan, onOpen }: { plan: TravelPlanStory; onOpen: () => 
       style={{ cursor: "pointer" }}
     >
       {cover ? (
-        <img src={cover} alt="" className="block h-[180px] w-full object-cover" />
+        <img src={cover} alt="" className="block h-[180px] w-full object-cover" style={{ objectPosition: plan.coverPosition ?? "center center" }} />
       ) : (
         <div className="grid h-[180px] place-items-center border-b border-[#3A2A22]/10 bg-gradient-to-br from-[#EFE7DC] to-[#FBF7F0]">
           <div className="text-center">
@@ -464,20 +465,29 @@ function ProfileContent() {
   const groupIds = useMemo(() => user?.groupIds ?? [], [user?.groupIds]);
 
   useEffect(() => {
+    if (!user) return undefined;
     const refreshStoryCounts = () => {
-      setSavedStoriesCount(readStorageCount(SAVED_STORIES_KEY));
-      setLocalStoriesCount(readStorageCount(LOCAL_STORIES_KEY));
+      const ownedStories = listLocalStories().filter((story) => story.ownerId === user.id || story.author === user.name || story.ownerId === "demo-user");
+      const savedRows = readLocalTable<{ user_id?: string; userId?: string; saved_by?: string; story_id?: number; storyId?: number }>("savedStories");
+      const userSavedRows = savedRows.filter((row) => {
+        const owner = row.user_id ?? row.userId ?? row.saved_by;
+        return !owner || owner === user.id;
+      });
+      setSavedStoriesCount(Math.max(readStorageCount(SAVED_STORIES_KEY), userSavedRows.length));
+      setLocalStoriesCount(ownedStories.length);
     };
     refreshStoryCounts();
+    window.addEventListener("traveltraces:local-db-updated", refreshStoryCounts);
     window.addEventListener("traveltraces:saved-stories-updated", refreshStoryCounts);
     window.addEventListener("traveltraces:local-stories-updated", refreshStoryCounts);
     window.addEventListener("storage", refreshStoryCounts);
     return () => {
+      window.removeEventListener("traveltraces:local-db-updated", refreshStoryCounts);
       window.removeEventListener("traveltraces:saved-stories-updated", refreshStoryCounts);
       window.removeEventListener("traveltraces:local-stories-updated", refreshStoryCounts);
       window.removeEventListener("storage", refreshStoryCounts);
     };
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const refreshTravelPlans = () => setTravelPlans(readTravelPlanStories());
@@ -519,10 +529,9 @@ function ProfileContent() {
     const currentUser = user;
     if (!currentUser) return undefined;
     let cancelled = false;
-    setLoading(true);
-    setStatus(null);
 
     async function loadProfileData() {
+      setLoading(true);
       const [pinsResult, spotsResult, groupsResult] = await Promise.allSettled([
         listPins(currentUser.id, groupIds),
         listTouristSpots(currentUser.id),
@@ -541,28 +550,36 @@ function ProfileContent() {
       setLoading(false);
     }
 
-    void loadProfileData().catch(() => {
+    const refreshProfileData = () => void loadProfileData().catch(() => {
       if (!cancelled) {
         setData(emptyProfileData);
         setStatus("Profile activity could not be loaded right now.");
         setLoading(false);
       }
     });
+    setStatus(null);
+    refreshProfileData();
+    window.addEventListener("traveltraces:local-db-updated", refreshProfileData);
+    window.addEventListener("storage", refreshProfileData);
 
     return () => {
       cancelled = true;
+      window.removeEventListener("traveltraces:local-db-updated", refreshProfileData);
+      window.removeEventListener("storage", refreshProfileData);
     };
   }, [groupIds, user]);
 
   if (!user || !form) return null;
 
-  const pinsCreated = loading ? user.pinsCount : data.pins.length;
-  const storiesPosted = user.storiesCount + localStoriesCount;
+  const pinsCreated = data.pins.length;
+  const storiesPosted = localStoriesCount;
   const savedPlaces = data.spots.length + savedStoriesCount;
   const travelGroups = data.groups.length;
-  const level = calculateLevel({ pins: pinsCreated, stories: storiesPosted, savedPlaces, groups: travelGroups });
-  const badges = buildBadges({ pins: pinsCreated, stories: storiesPosted, savedPlaces, followers: user.followersCount, groups: travelGroups });
+  const followersCount = 0;
+  const followingCount = 0;
+  const badges = buildBadges({ pins: pinsCreated, stories: storiesPosted, savedPlaces, followers: followersCount, groups: travelGroups });
   const unlockedBadges = badges.filter((badge) => badge.unlocked).length;
+  const level = calculateLevel({ unlockedAchievements: unlockedBadges });
   const profileCompletion = Math.round(
     ([user.avatar, user.bio, user.location, user.nationality, user.joinedDate].filter(Boolean).length / 5) * 100,
   );
@@ -628,11 +645,17 @@ function ProfileContent() {
       <div className="border-b border-[#3A2A22]/10 bg-[#FBF7F0] px-4 py-10 sm:px-6">
         <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1fr_20rem] lg:items-center">
           <div className="flex flex-col gap-6 md:flex-row md:items-center">
-            <img
-              src={user.avatar}
-              alt={`${user.name} profile`}
-              className="h-32 w-32 rounded-full border-4 border-[#EFE7DC] object-cover shadow-[0_18px_34px_rgba(58,42,34,0.16)]"
-            />
+            {user.avatar ? (
+              <img
+                src={user.avatar}
+                alt={`${user.name} profile`}
+                className="h-32 w-32 rounded-full border-4 border-[#EFE7DC] object-cover shadow-[0_18px_34px_rgba(58,42,34,0.16)]"
+              />
+            ) : (
+              <div className="grid h-32 w-32 place-items-center rounded-full border-4 border-[#EFE7DC] bg-[#EDEAE0] text-[#7A4B32] shadow-[0_18px_34px_rgba(58,42,34,0.16)]" aria-label={`${user.name} profile placeholder`}>
+                <UserRound size={42} />
+              </div>
+            )}
             <div className="min-w-0">
               <p className="m-0 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.16em] text-[#7A4B32]">Traveler Profile</p>
               <h1 className="m-0 mt-2 font-[var(--font-display)] text-[clamp(2.4rem,7vw,4.5rem)] font-semibold leading-none text-[#2C211C]">{user.name}</h1>
@@ -689,8 +712,8 @@ function ProfileContent() {
               {pinsCreated > 0 ? <StatCard label="Pins Created" value={pinsCreated} supporting="Places mapped from your travels." /> : <FirstPinPrompt />}
               <StatCard label="Stories Posted" value={storiesPosted} supporting="Travel notes shared with the community." />
               <StatCard label="Saved Places" value={savedPlaces} supporting="Stories and destinations saved for later." />
-              <StatCard label="Followers" value={user.followersCount.toLocaleString()} />
-              <StatCard label="Following" value={user.followingCount.toLocaleString()} />
+              <StatCard label="Followers" value={followersCount.toLocaleString()} />
+              <StatCard label="Following" value={followingCount.toLocaleString()} />
               <StatCard label="Travel Groups" value={travelGroups} />
             </div>
 
