@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, BookOpen, ImagePlus, MapPin, Plus, Trash2, X } from "lucide-react";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { DraggablePhotoFrame } from "./DraggablePhotoFrame";
+import { ImageCropDialog } from "./ImageCropDialog";
 import type { ApiLocation } from "../services/mappingApi";
 import { fileToDataUrl } from "../utils/photoPinHelpers";
 
@@ -78,6 +79,7 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
   const [coverImage, setCoverImage] = useState("");
   const [coverPositionX, setCoverPositionX] = useState(50);
   const [coverPositionY, setCoverPositionY] = useState(50);
+  const [coverCropOpen, setCoverCropOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [plannedStops, setPlannedStops] = useState<PlannedStop[]>([]);
   const [pendingStopDelete, setPendingStopDelete] = useState<number | null>(null);
@@ -90,6 +92,7 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
     setCoverImage("");
     setCoverPositionX(50);
     setCoverPositionY(50);
+    setCoverCropOpen(false);
     setDescription("");
     setPendingStopDelete(null);
     const today = new Date();
@@ -117,6 +120,7 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
     if (!file) return;
     const dataUrl = await fileToDataUrl(file);
     setCoverImage(dataUrl);
+    setCoverCropOpen(true);
   };
 
   const saveLabel = plannedStops.length <= 1 ? "Convert to Drop Marker" : "Save Travel Plan Story";
@@ -126,10 +130,23 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
 
   return (
     <>
+    <ImageCropDialog
+      open={coverCropOpen && Boolean(coverImage)}
+      src={coverImage}
+      title="Crop travel plan cover"
+      aspect={16 / 9}
+      onCancel={() => setCoverCropOpen(false)}
+      onSave={({ dataUrl, x, y }) => {
+        setCoverImage(dataUrl);
+        setCoverPositionX(x);
+        setCoverPositionY(y);
+        setCoverCropOpen(false);
+      }}
+    />
     <div className="absolute inset-x-3 bottom-28 top-20 z-40 overflow-y-auto rounded-[1.35rem] border border-[#3A2A22]/14 bg-[#FBF7F0] text-[#1A1A1A] shadow-[0_24px_70px_rgba(58,42,34,0.24)] ring-1 ring-white/60 sm:inset-x-auto sm:bottom-auto sm:right-4 sm:top-4 sm:max-h-[calc(100%-7rem)] sm:w-[min(28rem,calc(100%-2rem))]">
       <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-[#3A2A22]/10 bg-[#3A2A22] px-5 py-4 text-[#F5F0E8]">
         <div>
-          <p className="m-0 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.14em] text-[#F5F0E8]/75">Draw Route</p>
+          <p className="m-0 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.14em] text-[#F5F0E8]/75">Create Travel Plan</p>
           <h3 className="m-0 mt-1 font-[var(--font-display)] text-2xl font-semibold">Travel Plan Story</h3>
           <p className="m-0 mt-2 max-w-sm text-sm leading-5 text-[#F5F0E8]/75">
             Turn this ordered route into a private journey plan before you travel.
@@ -198,6 +215,7 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
                   setCoverPositionX(position.x);
                   setCoverPositionY(position.y);
                 }}
+                onEdit={() => setCoverCropOpen(true)}
                 className="h-32 w-full overflow-hidden rounded-lg"
                 imageClassName="h-full w-full object-cover"
               />

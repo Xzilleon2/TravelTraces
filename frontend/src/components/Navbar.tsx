@@ -4,6 +4,7 @@ import { Menu, X, LogOut, User, ChevronDown, MessageSquare } from "lucide-react"
 import { useAuth } from "../context/AuthContext";
 import { ChatPanel } from "./ChatPanel";
 import { MusicBox } from "./MusicBox";
+import { readLocalTable } from "../services/localDb";
 
 const memberLinks = [
   { to: "/explore", label: "Explore" },
@@ -28,6 +29,7 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [hasUnreadChats, setHasUnreadChats] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
   const navigate = useNavigate();
@@ -55,6 +57,23 @@ export function Navbar() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    const refreshUnread = () => {
+      if (!user?.id) {
+        setHasUnreadChats(false);
+        return;
+      }
+      setHasUnreadChats(readLocalTable<{ ownerId?: string; unread?: boolean }>("conversations").some((conversation) => conversation.ownerId === user.id && conversation.unread));
+    };
+    refreshUnread();
+    window.addEventListener("traveltraces:local-db-updated", refreshUnread);
+    window.addEventListener("storage", refreshUnread);
+    return () => {
+      window.removeEventListener("traveltraces:local-db-updated", refreshUnread);
+      window.removeEventListener("storage", refreshUnread);
+    };
+  }, [user?.id]);
 
   const handlePublicLinkClick = (hash: string) => {
     setMobileOpen(false);
@@ -167,7 +186,7 @@ export function Navbar() {
                 style={{ position: "relative", background: "rgba(196,113,58,0.1)", border: "1px solid rgba(58,42,34,0.16)", borderRadius: "50%", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#3A2A22" }}
               >
                 <MessageSquare size={17} />
-                <span style={{ position: "absolute", top: 4, right: 4, width: 8, height: 8, backgroundColor: "#C4713A", borderRadius: "50%", border: "1.5px solid #FBF7F0" }} />
+                {hasUnreadChats ? <span style={{ position: "absolute", top: 4, right: 4, width: 8, height: 8, backgroundColor: "#C4713A", borderRadius: "50%", border: "1.5px solid #FBF7F0" }} /> : null}
               </button>
             )}
             {isAuthenticated && user ? (

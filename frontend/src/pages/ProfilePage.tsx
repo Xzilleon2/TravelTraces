@@ -27,10 +27,14 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { GatedPage } from "../components/GatedPage";
+import { ImageCropDialog } from "../components/ImageCropDialog";
 import { useAuth, type User } from "../context/AuthContext";
 import type { ApiPin, TouristSpot, TravelGroup } from "../services/mappingApi";
 import { deleteTouristSpot, listPins, listTouristSpots, listTravelGroups } from "../services/mappingApi";
 import { listLocalStories, readLocalTable } from "../services/localDb";
+import { getUserAchievementSummary, getUserAchievements, type UserAchievement } from "../services/achievementService";
+import type { AchievementIconKey } from "../services/achievementRules";
+import { getSavedItemsByUser, getSocialStats, type SavedItemFilter } from "../services/userData";
 import { readTravelPlanStories, totalTravelDays, travelPlanStatus, type TravelPlanDestination, type TravelPlanStory } from "../services/travelPlanStories";
 import { SAVED_STORIES_KEY } from "./StoriesPage";
 import { TravelPlanArticleView } from "./TravelPlanStoriesPage";
@@ -44,7 +48,9 @@ type ProfileData = {
   groups: TravelGroup[];
 };
 
-type ProfileForm = Pick<User, "name" | "email" | "avatar" | "location" | "joinedDate" | "bio" | "nationality">;
+type ProfileForm = Pick<User, "name" | "email" | "avatar" | "location" | "joinedDate" | "bio" | "nationality" | "travelStyle"> & {
+  interests: string;
+};
 
 const emptyProfileData: ProfileData = {
   pins: [],
@@ -79,24 +85,22 @@ function maskEmail(email: string): string {
   return `${visible}${"*".repeat(Math.max(3, name.length - visible.length))}@${domain}`;
 }
 
-function calculateLevel(input: { unlockedAchievements: number }) {
-  const points = input.unlockedAchievements * 100;
-  const level = points === 0 ? 0 : Math.floor(points / 100);
-  const currentFloor = level * 100;
-  const nextFloor = (level + 1) * 100;
-  const progress = Math.min(100, Math.round(((points - currentFloor) / Math.max(1, nextFloor - currentFloor)) * 100));
-  return { level, points, progress, nextLevelPoints: nextFloor };
-}
+const achievementIconMap: Record<AchievementIconKey, LucideIcon> = {
+  pin: Pin,
+  story: BookOpen,
+  sparkles: Sparkles,
+  bookmark: Bookmark,
+  calendar: CalendarDays,
+  award: Award,
+  users: Users,
+  shield: ShieldCheck,
+  gem: Gem,
+};
 
-function buildBadges(input: { pins: number; stories: number; savedPlaces: number; followers: number; groups: number }) {
-  return [
-    { title: "First Trace", detail: "Create your first travel pin.", unlocked: input.pins > 0, icon: Pin },
-    { title: "Story Keeper", detail: "Post 3 or more travel stories.", unlocked: input.stories >= 3, icon: Sparkles },
-    { title: "Trail Curator", detail: "Save 5 places or stories.", unlocked: input.savedPlaces >= 5, icon: Bookmark },
-    { title: "Community Signal", detail: "Reach 100 followers.", unlocked: input.followers >= 100, icon: Users },
-    { title: "Group Traveler", detail: "Join a travel group.", unlocked: input.groups > 0, icon: ShieldCheck },
-    { title: "Hidden Gem Hunter", detail: "Build 10 combined pins and stories.", unlocked: input.pins + input.stories >= 10, icon: Gem },
-  ];
+type ProfileBadge = UserAchievement & { iconComponent: LucideIcon };
+
+function buildBadges(user: User): ProfileBadge[] {
+  return getUserAchievements(user).map((badge) => ({ ...badge, iconComponent: achievementIconMap[badge.icon] ?? Award }));
 }
 
 function Panel({ title, eyebrow, children, action }: { title: string; eyebrow?: string; children: ReactNode; action?: ReactNode }) {
@@ -142,8 +146,8 @@ function FirstPinPrompt() {
   );
 }
 
-function BadgeCard({ badge }: { badge: ReturnType<typeof buildBadges>[number] }) {
-  const Icon = badge.icon;
+function BadgeCard({ badge }: { badge: ProfileBadge }) {
+  const Icon = badge.iconComponent;
   return (
     <article className={`rounded-lg border p-4 transition ${badge.unlocked ? "border-[#C4713A]/35 bg-[#FFF9F0]" : "border-[#3A2A22]/10 bg-[#EFE7DC]/70"}`}>
       <div className="flex items-start gap-3">
@@ -157,7 +161,7 @@ function BadgeCard({ badge }: { badge: ReturnType<typeof buildBadges>[number] })
           </div>
           <p className="m-0 mt-1 text-sm leading-5 text-[#5E4B40]">{badge.detail}</p>
           <p className={`m-0 mt-3 font-[var(--font-label)] text-[0.66rem] font-bold uppercase tracking-[0.1em] ${badge.unlocked ? "text-[#7A4B32]" : "text-[#5E4B40]"}`}>
-            {badge.unlocked ? "Unlocked" : "Locked"}
+            {badge.unlocked ? "Unlocked" : "Locked"} / {badge.xp} XP
           </p>
         </div>
       </div>
@@ -460,7 +464,10 @@ function ProfileContent() {
   const [travelPlans, setTravelPlans] = useState<TravelPlanStory[]>([]);
   const [activeDraftPlanId, setActiveDraftPlanId] = useState<string | null>(null);
   const [pendingSavedPlaceDelete, setPendingSavedPlaceDelete] = useState<TouristSpot | null>(null);
+  const [savedFilter, setSavedFilter] = useState<SavedItemFilter>("All");
   const [form, setForm] = useState<ProfileForm | null>(null);
+  const [achievementToast, setAchievementToast] = useState<ProfileBadge | null>(null);
+  const [avatarCropSrc, setAvatarCropSrc] = useState("");
 
   const groupIds = useMemo(() => user?.groupIds ?? [], [user?.groupIds]);
 
@@ -522,6 +529,8 @@ function ProfileContent() {
       joinedDate: user.joinedDate,
       bio: user.bio,
       nationality: user.nationality,
+      travelStyle: user.travelStyle ?? "",
+      interests: (user.interests ?? []).join(", "),
     });
   }, [user]);
 
@@ -569,21 +578,39 @@ function ProfileContent() {
     };
   }, [groupIds, user]);
 
+  useEffect(() => {
+    if (!user) return;
+    const badges = buildBadges(user);
+    const storageKey = `traveltraces.seenAchievements.${user.id}`;
+    const seen = new Set(JSON.parse(window.localStorage.getItem(storageKey) ?? "[]") as string[]);
+    const newlyUnlocked = badges.find((badge) => badge.unlocked && !seen.has(badge.title));
+    if (!newlyUnlocked) return;
+    badges.filter((badge) => badge.unlocked).forEach((badge) => seen.add(badge.title));
+    window.localStorage.setItem(storageKey, JSON.stringify([...seen]));
+    setAchievementToast(newlyUnlocked);
+    const timer = window.setTimeout(() => setAchievementToast(null), 4200);
+    return () => window.clearTimeout(timer);
+  }, [data.groups.length, data.pins.length, data.spots.length, localStoriesCount, savedStoriesCount, travelPlans, user]);
+
   if (!user || !form) return null;
 
   const pinsCreated = data.pins.length;
   const storiesPosted = localStoriesCount;
-  const savedPlaces = data.spots.length + savedStoriesCount;
+  const savedItems = getSavedItemsByUser(user.id, savedFilter);
+  const savedPlaces = getSavedItemsByUser(user.id).length;
   const travelGroups = data.groups.length;
-  const followersCount = 0;
-  const followingCount = 0;
-  const badges = buildBadges({ pins: pinsCreated, stories: storiesPosted, savedPlaces, followers: followersCount, groups: travelGroups });
-  const unlockedBadges = badges.filter((badge) => badge.unlocked).length;
-  const level = calculateLevel({ unlockedAchievements: unlockedBadges });
-  const profileCompletion = Math.round(
-    ([user.avatar, user.bio, user.location, user.nationality, user.joinedDate].filter(Boolean).length / 5) * 100,
-  );
+  const socialStats = getSocialStats(user.id);
+  const followersCount = socialStats.followersCount;
+  const followingCount = socialStats.followingCount;
   const ownedTravelPlans = travelPlans.filter((plan) => plan.ownerId === user.id || plan.ownerName === user.name || plan.ownerId === "demo-user");
+  const completedOwnedPlans = ownedTravelPlans.filter((plan) => travelPlanStatus(plan) === "completed" && plan.published).length;
+  const travelPlanDays = ownedTravelPlans.reduce((total, plan) => total + totalTravelDays(plan), 0);
+  const summary = getUserAchievementSummary(user);
+  const badges = buildBadges(user);
+  const unlockedBadges = badges.filter((badge) => badge.unlocked).length;
+  const level = summary.level;
+  const requiredProfileFields = [user.name, user.bio, user.avatar, user.location, user.interests?.length ? user.interests.join(",") : "", user.travelStyle];
+  const profileCompletion = Math.round((requiredProfileFields.filter(Boolean).length / requiredProfileFields.length) * 100);
   const draftTravelPlans = ownedTravelPlans
     .filter((plan) => travelPlanStatus(plan) !== "completed" || !plan.published)
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
@@ -616,7 +643,7 @@ function ProfileContent() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      if (typeof reader.result === "string") handleFormChange("avatar", reader.result);
+      if (typeof reader.result === "string") setAvatarCropSrc(reader.result);
     };
     reader.readAsDataURL(file);
   };
@@ -632,6 +659,8 @@ function ProfileContent() {
       joinedDate: form.joinedDate.trim() || user.joinedDate,
       bio: form.bio.trim(),
       nationality: form.nationality.trim(),
+      travelStyle: form.travelStyle.trim(),
+      interests: form.interests.split(",").map((item) => item.trim()).filter(Boolean),
     });
     setStatus("Profile information updated for this session.");
     setActiveTab("Overview");
@@ -651,20 +680,61 @@ function ProfileContent() {
 
   return (
     <section className="min-h-screen bg-[#F5F0E8] font-[var(--font-ui)] text-[#2C211C]">
+      <ImageCropDialog
+        open={Boolean(avatarCropSrc)}
+        src={avatarCropSrc}
+        title="Adjust profile picture"
+        aspect={1}
+        onCancel={() => setAvatarCropSrc("")}
+        onSave={({ dataUrl }) => {
+          handleFormChange("avatar", dataUrl);
+          updateUser({ ...user, avatar: dataUrl });
+          setAvatarCropSrc("");
+          setStatus("Profile picture updated.");
+        }}
+      />
+      {achievementToast ? (
+        <div className="fixed right-5 top-24 z-[1200] max-w-sm rounded-xl border border-[#C4713A]/30 bg-[#FFF9F0] p-4 shadow-[0_18px_48px_rgba(58,42,34,0.18)]" role="status" aria-live="polite">
+          <div className="flex items-start gap-3">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#C4713A] text-[#FFF9F0]">
+              {(() => {
+                const ToastIcon = achievementToast.iconComponent;
+                return <ToastIcon size={18} />;
+              })()}
+            </span>
+            <div>
+              <p className="m-0 font-[var(--font-label)] text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#7A4B32]">Achievement unlocked</p>
+              <h3 className="m-0 mt-1 font-[var(--font-display)] text-xl font-semibold text-[#2C211C]">{achievementToast.title}</h3>
+              <p className="m-0 mt-1 text-sm leading-5 text-[#5E4B40]">+{achievementToast.xp} XP</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="border-b border-[#3A2A22]/10 bg-[#FBF7F0] px-4 py-10 sm:px-6">
         <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1fr_20rem] lg:items-center">
           <div className="flex flex-col gap-6 md:flex-row md:items-center">
-            {user.avatar ? (
-              <img
-                src={user.avatar}
-                alt={`${user.name} profile`}
-                className="h-32 w-32 rounded-full border-4 border-[#EFE7DC] object-cover shadow-[0_18px_34px_rgba(58,42,34,0.16)]"
+            <label className="group relative block h-32 w-32 shrink-0 cursor-pointer" title="Change profile picture">
+              <input
+                type="file"
+                accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                onChange={(event) => handleProfilePhotoFile(event.target.files?.[0] ?? null)}
+                className="sr-only"
               />
-            ) : (
-              <div className="grid h-32 w-32 place-items-center rounded-full border-4 border-[#EFE7DC] bg-[#EDEAE0] text-[#7A4B32] shadow-[0_18px_34px_rgba(58,42,34,0.16)]" aria-label={`${user.name} profile placeholder`}>
-                <UserRound size={42} />
-              </div>
-            )}
+              {user.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={`${user.name} profile`}
+                  className="h-32 w-32 rounded-full border-4 border-[#EFE7DC] object-cover shadow-[0_18px_34px_rgba(58,42,34,0.16)]"
+                />
+              ) : (
+                <span className="grid h-32 w-32 place-items-center rounded-full border-4 border-[#EFE7DC] bg-[#EDEAE0] text-[#7A4B32] shadow-[0_18px_34px_rgba(58,42,34,0.16)]" aria-label={`${user.name} profile placeholder`}>
+                  <UserRound size={42} />
+                </span>
+              )}
+              <span className="absolute inset-x-2 bottom-2 rounded-full bg-[#3A2A22]/85 px-3 py-1 text-center font-[var(--font-label)] text-[0.62rem] font-bold uppercase tracking-[0.08em] text-[#FFF9F0] opacity-0 transition group-hover:opacity-100">
+                Change
+              </span>
+            </label>
             <div className="min-w-0">
               <p className="m-0 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.16em] text-[#7A4B32]">Traveler Profile</p>
               <h1 className="m-0 mt-2 font-[var(--font-display)] text-[clamp(2.4rem,7vw,4.5rem)] font-semibold leading-none text-[#2C211C]">{user.name}</h1>
@@ -714,6 +784,12 @@ function ProfileContent() {
         </nav>
 
         {status ? <div className="mb-6 rounded-lg border border-[#C4713A]/30 bg-[#FFF4E8] p-4 text-sm font-semibold text-[#7A4B32]">{status}</div> : null}
+        {profileCompletion < 100 ? (
+          <div className="mb-6 rounded-lg border border-[#C4713A]/30 bg-[#FFF4E8] p-4 text-sm leading-6 text-[#5E4B40]" role="status">
+            <strong className="text-[#7A4B32]">Complete your profile to unlock the best travel experience.</strong>{" "}
+            Add your bio, avatar, location, interests, and travel style when you are ready.
+          </div>
+        ) : null}
 
         {activeTab === "Overview" ? (
           <div className="grid gap-6">
@@ -771,22 +847,38 @@ function ProfileContent() {
         ) : null}
 
         {activeTab === "Saved Places" ? (
-          <Panel title="Saved Places" eyebrow="Collection" action={<NavLink to="/saved-places" className="text-sm font-bold text-[#7A4B32]">Open saved page</NavLink>}>
+          <Panel
+            title="Saved Places"
+            eyebrow="Collection"
+            action={
+              <select
+                value={savedFilter}
+                onChange={(event) => setSavedFilter(event.target.value as SavedItemFilter)}
+                className="min-h-10 rounded-full border border-[#3A2A22]/15 bg-[#FFF9F0] px-4 text-sm font-bold text-[#3A2A22] outline-none"
+              >
+                {(["All", "Places", "Stories", "Routes", "Travel Plans", "Markers", "Favorites"] as SavedItemFilter[]).map((filter) => (
+                  <option key={filter} value={filter}>{filter}</option>
+                ))}
+              </select>
+            }
+          >
             <div className="grid gap-4 md:grid-cols-2">
-              {data.spots.map((spot) => (
-                <article key={spot.place_id} className="rounded-lg border border-[#3A2A22]/10 bg-[#F5F0E8] p-4">
+              {savedItems.map((item) => (
+                <article key={`${item.type}-${item.id}`} className="rounded-lg border border-[#3A2A22]/10 bg-[#F5F0E8] p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <h3 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2C211C]">{spot.name}</h3>
-                    <button type="button" onClick={() => setPendingSavedPlaceDelete(spot)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#B23B2E]/25 text-[#8A2F25] hover:bg-[#B23B2E]/10" aria-label={`Delete ${spot.name}`}>
-                      <Trash2 size={14} />
-                    </button>
+                    <h3 className="m-0 font-[var(--font-display)] text-xl font-semibold text-[#2C211C]">{item.title}</h3>
+                    {item.type === "Places" ? (
+                      <button type="button" onClick={() => setPendingSavedPlaceDelete(item.source as TouristSpot)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#B23B2E]/25 text-[#8A2F25] hover:bg-[#B23B2E]/10" aria-label={`Delete ${item.title}`}>
+                        <Trash2 size={14} />
+                      </button>
+                    ) : null}
                   </div>
-                  <p className="m-0 mt-1 font-[var(--font-label)] text-[0.7rem] font-bold uppercase tracking-[0.1em] text-[#7A4B32]">{spot.category}</p>
-                  <p className="m-0 mt-3 text-sm leading-6 text-[#5E4B40]">{spot.notes || "No notes yet."}</p>
-                  <div className="mt-4 text-xs font-semibold text-[#5E4B40]">Saved {formatDate(spot.saved_at)}</div>
+                  <p className="m-0 mt-1 font-[var(--font-label)] text-[0.7rem] font-bold uppercase tracking-[0.1em] text-[#7A4B32]">{item.type}</p>
+                  <p className="m-0 mt-3 text-sm leading-6 text-[#5E4B40]">{item.subtitle || "Saved for later."}</p>
+                  <div className="mt-4 text-xs font-semibold text-[#5E4B40]">Saved {formatDate(item.createdAt)}</div>
                 </article>
               ))}
-              {!data.spots.length ? <EmptyState icon={Bookmark} title="No saved places yet" copy="Saved stories and tourist spots will appear here once you begin collecting places." /> : null}
+              {!savedItems.length ? <EmptyState icon={Bookmark} title="No saved places yet" copy="Saved stories, routes, markers, and travel plans will appear here once you begin collecting places." /> : null}
             </div>
           </Panel>
         ) : null}
@@ -850,12 +942,13 @@ function ProfileContent() {
                   ["Where You Live", "location"],
                   ["Nationality", "nationality"],
                   ["Joined / Registered", "joinedDate"],
-                  ["Profile Picture URL", "avatar"],
+                  ["Travel Style", "travelStyle"],
+                  ["Interests", "interests"],
                 ].map(([label, field]) => (
                   <label key={field} className="grid gap-2">
                     <span className="font-[var(--font-label)] text-[0.7rem] font-bold uppercase tracking-[0.1em] text-[#5E4B40]">{label}</span>
                     <input
-                      value={form[field as keyof ProfileForm]}
+                      value={form[field as keyof ProfileForm] ?? ""}
                       onChange={(event) => handleFormChange(field as keyof ProfileForm, event.target.value)}
                       className="min-h-11 rounded-lg border border-[#3A2A22]/15 bg-[#FFF9F0] px-3 text-sm text-[#2C211C] outline-none transition focus:border-[#C4713A] focus:ring-2 focus:ring-[#C4713A]/20"
                     />
@@ -865,20 +958,12 @@ function ProfileContent() {
                   <span className="font-[var(--font-label)] text-[0.7rem] font-bold uppercase tracking-[0.1em] text-[#5E4B40]">Bio</span>
                   <textarea
                     value={form.bio}
-                    onChange={(event) => handleFormChange("bio", event.target.value)}
+                    maxLength={160}
+                    onChange={(event) => handleFormChange("bio", event.target.value.slice(0, 160))}
                     rows={5}
                     className="resize-none rounded-lg border border-[#3A2A22]/15 bg-[#FFF9F0] px-3 py-2 text-sm leading-6 text-[#2C211C] outline-none transition focus:border-[#C4713A] focus:ring-2 focus:ring-[#C4713A]/20"
                   />
-                </label>
-                <label className="grid gap-2 rounded-lg border border-[#3A2A22]/10 bg-[#F5F0E8] p-4">
-                  <span className="font-[var(--font-label)] text-[0.7rem] font-bold uppercase tracking-[0.1em] text-[#5E4B40]">Upload Profile Picture</span>
-                  <input
-                    type="file"
-                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                    onChange={(event) => handleProfilePhotoFile(event.target.files?.[0] ?? null)}
-                    className="text-sm text-[#2C211C]"
-                  />
-                  {form.avatar ? <img src={form.avatar} alt="Profile preview" className="h-24 w-24 rounded-full object-cover ring-4 ring-[#EFE7DC]" /> : null}
+                  <span className="text-right text-xs font-semibold text-[#5E4B40]">{160 - form.bio.length} characters remaining</span>
                 </label>
                 <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#3A2A22] px-5 font-[var(--font-label)] text-[0.72rem] font-bold uppercase tracking-[0.08em] text-[#FFF9F0] transition hover:bg-[#2C211C]">
                   <Save size={15} /> Save Profile

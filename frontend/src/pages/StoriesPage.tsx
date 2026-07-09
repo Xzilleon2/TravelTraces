@@ -19,6 +19,7 @@ import {
 import { deletePin, listPins, type MapScope } from "../services/mappingApi";
 import { publishWorkspaceEvent } from "../utils/workspaceSync";
 import { deleteLocalStoryCascade, listLocalStories, writeLocalStories as writeLocalDbStories, type LocalStoryRecord } from "../services/localDb";
+import { addStoryComment, readStoryEngagement, subscribeStoryEngagements, toggleStoryReaction, type StoryComment } from "../services/storyEngagements";
 import { localAvatarDataUrl } from "../utils/localAvatar";
 
 type StoryPhotoFrame = string | {
@@ -51,7 +52,7 @@ const categories = ["All", "Hiking", "Food Place", "Hidden Gems", "Beaches", "Fo
 const storyScopes = [
   { key: "public", label: "Public Stories", helper: "Stories shared with everyone" },
   { key: "mine", label: "My Stories", helper: "Stories you posted" },
-  { key: "group", label: "Group Stories", helper: "Stories shared with your groups" },
+  { key: "group", label: "Collab Stories", helper: "Stories shared with your groups" },
 ] as const;
 type StoryScopeFilter = (typeof storyScopes)[number]["key"];
 
@@ -122,6 +123,29 @@ function estimateStoryReadTime(story: Pick<TravelStory, "body" | "excerpt" | "re
   return `${Math.max(1, Math.ceil(words / 180))} min`;
 }
 
+function storyPostedDate(story: TravelStory): string {
+  const parsed = new Date(story.createdAt ?? story.date);
+  if (Number.isNaN(parsed.getTime())) return story.date || "Recently";
+  return parsed.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+}
+
+function storyRelativeTime(story: TravelStory): string {
+  const parsed = new Date(story.createdAt ?? story.date);
+  if (Number.isNaN(parsed.getTime())) return story.date || "recently";
+  const seconds = Math.max(1, Math.floor((Date.now() - parsed.getTime()) / 1000));
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} day${days === 1 ? "" : "s"} ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} mo ago`;
+  const years = Math.floor(months / 12);
+  return `${years} yr ago`;
+}
+
 function isSensitiveStory(story: Pick<TravelStory, "title" | "category" | "excerpt" | "body" | "region">): boolean {
   const text = [story.title, story.category, story.excerpt, story.body, story.region].join(" ").toLowerCase();
   return /\b(wildlife|endangered|protected|habitat|sanctuary|nesting|conservation|eagle|tarsier|turtle|marine reserve|coral reef|reef sanctuary)\b/.test(text);
@@ -169,7 +193,7 @@ function storyPhotoPosition(photo: StoryPhotoFrame | undefined, fallback = "cent
   return typeof photo.object_position === "string" && photo.object_position.trim() ? photo.object_position : fallback;
 }
 
-export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext, onDelete }: {
+export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNext, onDelete, onVisibilityChange, onEditStory }: {
   story: TravelStory;
   onBack: () => void;
   onPrev: () => void;
@@ -177,15 +201,25 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
   hasPrev: boolean;
   hasNext: boolean;
   onDelete?: (story: TravelStory) => void;
+  onVisibilityChange?: (story: TravelStory, scope: MapScope) => void;
+  onEditStory?: (story: TravelStory) => void;
 }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [comments, setComments] = useState(STORY_COMMENTS[story.id] ?? []);
+  const [comments, setComments] = useState<StoryComment[]>(() => readStoryEngagement(story.id).comments);
+  const [reactionCount, setReactionCount] = useState(() => readStoryEngagement(story.id).reactions.length);
   const [commentInput, setCommentInput] = useState("");
-  const [likedComments, setLikedComments] = useState<Set<number>>(new Set());
+  const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [editing, setEditing] = useState(false);
+  const [draftStory, setDraftStory] = useState(() => ({
+    title: story.title,
+    excerpt: story.excerpt,
+    category: story.category,
+    body: story.body,
+  }));
 
   const localPhotos = Array.isArray(story.photos) && story.photos.length ? story.photos : null;
   const photos = localPhotos ?? STORY_PHOTOS[story.id] ?? [story.img];
@@ -197,7 +231,8 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
   const storyLocation = generalizeStoryLocation(story);
   const storyReadTime = estimateStoryReadTime(story);
   const preciseLocationHidden = shouldHidePreciseLocation(story);
-  const visibleLikes = story.likes + (liked ? 1 : 0);
+  const isOwner = Boolean(user && (story.ownerId === user.id || story.author === user.name));
+  const visibleLikes = Math.max(story.likes ?? 0, reactionCount);
   const actionButtonStyle = (active = false): React.CSSProperties => ({
     display: "inline-flex",
     minHeight: 40,
@@ -218,26 +253,40 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
   });
 
   useEffect(() => {
-    setLiked(false);
+    const engagement = readStoryEngagement(story.id);
+    setLiked(Boolean(user && engagement.reactions.some((reaction) => reaction.userId === user.id)));
     setSaved(readSavedStoryIds().includes(story.id));
-    setComments(STORY_COMMENTS[story.id] ?? []);
+    setComments(engagement.comments);
+    setReactionCount(engagement.reactions.length);
     setCommentInput("");
     setLikedComments(new Set());
     setPhotoIndex(0);
-  }, [story.id]);
+    setEditing(false);
+    setDraftStory({ title: story.title, excerpt: story.excerpt, category: story.category, body: story.body });
+    return subscribeStoryEngagements(story.id, (next) => {
+      setComments(next.comments);
+      setReactionCount(next.reactions.length);
+      setLiked(Boolean(user && next.reactions.some((reaction) => reaction.userId === user.id)));
+    });
+  }, [story, user]);
 
   const submitComment = () => {
     if (!commentInput.trim()) return;
-    const newComment = {
-      id: Date.now(),
+    const newComment = addStoryComment(story.id, {
+      userId: user?.id ?? "guest",
       author: user?.name ?? "You",
       avatar: user?.avatar || localAvatarDataUrl(user?.name ?? "You"),
       text: commentInput.trim(),
-      time: "Just now",
-      likes: 0,
-    };
+    });
     setComments((prev) => [...prev, newComment]);
     setCommentInput("");
+  };
+
+  const handleLikeStory = () => {
+    if (!user) return;
+    const next = toggleStoryReaction(story.id, user.id);
+    setLiked(next.reactions.some((reaction) => reaction.userId === user.id));
+    setReactionCount(next.reactions.length);
   };
 
   const handleSaveStory = () => {
@@ -321,42 +370,40 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
               <div style={{ minWidth: 0, flex: "1 1 auto" }}>
                 <button onClick={() => viewProfile(story.author)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "var(--font-ui)", fontWeight: 800, fontSize: "0.96rem", color: "#1A1A1A" }}>{story.author}</button>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#5B4A40", flexWrap: "wrap", marginTop: "0.22rem", fontFamily: "var(--font-ui)", fontSize: "0.8rem", minWidth: 0, overflow: "visible" }}>
-                  <span aria-label="Generalized story location" title={storyLocation} style={{ display: "inline-flex", alignItems: "center", gap: "0.28rem", color: "#5B4A40", minWidth: 0, maxWidth: "min(16rem, 44vw)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><MapPin size={13} strokeWidth={2} style={{ flex: "0 0 auto" }} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{storyLocation}</span></span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "0.28rem", color: "#5B4A40", whiteSpace: "nowrap", flex: "0 0 auto" }}><Clock size={13} strokeWidth={2} />Posted {storyPostedDate(story)}</span>
                   <span aria-hidden="true" style={{ color: "#9E8E7D" }}>•</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "0.28rem", color: "#5B4A40", whiteSpace: "nowrap", flex: "0 0 auto" }}><Clock size={13} strokeWidth={2} />Posted {story.date}</span>
-                  <span aria-hidden="true" style={{ color: "#9E8E7D" }}>•</span>
-                  <span style={{ color: "#5B4A40", whiteSpace: "nowrap", flex: "0 0 auto" }}>{storyReadTime} read</span>
-                  {preciseLocationHidden ? (
-                    <>
-                      <span aria-hidden="true" style={{ color: "#9E8E7D" }}>•</span>
-                      <span style={{ color: "#7A4A36", fontWeight: 700, whiteSpace: "nowrap", flex: "0 0 auto" }}>Precise location protected</span>
-                    </>
-                  ) : null}
+                  <span style={{ color: "#5B4A40", whiteSpace: "nowrap", flex: "0 0 auto" }}>{storyRelativeTime(story)}</span>
                 </div>
               </div>
             </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flex: "0 0 auto", flexWrap: "wrap", marginLeft: "auto" }}>
-              <button onClick={() => setLiked((v) => !v)} style={actionButtonStyle(liked)} aria-label={liked ? "Unlike story" : "Like story"}>
-                <Heart size={15} strokeWidth={2} fill={liked ? "#C4713A" : "none"} /> {visibleLikes > 0 ? visibleLikes : "Like"}
-              </button>
-              <button onClick={handleSaveStory} style={actionButtonStyle(saved)} aria-label={saved ? "Remove saved story" : "Save story"}>
-                <Bookmark size={15} strokeWidth={2} fill={saved ? "#C4713A" : "none"} /> Save
-              </button>
-              <button style={actionButtonStyle()} aria-label="Share story">
-                <Share2 size={15} strokeWidth={2} /> Share
-              </button>
-              {story.local && onDelete ? (
-                <>
-                  <span aria-hidden="true" style={{ width: 1, height: 28, background: "rgba(58,42,34,0.18)", margin: "0 0.15rem" }} />
-                  <button onClick={() => onDelete(story)} style={{ ...actionButtonStyle(), borderColor: "rgba(138,47,37,0.42)", background: "#FBF7F0", color: "#7F2F25" }} aria-label={`Delete ${story.title}`}>
-                    <Trash2 size={15} strokeWidth={2} /> Delete
-                  </button>
-                </>
-              ) : null}
-            </div>
           </div>
         </header>
+
+        {story.local && isOwner && editing ? (
+          <section style={{ width: "min(100%, 780px)", margin: "0 auto 2rem", border: "1px solid rgba(58,42,34,0.14)", borderRadius: "0.75rem", background: "#EFE7DC", padding: "1rem", display: "grid", gap: "0.85rem" }}>
+            <p style={{ margin: 0, fontFamily: "var(--font-label)", fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "#9E4F27" }}>Edit Story</p>
+            <input value={draftStory.title} onChange={(event) => setDraftStory((current) => ({ ...current, title: event.target.value }))} placeholder="Story title" style={{ minHeight: 44, border: "1px solid rgba(58,42,34,0.15)", borderRadius: "0.5rem", background: "#FBF7F0", padding: "0 0.75rem", fontFamily: "var(--font-ui)", color: "#2C211C" }} />
+            <input value={draftStory.excerpt} onChange={(event) => setDraftStory((current) => ({ ...current, excerpt: event.target.value }))} placeholder="Subtitle or short intro" style={{ minHeight: 44, border: "1px solid rgba(58,42,34,0.15)", borderRadius: "0.5rem", background: "#FBF7F0", padding: "0 0.75rem", fontFamily: "var(--font-ui)", color: "#2C211C" }} />
+            <select value={draftStory.category} onChange={(event) => setDraftStory((current) => ({ ...current, category: event.target.value }))} style={{ minHeight: 44, border: "1px solid rgba(58,42,34,0.15)", borderRadius: "0.5rem", background: "#FBF7F0", padding: "0 0.75rem", fontFamily: "var(--font-ui)", color: "#2C211C" }}>
+              {categories.filter((item) => item !== "All").map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <textarea value={draftStory.body} onChange={(event) => setDraftStory((current) => ({ ...current, body: event.target.value }))} rows={8} placeholder="Story body" style={{ resize: "vertical", border: "1px solid rgba(58,42,34,0.15)", borderRadius: "0.5rem", background: "#FBF7F0", padding: "0.75rem", fontFamily: "var(--font-body)", lineHeight: 1.7, color: "#2C211C" }} />
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", flexWrap: "wrap" }}>
+              <button type="button" onClick={() => setEditing(false)} style={{ minHeight: 40, border: "1px solid rgba(58,42,34,0.18)", borderRadius: 999, background: "transparent", padding: "0 1rem", fontWeight: 800, color: "#3A2A22" }}>Cancel</button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!draftStory.title.trim() || !draftStory.body.trim()) return;
+                  onEditStory?.({ ...story, ...draftStory, title: draftStory.title.trim(), body: draftStory.body.trim(), excerpt: draftStory.excerpt.trim(), updatedAt: new Date().toISOString() });
+                  setEditing(false);
+                }}
+                style={{ minHeight: 40, border: "1px solid #3A2A22", borderRadius: 999, background: "#3A2A22", padding: "0 1rem", fontWeight: 800, color: "#FBF7F0" }}
+              >
+                Save Story
+              </button>
+            </div>
+          </section>
+        ) : null}
 
         {/* Photo carousel */}
         <figure style={{ position: "relative", margin: "0 0 2.5rem" }}>
@@ -403,35 +450,76 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
             ))}
           </div>
 
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "0.65rem", flexWrap: "wrap", borderTop: "1px solid rgba(58,42,34,0.12)", borderBottom: "1px solid rgba(58,42,34,0.12)", padding: "1rem 0", margin: "0.25rem 0 2rem" }}>
+            <button onClick={handleLikeStory} style={actionButtonStyle(liked)} aria-label={liked ? "Unlike story" : "Like story"}>
+              <Heart size={15} strokeWidth={2} fill={liked ? "#C4713A" : "none"} /> {visibleLikes > 0 ? visibleLikes : "Like"}
+            </button>
+            <button onClick={handleSaveStory} style={actionButtonStyle(saved)} aria-label={saved ? "Remove saved story" : "Save story"}>
+              <Bookmark size={15} strokeWidth={2} fill={saved ? "#C4713A" : "none"} /> Save
+            </button>
+            <button style={actionButtonStyle()} aria-label="Share story">
+              <Share2 size={15} strokeWidth={2} /> Share
+            </button>
+            {story.local && isOwner && onEditStory ? (
+              <button onClick={() => setEditing((value) => !value)} style={actionButtonStyle(editing)} aria-label={`Edit ${story.title}`}>
+                <FileText size={15} strokeWidth={2} /> Edit
+              </button>
+            ) : null}
+            {story.local && isOwner && onVisibilityChange ? (
+              <label style={{ display: "inline-flex", minHeight: 40, alignItems: "center", gap: "0.5rem", border: "1px solid rgba(58,42,34,0.22)", borderRadius: 999, background: "#FBF7F0", padding: "0.35rem 0.7rem", color: "#4A3A32", fontFamily: "var(--font-ui)", fontSize: "0.8rem", fontWeight: 700 }}>
+                Visibility
+                <select
+                  value={story.scope ?? "private"}
+                  onChange={(event) => onVisibilityChange(story, event.target.value as MapScope)}
+                  style={{ border: "none", background: "transparent", color: "#3A2A22", font: "inherit", outline: "none" }}
+                  aria-label="Change story visibility"
+                >
+                  <option value="public">Public</option>
+                  <option value="group">Friends Only</option>
+                  <option value="private">Private</option>
+                </select>
+              </label>
+            ) : null}
+            {story.local && isOwner && onDelete ? (
+              <button onClick={() => onDelete(story)} style={{ ...actionButtonStyle(), borderColor: "rgba(138,47,37,0.42)", background: "#FBF7F0", color: "#7F2F25" }} aria-label={`Delete ${story.title}`}>
+                <Trash2 size={15} strokeWidth={2} /> Delete
+              </button>
+            ) : null}
+          </div>
+
           {storyPoint ? (
-            <div style={{ borderTop: "1px solid rgba(58,42,34,0.12)", paddingTop: "1.75rem", margin: "0.5rem 0 1.75rem" }}>
-              <div style={{ backgroundColor: "#EFE7DC", border: "1px solid rgba(58,42,34,0.12)", borderRadius: "0.45rem", padding: "1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
-                <div>
-                  <p style={{ margin: "0 0 0.35rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#9E6B5C" }}>Share your own trace</p>
-                  <h3 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.35rem", fontWeight: 600, color: "#3A2A22", lineHeight: 1.1 }}>Want to share your own story of this location?</h3>
-                  <p style={{ margin: "0.45rem 0 0", fontFamily: "var(--font-body)", color: "#5B4A40", lineHeight: 1.6 }}>Pin {storyLocation} on your map and write what happened there.</p>
-                  <p style={{ margin: "0.35rem 0 0", fontFamily: "var(--font-ui)", color: "#3A2A22", fontSize: "0.84rem", fontWeight: 700 }}>
-                    {preciseLocationHidden ? "Exact coordinates are protected for this story." : `Approximate pin: ${formatStoryCoordinates(storyPoint)}`}
-                  </p>
+            <section aria-labelledby="share-trace-title" style={{ borderTop: "1px solid rgba(58,42,34,0.12)", paddingTop: "1.75rem", margin: "0.5rem 0 1.75rem" }}>
+              <div style={{ backgroundColor: "#EFE7DC", border: "1px solid rgba(58,42,34,0.14)", borderRadius: "0.9rem", padding: "clamp(2rem, 5vw, 2.5rem)", textAlign: "center" }}>
+                <div style={{ maxWidth: 480, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div aria-hidden="true" style={{ width: 58, height: 58, borderRadius: "50%", display: "grid", placeItems: "center", backgroundColor: "rgba(196,113,58,0.12)", boxShadow: "0 0 0 9px rgba(196,113,58,0.06)", color: "#9E4F27", marginBottom: "1.05rem" }}>
+                    <MapPin size={24} strokeWidth={1.8} />
+                  </div>
+                  <p style={{ margin: 0, fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#9E4F27" }}>Share your own trace</p>
+                  <h3 id="share-trace-title" style={{ margin: "0.75rem auto 0", maxWidth: "32ch", fontFamily: "var(--font-display)", fontSize: "clamp(1.65rem, 4vw, 2.35rem)", fontWeight: 600, color: "#3A2A22", lineHeight: 1.08 }}>Want to share your own story of this location?</h3>
+                  <p style={{ margin: "0.85rem auto 0", maxWidth: "40ch", fontFamily: "var(--font-body)", color: "#5B4A40", fontSize: "1rem", lineHeight: 1.7 }}>Pin {storyLocation} on your map and write what happened there.</p>
+                  <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "0.45rem", marginTop: "1.15rem", borderRadius: "999px", border: "1px solid rgba(58,42,34,0.12)", backgroundColor: "rgba(251,247,240,0.72)", color: "#3A2A22", padding: "0.58rem 0.85rem", fontFamily: "var(--font-ui)", fontSize: "0.86rem", fontWeight: 750, lineHeight: 1.25 }}>
+                    <LockKeyhole size={14} strokeWidth={2} />
+                    <span>Exact coordinates are protected for this story</span>
+                  </div>
                 </div>
-                <div style={{ display: "flex", gap: "0.65rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", justifyContent: "center", marginTop: "1.45rem" }}>
                   <button
                     type="button"
                     onClick={handleViewStoryPin}
-                    style={{ display: "inline-flex", minHeight: 42, alignItems: "center", justifyContent: "center", gap: "0.45rem", borderRadius: "999px", border: "1px solid rgba(58,42,34,0.24)", backgroundColor: "#FBF7F0", color: "#3A2A22", padding: "0.62rem 1rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}
+                    style={{ display: "inline-flex", minHeight: 46, minWidth: 188, alignItems: "center", justifyContent: "center", gap: "0.45rem", borderRadius: "999px", border: "1px solid #3A2A22", backgroundColor: "transparent", color: "#3A2A22", padding: "0.72rem 1.15rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}
                   >
-                    <MapPin size={14} /> View this pin in the map
+                    <MapPin size={14} /> View This Pin in the Map
                   </button>
                   <button
                     type="button"
                     onClick={handlePinStoryLocation}
-                    style={{ display: "inline-flex", minHeight: 42, alignItems: "center", justifyContent: "center", gap: "0.45rem", borderRadius: "999px", border: "1px solid #3A2A22", backgroundColor: "#3A2A22", color: "#FBF7F0", padding: "0.62rem 1rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}
+                    style={{ display: "inline-flex", minHeight: 46, minWidth: 188, alignItems: "center", justifyContent: "center", gap: "0.45rem", borderRadius: "999px", border: "1px solid #3A2A22", backgroundColor: "#3A2A22", color: "#FBF7F0", padding: "0.72rem 1.15rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}
                   >
-                    <MapPin size={14} /> Pin this
+                    <MapPin size={14} /> Pin This
                   </button>
                 </div>
               </div>
-            </div>
+            </section>
           ) : null}
 
           {/* Comments */}
@@ -474,12 +562,12 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
             <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
               {comments.map((c) => (
                 <div key={c.id} style={{ display: "flex", gap: "0.75rem" }}>
-                  <img src={c.avatar} alt={c.author} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                  <img src={c.avatar || localAvatarDataUrl(c.author)} alt={c.author} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                   <div style={{ flex: 1 }}>
                     <div style={{ backgroundColor: "#EDEAE0", borderRadius: "0 0.75rem 0.75rem 0.75rem", padding: "0.75rem 1rem" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
                         <button onClick={() => viewProfile(c.author)} style={{ background: "none", border: "none", cursor: AUTHOR_KEY[c.author] ? "pointer" : "default", padding: 0, fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: "0.875rem", color: "#1A1A1A" }}>{c.author}</button>
-                        <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.72rem", color: "#9A9A8A" }}>{c.time}</span>
+                        <span style={{ fontFamily: "var(--font-ui)", fontSize: "0.72rem", color: "#9A9A8A" }}>{storyRelativeTime({ ...story, createdAt: c.createdAt })}</span>
                       </div>
                       <p style={{ fontFamily: "var(--font-body)", fontSize: "0.9rem", color: "#1A1A1A", lineHeight: 1.65, margin: 0 }}>{c.text}</p>
                     </div>
@@ -941,6 +1029,7 @@ function StoriesContent() {
 
   const deletePostedStory = async (story: TravelStory) => {
     if (!story.local) return;
+    if (!isOwnStory(story)) return;
     const nextLocalStories = readLocalStories().filter((item) => item.id !== story.id);
     deleteLocalStoryCascade(story.id);
     writeLocalStories(nextLocalStories);
@@ -982,6 +1071,23 @@ function StoriesContent() {
     setPendingStoryDelete(null);
   };
 
+  const updateStoryVisibility = (story: TravelStory, nextScope: MapScope) => {
+    if (!isOwnStory(story)) return;
+    const nextVisibility: TravelStory["visibility"] = nextScope === "group" ? "friends" : nextScope;
+    const updatedStory: TravelStory = { ...story, scope: nextScope, visibility: nextVisibility, updatedAt: new Date().toISOString() };
+    const nextLocalStories = readLocalStories().map((item) => (item.id === story.id ? updatedStory : item));
+    writeLocalStories(nextLocalStories);
+    setLocalStories(nextLocalStories);
+    setScopeFilter(nextScope === "group" ? "group" : nextScope === "private" ? "mine" : "public");
+  };
+
+  const updatePostedStory = (updatedStory: TravelStory) => {
+    if (!isOwnStory(updatedStory)) return;
+    const nextLocalStories = readLocalStories().map((item) => (item.id === updatedStory.id ? updatedStory : item));
+    writeLocalStories(nextLocalStories);
+    setLocalStories(nextLocalStories);
+  };
+
   if (activeStory !== null && activeIndex >= 0) {
     return (
       <>
@@ -993,6 +1099,8 @@ function StoriesContent() {
           hasPrev={activeIndex > 0}
           hasNext={activeIndex < filtered.length - 1}
           onDelete={(story) => setPendingStoryDelete(story)}
+          onVisibilityChange={updateStoryVisibility}
+          onEditStory={updatePostedStory}
         />
         <ConfirmDialog
           open={Boolean(pendingStoryDelete)}
@@ -1089,7 +1197,7 @@ function StoriesContent() {
               scopeFilter === "mine"
                 ? "Your posted stories will appear here after you drop a marker and save it as a story."
                 : scopeFilter === "group"
-                  ? "Group stories will appear here when a story is shared to one of your travel groups."
+                  ? "Collab stories will appear here when a story is shared to one of your travel groups."
                   : "Try another search term or category to find more public travel stories."
             }
           />

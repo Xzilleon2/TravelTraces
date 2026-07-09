@@ -9,7 +9,7 @@ class LoginRequest(BaseModel):
     model_config = STRICT_MODEL_CONFIG
 
     email: str = Field(..., min_length=3, max_length=254)
-    password: str = Field(..., min_length=12, max_length=256)
+    password: str = Field(..., min_length=8, max_length=256)
 
     @field_validator("email")
     @classmethod

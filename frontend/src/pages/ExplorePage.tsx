@@ -690,13 +690,7 @@ function ExploreContent() {
           </div>
         </div>
 
-        <div style={{ marginBottom: "1.75rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", marginTop: "0.5rem" }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#C4713A", display: "inline-block" }} />
-            <span style={{ fontSize: 15, fontWeight: 700, color: "#C4713A", fontFamily: "var(--font-ui)" }}>{filtered.length}</span>
-            <span style={{ fontSize: 13, fontWeight: 500, color: "#6B6B5A", fontFamily: "var(--font-ui)" }}>destinations found</span>
-          </div>
-        </div>
+        <div style={{ marginBottom: "1.75rem" }} />
 
         {filtered.length === 0 ? (
           <LargeEmptyState

@@ -10,6 +10,7 @@ import {
   Compass,
   Heart,
   Landmark,
+  LockKeyhole,
   MapPin,
   MessageCircle,
   Mountain,
@@ -23,8 +24,9 @@ import {
 } from "lucide-react";
 import { GatedPage } from "../components/GatedPage";
 import { DraggablePhotoFrame } from "../components/DraggablePhotoFrame";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, type User } from "../context/AuthContext";
 import { localAvatarDataUrl } from "../utils/localAvatar";
+import { readLocalTable } from "../services/localDb";
 import {
   completedDestinationCount,
   readTravelPlanStories,
@@ -86,9 +88,33 @@ function planReadTime(plan: TravelPlanStory): string {
 }
 
 function planDate(plan: TravelPlanStory): string {
-  const rawDate = plan.destinations.find((destination) => destination.dateVisited || destination.plannedDate)?.dateVisited ?? plan.createdAt;
+  const rawDate = plan.createdAt;
   const parsed = new Date(rawDate);
-  return Number.isNaN(parsed.getTime()) ? "Recently" : parsed.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return Number.isNaN(parsed.getTime()) ? "Recently" : parsed.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+}
+
+function relativeTimeFrom(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "recently";
+  const seconds = Math.max(1, Math.floor((Date.now() - parsed.getTime()) / 1000));
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} day${days === 1 ? "" : "s"} ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} mo ago`;
+  const years = Math.floor(months / 12);
+  return `${years} yr ago`;
+}
+
+function plannedMomentHasArrived(destination: TravelPlanDestination): boolean {
+  if (destination.status !== "planned") return true;
+  if (!destination.plannedDate || !destination.plannedTime) return false;
+  const planned = new Date(`${destination.plannedDate}T${destination.plannedTime}`);
+  return !Number.isNaN(planned.getTime()) && planned.getTime() <= Date.now();
 }
 
 function planCoordinates(plan: TravelPlanStory): string | null {
@@ -163,6 +189,8 @@ export function TravelPlanArticleView({
   const sortedDestinations = [...plan.destinations].sort((a, b) => a.order - b.order);
   const socialAvailable = isPublishedCompletedPlan(plan);
   const commentsAvailable = socialAvailable;
+  const ownerProfile = useMemo(() => readLocalTable<User>("users").find((row) => row.id === plan.ownerId) ?? null, [plan.ownerId]);
+  const ownerAvatar = ownerProfile?.avatar || localAvatarDataUrl(plan.ownerName);
   const canAttemptPublish = editable && status === "completed" && !plan.published;
   const hasRequiredCover = Boolean(plan.coverImage?.trim());
   const canPublish = canAttemptPublish && hasRequiredCover;
@@ -312,15 +340,13 @@ export function TravelPlanArticleView({
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", borderTop: "1px solid rgba(58,42,34,0.14)", borderBottom: "1px solid rgba(58,42,34,0.14)", padding: "1rem 0", flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
-              <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#3A2A22", color: "#FBF7F0", display: "grid", placeItems: "center", fontFamily: "var(--font-label)", fontSize: "0.8rem", fontWeight: 800 }}>
-                {plan.ownerName.slice(0, 1)}
-              </div>
+              <img src={ownerAvatar} alt={`${plan.ownerName} profile`} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", display: "block", border: "1px solid rgba(58,42,34,0.14)" }} />
               <div>
                 <span style={{ fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: "0.94rem", color: "#1A1A1A" }}>{plan.ownerName}</span>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: "#6B5A50", flexWrap: "wrap", marginTop: "0.15rem" }}>
                   <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.82rem", fontFamily: "var(--font-ui)" }}><BookOpen size={12} />{plan.destinations.length} points</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.82rem", fontFamily: "var(--font-ui)" }}><Clock size={12} />{planReadTime(plan)} read</span>
-                  <span style={{ fontSize: "0.82rem", fontFamily: "var(--font-ui)" }}>{planDate(plan)}</span>
+                  <span style={{ fontSize: "0.82rem", fontFamily: "var(--font-ui)" }}>Posted {planDate(plan)}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.82rem", fontFamily: "var(--font-ui)" }}><Clock size={12} />{relativeTimeFrom(plan.createdAt)}</span>
                 </div>
               </div>
             </div>
@@ -330,19 +356,6 @@ export function TravelPlanArticleView({
                 <button disabled={!canPublish} onClick={publishPlan} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.95rem", border: "1px solid #3A2A22", borderRadius: "999px", background: "#3A2A22", color: "#FBF7F0", cursor: canPublish ? "pointer" : "not-allowed", opacity: canPublish ? 1 : 0.55, fontSize: "0.8rem", fontFamily: "var(--font-label)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                   {canPublish ? "Publish" : "Cover required"}
                 </button>
-              ) : null}
-              {socialAvailable ? (
-                <>
-                  <button onClick={() => setLiked((value) => !value)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid", borderColor: liked ? "#C4713A" : "rgba(58,42,34,0.2)", borderRadius: "999px", background: liked ? "rgba(196,113,58,0.08)" : "none", color: liked ? "#C4713A" : "#6B5A50", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
-                    <Heart size={14} fill={liked ? "#C4713A" : "none"} /> {visibleLikes}
-                  </button>
-                  <button onClick={() => setSaved((value) => !value)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid", borderColor: saved ? "#3A2A22" : "rgba(58,42,34,0.2)", borderRadius: "999px", background: saved ? "rgba(58,42,34,0.08)" : "none", color: saved ? "#3A2A22" : "#6B5A50", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
-                    <Bookmark size={14} fill={saved ? "#3A2A22" : "none"} /> Save
-                  </button>
-                  <button style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid rgba(58,42,34,0.2)", borderRadius: "999px", background: "none", color: "#6B5A50", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
-                    <Share2 size={14} /> Share
-                  </button>
-                </>
               ) : null}
             </div>
           </div>
@@ -401,6 +414,20 @@ export function TravelPlanArticleView({
             <p style={{ fontFamily: "var(--font-body)", fontSize: "clamp(1.05rem, 1.7vw, 1.2rem)", lineHeight: 1.85, color: "#1A1A1A", marginBottom: "2rem" }}>{planDescription(plan)}</p>
           </div>
 
+          {socialAvailable ? (
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "0.65rem", flexWrap: "wrap", borderTop: "1px solid rgba(58,42,34,0.12)", borderBottom: "1px solid rgba(58,42,34,0.12)", padding: "1rem 0", margin: "0.25rem 0 2rem" }}>
+              <button onClick={() => setLiked((value) => !value)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid", borderColor: liked ? "#C4713A" : "rgba(58,42,34,0.2)", borderRadius: "999px", background: liked ? "rgba(196,113,58,0.08)" : "none", color: liked ? "#C4713A" : "#6B5A50", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
+                <Heart size={14} fill={liked ? "#C4713A" : "none"} /> {visibleLikes > 0 ? visibleLikes : "Like"}
+              </button>
+              <button onClick={() => setSaved((value) => !value)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid", borderColor: saved ? "#3A2A22" : "rgba(58,42,34,0.2)", borderRadius: "999px", background: saved ? "rgba(58,42,34,0.08)" : "none", color: saved ? "#3A2A22" : "#6B5A50", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
+                <Bookmark size={14} fill={saved ? "#3A2A22" : "none"} /> Save
+              </button>
+              <button style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", border: "1px solid rgba(58,42,34,0.2)", borderRadius: "999px", background: "none", color: "#6B5A50", cursor: "pointer", fontSize: "0.8rem", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
+                <Share2 size={14} /> Share
+              </button>
+            </div>
+          ) : null}
+
           <section style={{ display: "grid", gap: "3rem", marginBottom: "2.5rem" }}>
             {sortedDestinations.map((destination) => {
               const pointTitle = destination.title || destination.placeName || `Point ${destination.order}`;
@@ -409,6 +436,7 @@ export function TravelPlanArticleView({
               const primaryPhoto = destination.photos?.[0];
               const extraPhotos = destination.photos?.slice(1, 4) ?? [];
               const isEditing = editingDestinationId === destination.id;
+              const canWriteDestination = editable && plannedMomentHasArrived(destination);
               return (
                 <article
                   key={destination.id}
@@ -532,9 +560,9 @@ export function TravelPlanArticleView({
                     <div
                       onDoubleClick={(event) => {
                         event.stopPropagation();
-                        startDescriptionEdit(destination);
+                        if (canWriteDestination) startDescriptionEdit(destination);
                       }}
-                      title={editable ? "Double-click to write this description." : undefined}
+                      title={canWriteDestination ? "Double-click to write this description." : "This can be written once the scheduled date and time arrives."}
                     >
                       {(destination.description || "TYPE HERE").split("\n\n").map((paragraph) => (
                         <p key={paragraph} style={{ fontFamily: "var(--font-body)", fontSize: "clamp(1.05rem, 1.7vw, 1.2rem)", lineHeight: 1.85, color: destination.description ? "#1A1A1A" : "#7A685E", marginBottom: "1.25rem" }}>{paragraph}</p>
@@ -576,21 +604,32 @@ export function TravelPlanArticleView({
             })}
           </section>
 
-          <div style={{ borderTop: "1px solid rgba(58,42,34,0.12)", paddingTop: "1.75rem", margin: "0.5rem 0 1.75rem" }}>
-            <div style={{ backgroundColor: "#EFE7DC", border: "1px solid rgba(58,42,34,0.12)", borderRadius: "0.45rem", padding: "1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
-              <div>
-                <p style={{ margin: "0 0 0.35rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#9E6B5C" }}>Route overview</p>
-                <h3 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.35rem", fontWeight: 600, color: "#3A2A22", lineHeight: 1.1 }}>View the full route on the map</h3>
-                <p style={{ margin: "0.45rem 0 0", fontFamily: "var(--font-body)", color: "#5B4A40", lineHeight: 1.6 }}>
-                  {plan.destinations.length} points, {totalTravelDays(plan)} travel day{totalTravelDays(plan) === 1 ? "" : "s"}, {completedDestinationCount(plan)} documented.
+          <section aria-labelledby="route-overview-title" style={{ borderTop: "1px solid rgba(58,42,34,0.12)", paddingTop: "1.75rem", margin: "0.5rem 0 1.75rem" }}>
+            <div style={{ backgroundColor: "#EFE7DC", border: "1px solid rgba(58,42,34,0.14)", borderRadius: "0.9rem", padding: "clamp(2rem, 5vw, 2.5rem)", textAlign: "center" }}>
+              <div style={{ maxWidth: 480, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <div aria-hidden="true" style={{ width: 58, height: 58, borderRadius: "50%", display: "grid", placeItems: "center", backgroundColor: "rgba(196,113,58,0.12)", boxShadow: "0 0 0 9px rgba(196,113,58,0.06)", color: "#9E4F27", marginBottom: "1.05rem" }}>
+                  <MapPin size={24} strokeWidth={1.8} />
+                </div>
+                <p style={{ margin: 0, fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#9E4F27" }}>Route overview</p>
+                <h3 id="route-overview-title" style={{ margin: "0.75rem auto 0", maxWidth: "32ch", fontFamily: "var(--font-display)", fontSize: "clamp(1.65rem, 4vw, 2.35rem)", fontWeight: 600, color: "#3A2A22", lineHeight: 1.08 }}>Want to explore this full route on your map?</h3>
+                <p style={{ margin: "0.85rem auto 0", maxWidth: "40ch", fontFamily: "var(--font-body)", color: "#5B4A40", fontSize: "1rem", lineHeight: 1.7 }}>
+                  Open {plan.destinations.length} points across {totalTravelDays(plan)} travel day{totalTravelDays(plan) === 1 ? "" : "s"} as one general journey route.
                 </p>
-                {coordinates ? <p style={{ margin: "0.35rem 0 0", fontFamily: "var(--font-ui)", color: "#3A2A22", fontSize: "0.84rem", fontWeight: 700 }}>First point coordinates: {coordinates}</p> : null}
+                <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "0.45rem", marginTop: "1.15rem", borderRadius: "999px", border: "1px solid rgba(58,42,34,0.12)", backgroundColor: "rgba(251,247,240,0.72)", color: "#3A2A22", padding: "0.58rem 0.85rem", fontFamily: "var(--font-ui)", fontSize: "0.86rem", fontWeight: 750, lineHeight: 1.25 }}>
+                  <LockKeyhole size={14} strokeWidth={2} />
+                  <span>Route points are shown as general story locations, not live coordinates</span>
+                </div>
               </div>
-              <button type="button" onClick={() => openTravelPlanRouteInMap(plan, navigate)} style={{ display: "inline-flex", minHeight: 42, alignItems: "center", justifyContent: "center", gap: "0.45rem", borderRadius: "999px", border: "1px solid #3A2A22", backgroundColor: "#3A2A22", color: "#FBF7F0", padding: "0.62rem 1rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}>
-                <MapPin size={14} /> View route in map
-              </button>
+              <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", justifyContent: "center", marginTop: "1.45rem" }}>
+                <button type="button" onClick={() => openTravelPlanRouteInMap(plan, navigate)} style={{ display: "inline-flex", minHeight: 46, minWidth: 188, alignItems: "center", justifyContent: "center", gap: "0.45rem", borderRadius: "999px", border: "1px solid #3A2A22", backgroundColor: "transparent", color: "#3A2A22", padding: "0.72rem 1.15rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}>
+                  <MapPin size={14} /> View This Route in the Map
+                </button>
+                <button type="button" onClick={() => openTravelPlanRouteInMap(plan, navigate)} style={{ display: "inline-flex", minHeight: 46, minWidth: 188, alignItems: "center", justifyContent: "center", gap: "0.45rem", borderRadius: "999px", border: "1px solid #3A2A22", backgroundColor: "#3A2A22", color: "#FBF7F0", padding: "0.72rem 1.15rem", fontFamily: "var(--font-label)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}>
+                  <MapPin size={14} /> Pin This Route
+                </button>
+              </div>
             </div>
-          </div>
+          </section>
 
           {commentsAvailable ? (
           <div style={{ borderTop: "2px solid rgba(58,42,34,0.1)", paddingTop: "1.75rem", marginTop: "0.5rem" }}>

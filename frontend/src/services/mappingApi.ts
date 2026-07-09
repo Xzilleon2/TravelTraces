@@ -57,6 +57,7 @@ export type ApiPin = {
   scope: MapScope;
   creator_id: string;
   group_ids: string[];
+  collaboratorIds?: string[];
   source: "manual" | "search" | "exif" | "gps";
   media: Record<string, unknown> | null;
   photos?: Record<string, unknown>[];
@@ -252,6 +253,7 @@ export type TouristSpot = {
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 const USE_LOCAL_DB = !API_BASE_URL;
+const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_KEY ?? "l2E5iy9xxhzUX1SjABdO";
 
 async function localDb() {
   return import("./localDb");
@@ -315,7 +317,31 @@ export async function searchLocations(query: string, limit = 6): Promise<ApiLoca
       provider: "local-db",
       confidence: 0.85,
     }));
-    return [...places, ...pins].filter((item) => item.label.toLowerCase().includes(needle)).slice(0, limit);
+    const localMatches = [...places, ...pins]
+      .map((item) => ({ ...item, confidence: item.label.toLowerCase().startsWith(needle) ? 0.95 : item.confidence }))
+      .filter((item) => item.label.toLowerCase().includes(needle))
+      .slice(0, limit);
+    if (localMatches.length >= limit || !MAPTILER_KEY) return localMatches;
+    try {
+      const params = new URLSearchParams({
+        key: MAPTILER_KEY,
+        limit: String(Math.max(1, limit - localMatches.length)),
+        language: "en",
+      });
+      const response = await fetch(`https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?${params}`);
+      const data = (await response.json()) as { features?: Array<{ place_name?: string; text?: string; center?: [number, number]; relevance?: number }> };
+      const remoteMatches = (data.features ?? [])
+        .filter((feature) => Array.isArray(feature.center) && Number.isFinite(feature.center[0]) && Number.isFinite(feature.center[1]))
+        .map((feature) => ({
+          coordinate: [Number(feature.center?.[1]), Number(feature.center?.[0])] as [number, number],
+          label: feature.place_name || feature.text || query,
+          provider: "maptiler",
+          confidence: Math.max(0.55, Math.min(0.98, Number(feature.relevance) || 0.75)),
+        }));
+      return [...localMatches, ...remoteMatches].slice(0, limit);
+    } catch {
+      return localMatches;
+    }
   }
   const params = new URLSearchParams({ query, limit: String(limit) });
   const data = await requestJson<{ results: ApiLocation[] }>(`/api/search?${params}`);
@@ -331,9 +357,28 @@ export async function autocompleteLocations(query: string, limit = 8): Promise<A
 
 export async function reverseLocation(lat: number, lon: number): Promise<ApiLocation> {
   if (USE_LOCAL_DB) {
+    if (MAPTILER_KEY) {
+      try {
+        const params = new URLSearchParams({ key: MAPTILER_KEY, limit: "1", language: "en" });
+        const response = await fetch(`https://api.maptiler.com/geocoding/${lon},${lat}.json?${params}`);
+        const data = (await response.json()) as { features?: Array<{ place_name?: string; text?: string; relevance?: number }> };
+        const feature = data.features?.[0];
+        const label = feature?.place_name || feature?.text;
+        if (label) {
+          return {
+            coordinate: [lat, lon],
+            label,
+            provider: "maptiler",
+            confidence: Math.max(0.55, Math.min(0.98, Number(feature?.relevance) || 0.75)),
+          };
+        }
+      } catch {
+        // Use coordinate fallback below when geocoding is unavailable.
+      }
+    }
     return {
       coordinate: [lat, lon],
-      label: `Pinned location ${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+      label: `Selected place near ${lat.toFixed(4)}, ${lon.toFixed(4)}`,
       provider: "local-db",
       confidence: 0.7,
     };

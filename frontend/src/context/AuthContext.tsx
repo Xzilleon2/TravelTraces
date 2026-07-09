@@ -30,6 +30,9 @@ export type User = {
   groupIds: string[];
   friends: ConnectionProfile[];
   followers: ConnectionProfile[];
+  following?: ConnectionProfile[];
+  interests?: string[];
+  travelStyle?: string;
 };
 
 export const PLAN_LIMITS: Record<Plan, { pins: number; stories: number; photos: number }> = {
@@ -72,14 +75,21 @@ const EMPTY_USER_TEMPLATE: User = {
   groupIds: [],
   friends: [],
   followers: [],
+  following: [],
+  interests: [],
+  travelStyle: "",
 };
 
 function userFromAuth(auth: AuthUser, fallbackName?: string): User {
+  const joinedDate = auth.created_at
+    ? new Date(auth.created_at).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })
+    : new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
   return {
     ...EMPTY_USER_TEMPLATE,
     id: auth.user_id,
     email: auth.email,
     name: fallbackName ?? auth.email.split("@")[0],
+    joinedDate,
     groupIds: auth.group_ids,
   };
 }
@@ -100,14 +110,17 @@ function mergeStoredUser(authUser: User, storedUser: User | null): User {
     bio: storedUser.bio === "Island hopper - Storyteller - Palawan enthusiast." ? "" : storedUser.bio,
     nationality: storedUser.nationality === "Filipino" ? "" : storedUser.nationality,
     location: storedUser.location === "Quezon City, Metro Manila" ? "" : storedUser.location,
-    joinedDate: storedUser.joinedDate === "March 2023" ? "" : storedUser.joinedDate,
+    joinedDate: storedUser.joinedDate === "March 2023" ? authUser.joinedDate : storedUser.joinedDate || authUser.joinedDate,
     pinsCount: 0,
     storiesCount: 0,
     followersCount: 0,
     followingCount: 0,
     groupIds: authUser.groupIds,
-    friends: [],
-    followers: [],
+    friends: storedUser.friends ?? [],
+    followers: storedUser.followers ?? [],
+    following: storedUser.following ?? [],
+    interests: storedUser.interests ?? [],
+    travelStyle: storedUser.travelStyle ?? "",
   };
 }
 

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, ImagePlus, MapPin, X } from "lucide-react";
 import { DraggablePhotoFrame } from "./DraggablePhotoFrame";
+import { ImageCropDialog } from "./ImageCropDialog";
+import type { ConnectionProfile } from "../context/AuthContext";
 import type { ApiLocation, MapScope } from "../services/mappingApi";
 import {
   ALLOWED_MARKER_IMAGE_TYPES,
@@ -15,6 +17,7 @@ type Props = {
   open: boolean;
   location: ApiLocation | null;
   scope: MapScope;
+  friends?: ConnectionProfile[];
   onScopeChange?: (scope: MapScope) => void;
   onClose: () => void;
   onSave: (input: {
@@ -25,6 +28,7 @@ type Props = {
     category: string;
     scope: MapScope;
     photos: PendingMarkerPhoto[];
+    collaboratorIds: string[];
     source: "manual" | "exif" | "gps";
   }) => Promise<void>;
   busy?: boolean;
@@ -34,17 +38,19 @@ const markerCategories = ["Hiking", "Food Place", "Hidden Gems", "Beaches", "For
 const mapScopes: Array<{ value: MapScope; label: string }> = [
   { value: "private", label: "Private Map" },
   { value: "public", label: "Public Map" },
-  { value: "group", label: "Group Map" },
+  { value: "group", label: "Collab Map" },
 ];
 
-export function MarkerFormModal({ open, location, scope, onScopeChange, onClose, onSave, busy }: Props) {
+export function MarkerFormModal({ open, location, scope, friends = [], onScopeChange, onClose, onSave, busy }: Props) {
   const [placeName, setPlaceName] = useState("");
   const [title, setTitle] = useState("Travel memory");
   const [subtitle, setSubtitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Hidden Gems");
   const [selectedScope, setSelectedScope] = useState<MapScope>(scope);
+  const [collaboratorIds, setCollaboratorIds] = useState<string[]>([]);
   const [photos, setPhotos] = useState<PendingMarkerPhoto[]>([]);
+  const [cropPreviewUrl, setCropPreviewUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -60,9 +66,11 @@ export function MarkerFormModal({ open, location, scope, onScopeChange, onClose,
     setDescription("");
     setCategory("Hidden Gems");
     setSelectedScope(scope);
+    setCollaboratorIds([]);
     setPhotos([]);
+    setCropPreviewUrl("");
     setError(null);
-  }, [coordinateKey, open, location?.label, scope]);
+  }, [coordinateKey, open, location?.label]);
 
   if (!open || !location) return null;
 
@@ -109,13 +117,73 @@ export function MarkerFormModal({ open, location, scope, onScopeChange, onClose,
     );
   };
 
+  const applyPhotoCrop = (previewUrl: string, result: { dataUrl: string; x: number; y: number }) => {
+    setPhotos((current) =>
+      current.map((photo) =>
+        photo.previewUrl === previewUrl
+          ? {
+              ...photo,
+              previewUrl: result.dataUrl,
+              attachment: {
+                ...photo.attachment,
+                data_url: result.dataUrl,
+                preview_url: result.dataUrl,
+                thumbnail_url: result.dataUrl,
+                object_position: `${result.x}% ${result.y}%`,
+                photoPositionX: result.x,
+                photoPositionY: result.y,
+              },
+            }
+          : photo,
+      ),
+    );
+    setCropPreviewUrl("");
+  };
+
   return (
     <div className="absolute inset-x-3 bottom-28 top-20 z-40 overflow-y-auto rounded-xl border border-[#3A2A22]/12 bg-[#F5F0E8] text-[#1A1A1A] shadow-[0_20px_45px_rgba(27,37,38,0.22)] sm:inset-x-auto sm:bottom-auto sm:right-4 sm:top-4 sm:max-h-[calc(100%-7rem)] sm:w-[min(24rem,calc(100%-2rem))]">
+      <ImageCropDialog
+        open={Boolean(cropPreviewUrl)}
+        src={cropPreviewUrl}
+        title="Crop marker photo"
+        aspect={16 / 9}
+        onCancel={() => setCropPreviewUrl("")}
+        onSave={(result) => applyPhotoCrop(cropPreviewUrl, result)}
+      />
       <div className="flex items-center justify-between border-b border-[#3A2A22]/10 bg-[#3A2A22] px-5 py-4 text-[#F5F0E8]">
         <div>
           <p className="m-0 font-[var(--font-label)] text-xs uppercase tracking-[0.12em] text-[#F5F0E8]/75">Drop Marker</p>
           <h3 className="m-0 mt-1 font-[var(--font-display)] text-2xl">Create Travel Post</h3>
         </div>
+
+        {selectedScope === "group" ? (
+          <div className="rounded-lg border border-[#3A2A22]/12 bg-white p-3">
+            <span className="mb-2 block font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#3A2A22]">Collaborators</span>
+            {friends.length ? (
+              <div className="grid gap-2">
+                {friends.map((friend) => {
+                  const selected = collaboratorIds.includes(friend.id);
+                  return (
+                    <label key={friend.id} className="flex cursor-pointer items-center gap-3 rounded border border-[#3A2A22]/10 bg-[#F5F0E8] p-2 text-sm text-[#3A2A22]">
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={(event) =>
+                          setCollaboratorIds((current) =>
+                            event.target.checked ? [...new Set([...current, friend.id])] : current.filter((id) => id !== friend.id),
+                          )
+                        }
+                      />
+                      <span className="font-semibold">{friend.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="m-0 text-sm leading-6 text-[#6B5A50]">Add friends first before creating a Collab Map post.</p>
+            )}
+          </div>
+        ) : null}
         <button type="button" onClick={onClose} className="rounded-full bg-[#F5F0E8]/10 p-2" aria-label="Close marker form">
           <X size={18} />
         </button>
@@ -123,7 +191,7 @@ export function MarkerFormModal({ open, location, scope, onScopeChange, onClose,
 
       <div className="space-y-4 p-5">
         <div className="rounded bg-[#EDEAE0] p-3 text-sm text-[#6B6B5A]">
-          <span className="block font-semibold text-[#3A2A22]">Pinned location</span>
+          <span className="block font-semibold text-[#3A2A22]">{placeName || location.label || "Selected place"}</span>
           <span className="mt-1 block">
             {latitude.toFixed(5)}, {longitude.toFixed(5)}
           </span>
@@ -236,6 +304,7 @@ export function MarkerFormModal({ open, location, scope, onScopeChange, onClose,
                       x={photo.attachment.photoPositionX ?? 50}
                       y={photo.attachment.photoPositionY ?? 50}
                       onPositionChange={(position) => updatePhotoPosition(photo.previewUrl, position)}
+                      onEdit={() => setCropPreviewUrl(photo.previewUrl)}
                       className="h-28 w-full overflow-hidden rounded border border-[#3A2A22]/15"
                       imageClassName="h-full w-full object-cover"
                     />
@@ -268,13 +337,14 @@ export function MarkerFormModal({ open, location, scope, onScopeChange, onClose,
               category,
               scope: selectedScope,
               photos,
+              collaboratorIds,
               source: photos.some((item) => item.source === "exif") ? "exif" : photos.some((item) => item.source === "gps") ? "gps" : "manual",
             })
           }
           className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded bg-[#C4713A] px-4 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#F5F0E8] disabled:opacity-60"
         >
           <MapPin size={15} />
-          Save Marker
+          Post Story
         </button>
       </div>
     </div>

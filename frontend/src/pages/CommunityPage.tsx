@@ -6,6 +6,9 @@ import { useAuth } from "../context/AuthContext";
 import type { User } from "../context/AuthContext";
 import type { ApiPin, TravelGroup } from "../services/mappingApi";
 import { listLocalStories, readLocalTable } from "../services/localDb";
+import { getUserAchievementSummary } from "../services/achievementService";
+import { achievementRules, type AchievementIconKey } from "../services/achievementRules";
+import { getSocialStats, toggleFollow } from "../services/userData";
 
 type Traveller = {
   id: number;
@@ -23,23 +26,16 @@ type Traveller = {
   level: number;
 };
 
-type Challenge = {
-  id: number;
-  title: string;
-  desc: string;
-  progress: number;
-  total: number;
-  participants: number;
-  badge: string;
-  completed?: boolean;
-};
-
-const CHALLENGES: Challenge[] = [];
-const CHALLENGE_ICONS: Record<number, typeof Award> = {
-  1: MapPin,
-  2: Mountain,
-  3: Compass,
-  4: BookOpen,
+const CHALLENGE_ICONS: Record<AchievementIconKey, typeof Award> = {
+  pin: MapPin,
+  story: BookOpen,
+  sparkles: Compass,
+  bookmark: Award,
+  calendar: Mountain,
+  award: Award,
+  users: Users,
+  shield: ShieldCheck,
+  gem: Compass,
 };
 
 const tabs = ["Travellers", "Rankings", "Challenges"];
@@ -51,11 +47,6 @@ function localUserAvatar(user: User) {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
-function localUserLevel(input: { pins: number; stories: number; groups: number }) {
-  const unlocked = [input.pins > 0, input.stories >= 3, input.groups > 0, input.pins + input.stories >= 10].filter(Boolean).length;
-  return unlocked;
-}
-
 function emptyPanel(title: string, copy: string) {
   return (
     <div style={{ border: "1px dashed rgba(58, 42, 34, 0.2)", backgroundColor: "rgb(255, 249, 240)", borderRadius: "0.5rem", padding: "clamp(2rem, 5vw, 4rem)", textAlign: "center", boxShadow: "rgba(58, 42, 34, 0.06) 0px 18px 42px" }}>
@@ -65,8 +56,8 @@ function emptyPanel(title: string, copy: string) {
   );
 }
 
-function TravellerCard({ t, onViewProfile }: { t: Traveller; onViewProfile: (profileKey: string) => void }) {
-  const [following, setFollowing] = useState(false);
+function TravellerCard({ t, currentUser, profileUser, onViewProfile }: { t: Traveller; currentUser: User | null; profileUser: User; onViewProfile: (profileKey: string) => void }) {
+  const [following, setFollowing] = useState(Boolean(currentUser?.friends.some((friend) => friend.id === profileUser.id)));
   return (
     <div style={{ backgroundColor: "#EDEAE0", borderRadius: "0.25rem", padding: "1.5rem", display: "flex", gap: "1.25rem" }}>
       <button type="button" onClick={() => onViewProfile(t.profileKey)} style={{ border: "none", background: "none", padding: 0, cursor: "pointer", flexShrink: 0 }}>
@@ -81,7 +72,7 @@ function TravellerCard({ t, onViewProfile }: { t: Traveller; onViewProfile: (pro
           <button
             onClick={(event) => {
               event.stopPropagation();
-              setFollowing((v) => !v);
+              if (currentUser) setFollowing(toggleFollow(currentUser, profileUser));
             }}
             style={{
               display: "flex", alignItems: "center", gap: "0.35rem",
@@ -150,7 +141,8 @@ function CommunityContent() {
       const userStories = stories.filter((story) => story.ownerId === user.id || story.author === user.name);
       const userPins = pins.filter((pin) => pin.creator_id === user.id);
       const userGroups = groups.filter((group) => group.owner_id === user.id || group.members.some((member) => member.user_id === user.id));
-      const level = localUserLevel({ pins: userPins.length, stories: userStories.length, groups: userGroups.length });
+      const summary = getUserAchievementSummary(user);
+      const social = getSocialStats(user.id);
       return {
         id: index + 1,
         profileKey: user.id,
@@ -160,11 +152,11 @@ function CommunityContent() {
         avatar: localUserAvatar(user),
         pins: userPins.length,
         stories: userStories.length,
-        followers: 0,
+        followers: social.followersCount,
         bio: user.bio || "No bio added yet.",
         islands: userPins.length,
         rank: 0,
-        level,
+        level: summary.level.level,
       };
     });
     return rows
@@ -202,7 +194,10 @@ function CommunityContent() {
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search travellers..." style={{ width: "100%", padding: "0.75rem 1rem 0.75rem 2.5rem", backgroundColor: "#EDEAE0", border: "1px solid rgba(58,42,34,0.15)", borderRadius: "0.25rem", fontSize: "0.9rem", color: "#1A1A1A", fontFamily: "var(--font-ui)", outline: "none", boxSizing: "border-box" }} />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 400px), 1fr))", gap: "1rem" }}>
-              {visibleTravellers.map((t) => <TravellerCard key={t.id} t={t} onViewProfile={viewProfile} />)}
+              {visibleTravellers.map((t) => {
+                const profileUser = users.find((row) => row.id === t.profileKey);
+                return profileUser ? <TravellerCard key={t.id} t={t} currentUser={currentUser} profileUser={profileUser} onViewProfile={viewProfile} /> : null;
+              })}
             </div>
             {!visibleTravellers.length ? emptyPanel("No travellers here yet", "Registered TravelTraces users will appear here once they create a local account.") : null}
           </>
@@ -243,9 +238,9 @@ function CommunityContent() {
 
         {activeTab === "Challenges" && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap: "1.25rem" }}>
-            {CHALLENGES.map((c) => {
-              const unlocked = Boolean(c.completed) || c.progress >= c.total;
-              const Icon = CHALLENGE_ICONS[c.id] ?? ShieldCheck;
+            {(currentUser ? getUserAchievementSummary(currentUser).achievements : achievementRules.map((rule) => ({ ...rule, progress: 0, unlocked: false }))).map((c) => {
+              const unlocked = c.unlocked;
+              const Icon = CHALLENGE_ICONS[c.icon] ?? ShieldCheck;
               return (
                 <article key={c.id} className={`rounded-lg border p-4 transition ${unlocked ? "border-[#C4713A]/35 bg-[#FFF9F0]" : "border-[#3A2A22]/10 bg-[#EFE7DC]/70"}`}>
                   <div className="flex items-start gap-3">
@@ -257,19 +252,19 @@ function CommunityContent() {
                         <h3 className="m-0 font-[var(--font-display)] text-lg font-semibold leading-tight text-[#2C211C]">{c.title}</h3>
                         {unlocked ? <CheckCircle2 size={15} className="text-[#7A4B32]" aria-label="Unlocked" /> : null}
                       </div>
-                      <p className="m-0 mt-1 text-sm leading-5 text-[#5E4B40]">{c.desc}</p>
+                      <p className="m-0 mt-1 text-sm leading-5 text-[#5E4B40]">{c.detail}</p>
                       <div className="mt-4">
                         <div className="mb-2 flex items-center justify-between gap-3">
                           <span className="font-[var(--font-label)] text-[0.66rem] font-bold uppercase tracking-[0.1em] text-[#5E4B40]">Progress</span>
-                          <span className="font-[var(--font-label)] text-[0.66rem] font-bold uppercase tracking-[0.1em] text-[#2C211C]">{Math.min(c.progress, c.total)}/{c.total}</span>
+                          <span className="font-[var(--font-label)] text-[0.66rem] font-bold uppercase tracking-[0.1em] text-[#2C211C]">{Math.min(c.progress, c.target)}/{c.target}</span>
                         </div>
                         <div className="h-2 overflow-hidden rounded-full bg-[#D8D0C2]">
-                          <div className="h-full rounded-full bg-[#C4713A]" style={{ width: `${Math.min((c.progress / c.total) * 100, 100)}%` }} />
+                          <div className="h-full rounded-full bg-[#C4713A]" style={{ width: `${Math.min((c.progress / c.target) * 100, 100)}%` }} />
                         </div>
                       </div>
                       <div className="mt-3 flex items-center gap-2 text-[#5E4B40]">
                         <Users size={13} />
-                        <span className="font-[var(--font-ui)] text-xs font-semibold">{c.participants.toLocaleString()} participants</span>
+                        <span className="font-[var(--font-ui)] text-xs font-semibold">+{c.xp} XP</span>
                       </div>
                       <p className={`m-0 mt-3 font-[var(--font-label)] text-[0.66rem] font-bold uppercase tracking-[0.1em] ${unlocked ? "text-[#7A4B32]" : "text-[#5E4B40]"}`}>
                         {unlocked ? "Unlocked" : "Locked"}
@@ -279,7 +274,6 @@ function CommunityContent() {
                 </article>
               );
             })}
-            {!CHALLENGES.length ? emptyPanel("No challenges here yet", "Challenges will appear once you add local achievement rules for the prototype.") : null}
           </div>
         )}
 

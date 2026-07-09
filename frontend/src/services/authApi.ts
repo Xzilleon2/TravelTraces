@@ -1,13 +1,14 @@
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 const AUTH_SESSION_STORAGE_KEY = "traveltraces.authSessionActive";
 const LOCAL_AUTH_USER_KEY = "traveltraces.localAuthUserId";
-const PASSWORD_MIN_LENGTH = 12;
+const PASSWORD_MIN_LENGTH = 8;
 
 export type AuthUser = {
   user_id: string;
   email: string;
   group_ids: string[];
   token_expires_at: number;
+  created_at?: string;
 };
 
 export class ApiRequestError extends Error {
@@ -92,10 +93,9 @@ export async function loginWithBackend(email: string, password: string): Promise
   if (!API_BASE_URL) {
     const { readLocalTable } = await localDb();
     const account = readLocalTable<LocalAuthAccount>("authSessions").find((row) => row.email === normalizedEmail);
-    if (!account || account.password !== normalizedPassword) {
-      throw new ApiRequestError("No local account found with those credentials.", 401);
-    }
-    const auth = { user_id: account.user_id, email: account.email, group_ids: account.group_ids, token_expires_at: Date.now() + 1000 * 60 * 60 * 24 * 30 };
+    if (!account) throw new ApiRequestError("No account found. Please create an account first.", 401);
+    if (account.password !== normalizedPassword) throw new ApiRequestError("Incorrect password.", 401);
+    const auth = { user_id: account.user_id, email: account.email, group_ids: account.group_ids, token_expires_at: Date.now() + 1000 * 60 * 60 * 24 * 30, created_at: account.created_at };
     markAuthSessionActive(auth.user_id);
     return auth;
   }
@@ -122,17 +122,18 @@ export async function signupWithBackend(name: string, email: string, password: s
   if (!API_BASE_URL) {
     const { readLocalTable, upsertLocalRow } = await localDb();
     const existing = readLocalTable<LocalAuthAccount>("authSessions").find((row) => row.email === normalizedEmail);
-    if (existing) throw new ApiRequestError("A local account already exists with this email.", 409);
+    if (existing) throw new ApiRequestError("Email already exists.", 409);
     const auth: AuthUser = {
       user_id: `local-user-${Date.now()}`,
       email: normalizedEmail,
       group_ids: [],
       token_expires_at: Date.now() + 1000 * 60 * 60 * 24 * 30,
+      created_at: new Date().toISOString(),
     };
     upsertLocalRow<LocalAuthAccount>("authSessions", {
       ...auth,
       password: normalizedPassword,
-      created_at: new Date().toISOString(),
+      created_at: auth.created_at ?? new Date().toISOString(),
     }, (row) => row.user_id);
     markAuthSessionActive(auth.user_id);
     return auth;
@@ -168,7 +169,7 @@ export async function fetchCurrentUser(): Promise<AuthUser | null> {
       clearAuthSession();
       return null;
     }
-    return { user_id: account.user_id, email: account.email, group_ids: account.group_ids, token_expires_at: account.token_expires_at };
+    return { user_id: account.user_id, email: account.email, group_ids: account.group_ids, token_expires_at: account.token_expires_at, created_at: account.created_at };
   }
   try {
     return await requestJson<AuthUser>("/api/auth/me");

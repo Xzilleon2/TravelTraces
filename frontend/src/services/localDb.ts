@@ -40,7 +40,7 @@ export const localDbTables = {
   auditLog: `${LOCAL_DB_PREFIX}.audit_log`,
 } as const;
 
-type LocalDbTable = keyof typeof localDbTables;
+export type LocalDbTable = keyof typeof localDbTables;
 
 export type LocalStoryRecord = {
   id: number;
@@ -50,6 +50,8 @@ export type LocalStoryRecord = {
   region: string;
   readTime: string;
   date: string;
+  createdAt?: string;
+  updatedAt?: string;
   likes: number;
   saves: number;
   img: string;
@@ -61,6 +63,7 @@ export type LocalStoryRecord = {
   imagePosition?: string;
   storyPoint?: { place: string; coordinate: { lat: number; lon: number } };
   scope?: MapScope;
+  visibility?: "public" | "friends" | "private";
   ownerId?: string;
   groupIds?: string[];
   local?: boolean;
@@ -68,6 +71,55 @@ export type LocalStoryRecord = {
 
 function canUseStorage() {
   return typeof window !== "undefined" && Boolean(window.localStorage);
+}
+
+function placeholderImage(label = "TravelTraces") {
+  const safeLabel = label.replace(/[<>&"]/g, "").slice(0, 48) || "TravelTraces";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560"><rect width="900" height="560" fill="#EFE7DC"/><circle cx="450" cy="250" r="76" fill="#C4713A" opacity=".18"/><text x="50%" y="53%" text-anchor="middle" font-family="Georgia,serif" font-size="42" fill="#3A2A22">${safeLabel}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+function compactImageValue(value: unknown, fallbackLabel?: string): string {
+  const text = typeof value === "string" ? value : "";
+  if (!text) return placeholderImage(fallbackLabel);
+  return text.startsWith("data:image") && text.length > 360_000 ? placeholderImage(fallbackLabel) : text;
+}
+
+function compactStoryRecord(story: LocalStoryRecord): LocalStoryRecord {
+  const img = compactImageValue(story.img, story.title);
+  const photos = (story.photos ?? [img]).slice(0, 4).map((photo) => {
+    if (typeof photo === "string") return compactImageValue(photo, story.title);
+    const preview = compactImageValue(photo.preview_url ?? photo.data_url ?? photo.thumbnail_url ?? img, story.title);
+    return {
+      preview_url: preview,
+      thumbnail_url: preview,
+      object_position: typeof photo.object_position === "string" ? photo.object_position : story.imagePosition ?? "center center",
+      photoPositionX: typeof photo.photoPositionX === "number" ? photo.photoPositionX : undefined,
+      photoPositionY: typeof photo.photoPositionY === "number" ? photo.photoPositionY : undefined,
+    };
+  });
+  return { ...story, img, photos };
+}
+
+function compactPinRecord(pin: ApiPin): ApiPin {
+  const photos = (pin.photos ?? []).slice(0, 4).map((photo) => {
+    const preview = compactImageValue(photo.preview_url ?? photo.data_url ?? photo.thumbnail_url ?? "", pin.title);
+    return { ...photo, data_url: preview, preview_url: preview, thumbnail_url: preview };
+  });
+  const media = pin.media ? { ...pin.media } : null;
+  if (media) {
+    const preview = compactImageValue(media.preview_url ?? media.data_url ?? media.thumbnail_url ?? "", pin.title);
+    media.data_url = preview;
+    media.preview_url = preview;
+    media.thumbnail_url = preview;
+  }
+  return { ...pin, photos, media };
+}
+
+function rowsForStorage<T>(table: LocalDbTable, rows: T[]): T[] {
+  if (table === "stories") return (rows as LocalStoryRecord[]).map(compactStoryRecord) as T[];
+  if (table === "pins") return (rows as ApiPin[]).map(compactPinRecord) as T[];
+  return rows;
 }
 
 export function initializeLocalStorageSchema() {
@@ -94,7 +146,15 @@ export function readLocalTable<T>(table: LocalDbTable): T[] {
 
 export function writeLocalTable<T>(table: LocalDbTable, rows: T[]) {
   if (!canUseStorage()) return;
-  window.localStorage.setItem(localDbTables[table], JSON.stringify(rows));
+  const storageRows = rowsForStorage(table, rows);
+  try {
+    window.localStorage.setItem(localDbTables[table], JSON.stringify(storageRows));
+  } catch (error) {
+    if (!(error instanceof DOMException) || error.name !== "QuotaExceededError") throw error;
+    const compactRows = rowsForStorage(table, rows.slice(0, table === "stories" || table === "pins" ? 8 : rows.length));
+    window.localStorage.removeItem("traveltraces.localStories");
+    window.localStorage.setItem(localDbTables[table], JSON.stringify(compactRows));
+  }
   window.dispatchEvent(new CustomEvent("traveltraces:local-db-updated", { detail: { table } }));
 }
 
@@ -135,8 +195,13 @@ export function listLocalStories() {
 }
 
 export function writeLocalStories(stories: LocalStoryRecord[]) {
+  // NOTE: previously this also mirrored the full, uncompacted `stories` array to the
+  // legacy "traveltraces.localStories" key via a raw setItem with no try/catch. That
+  // duplicate write is why upsertLocalStory() could throw an uncaught QuotaExceededError
+  // even though writeLocalTable() above already compacts images and retries on quota
+  // errors. The legacy key is only ever read once (in migrateLegacyLocalStorage, as a
+  // one-time migration into the versioned table), so nothing needs to write back to it.
   writeLocalTable("stories", stories);
-  window.localStorage.setItem("traveltraces.localStories", JSON.stringify(stories));
   window.dispatchEvent(new CustomEvent("traveltraces:local-stories-updated"));
 }
 

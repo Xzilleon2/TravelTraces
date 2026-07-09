@@ -234,6 +234,8 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [groupNote, setGroupNote] = useState("");
+  const [groupMemberIds, setGroupMemberIds] = useState<string[]>([]);
+  const [groupError, setGroupError] = useState("");
 
   useEffect(() => {
     const refreshConversations = () => setConversations(readLocalConversations(ownerId));
@@ -261,6 +263,7 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
     setOptionsOpen(false);
     setCreateGroupOpen(false);
     setSearchQuery("");
+    setGroupError("");
   }, [open]);
 
   if (!open) return null;
@@ -286,8 +289,20 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
 
   const handleCreateGroup = () => {
     const name = groupName.trim();
-    if (!name) return;
-    const note = groupNote.trim() || "New travel group created.";
+    const note = groupNote.trim();
+    if (!name) {
+      setGroupError("Group name is required.");
+      return;
+    }
+    if (!note) {
+      setGroupError("First message is required.");
+      return;
+    }
+    const selectedFriends = (user?.friends ?? []).filter((friend) => groupMemberIds.includes(friend.id));
+    if (groupMemberIds.length !== selectedFriends.length) {
+      setGroupError("Only friends can be added to a group chat.");
+      return;
+    }
     const nextId = Math.max(...conversations.map((conv) => conv.id), 0) + 1;
     const created: Conv = {
       id: nextId,
@@ -300,9 +315,7 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
       unread: false,
       isGroup: true,
       label: "Travel Group",
-      messages: [
-        { id: Date.now(), from: "me", text: note, time: "Just now", read: true },
-      ],
+      messages: [{ id: Date.now(), from: "me", text: note, time: "Just now", read: true }],
     };
     updateConversationState((current) => [created, ...current]);
     const now = new Date().toISOString();
@@ -311,16 +324,28 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
       group_id: `chat-group-${nextId}`,
       name,
       owner_id: ownerId,
-      members: [{
-        user_id: ownerId,
-        display_name: user?.name ?? "You",
-        role: "Organizer",
-        phone: "",
-        avatar: user?.avatar ?? "",
-        admin: true,
-        location_sharing_enabled: true,
-        joined_at: now,
-      }],
+      members: [
+        {
+          user_id: ownerId,
+          display_name: user?.name ?? "You",
+          role: "Organizer",
+          phone: "",
+          avatar: user?.avatar ?? "",
+          admin: true,
+          location_sharing_enabled: true,
+          joined_at: now,
+        },
+        ...selectedFriends.map((friend) => ({
+          user_id: friend.id,
+          display_name: friend.name,
+          role: "Traveler" as const,
+          phone: "",
+          avatar: friend.avatar,
+          admin: false,
+          location_sharing_enabled: false,
+          joined_at: now,
+        })),
+      ],
       created_at: now,
       updated_at: now,
     };
@@ -329,6 +354,8 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
     setActiveConvId(nextId);
     setGroupName("");
     setGroupNote("");
+    setGroupMemberIds([]);
+    setGroupError("");
     setCreateGroupOpen(false);
     setOptionsOpen(false);
   };
@@ -379,6 +406,7 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
                           onClick={() => {
                             setCreateGroupOpen(true);
                             setOptionsOpen(false);
+                            setGroupError("");
                           }}
                           className="flex w-full items-center gap-2 px-3 py-3 text-left text-sm font-semibold text-[#3A2A22] transition hover:bg-[#EDEAE0]"
                         >
@@ -499,11 +527,35 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
               rows={4}
               className="mb-4 w-full resize-none rounded-lg border border-[#3A2A22]/15 bg-white px-3 py-2 text-sm leading-6 text-[#1A1A1A] outline-none placeholder:text-[#6B6B5A] focus:border-[#3A2A22]"
             />
+            <div className="mb-4 rounded-lg border border-[#3A2A22]/12 bg-white p-3">
+              <p className="m-0 mb-2 text-xs font-bold uppercase tracking-[0.08em] text-[#6B6B5A]">Group members</p>
+              {user?.friends?.length ? (
+                <div className="grid max-h-36 gap-2 overflow-y-auto pr-1">
+                  {user.friends.map((friend) => (
+                    <label key={friend.id} className="flex cursor-pointer items-center gap-3 rounded border border-[#3A2A22]/10 bg-[#F5F0E8] p-2 text-sm text-[#3A2A22]">
+                      <input
+                        type="checkbox"
+                        checked={groupMemberIds.includes(friend.id)}
+                        onChange={(event) =>
+                          setGroupMemberIds((current) =>
+                            event.target.checked ? [...new Set([...current, friend.id])] : current.filter((id) => id !== friend.id),
+                          )
+                        }
+                      />
+                      <span className="font-semibold">{friend.name}</span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="m-0 text-sm leading-6 text-[#6B6B5A]">Follow travellers first before adding members.</p>
+              )}
+            </div>
+            {groupError ? <p className="mb-3 rounded-lg border border-[#B23B2E]/25 bg-[#B23B2E]/10 p-3 text-sm font-semibold text-[#8A2F25]">{groupError}</p> : null}
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setCreateGroupOpen(false)} className="min-h-10 rounded-full border border-[#3A2A22]/15 px-4 text-sm font-bold text-[#3A2A22] transition hover:bg-[#EDEAE0]">
                 Cancel
               </button>
-              <button type="submit" disabled={!groupName.trim()} className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[#3A2A22] px-4 text-sm font-bold text-[#F5F0E8] transition hover:bg-[#4B352A] disabled:cursor-default disabled:bg-[#D8D4C8]">
+              <button type="submit" disabled={!groupName.trim() || !groupNote.trim()} className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[#3A2A22] px-4 text-sm font-bold text-[#F5F0E8] transition hover:bg-[#4B352A] disabled:cursor-default disabled:bg-[#D8D4C8]">
                 <Plus size={15} />
                 Create
               </button>

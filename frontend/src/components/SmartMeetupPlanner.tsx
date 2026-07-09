@@ -3,7 +3,8 @@ import { Coffee, MapPin, RefreshCw, Search, Sparkles, UserPlus, Users, X } from 
 import { ConfirmDialog } from "./ConfirmDialog";
 import type { ConnectionProfile } from "../context/AuthContext";
 import type { ApiLocation, MapScope, MeetupParticipantInput, MeetupPlan, MeetupSuggestion, ParticipantSource } from "../services/mappingApi";
-import { autocompleteLocations, suggestMeetup } from "../services/mappingApi";
+import { suggestMeetup } from "../services/mappingApi";
+import { smartPlaceSearch } from "../services/smartPlaceSearch";
 
 type PlannerParticipant = {
   localId: string;
@@ -129,12 +130,19 @@ function useParticipantSuggestions(query: string, limit = 5) {
     }
 
     let cancelled = false;
+    const controller = new AbortController();
     setBusy(true);
     const timer = window.setTimeout(() => {
-      autocompleteLocations(trimmed, Math.max(limit * 2, 8))
+      smartPlaceSearch(trimmed, { limit: Math.max(limit * 2, 8), signal: controller.signal })
         .then((matches) => {
           if (cancelled) return;
-          const merged = mergeLocations(limit, localMatches, matches);
+          const remoteMatches = matches.map((item) => ({
+            coordinate: [item.lat, item.lon] as [number, number],
+            label: item.displayName,
+            provider: item.source,
+            confidence: Math.max(0.35, Math.min(1, (item.score ?? 50) / 100)),
+          }));
+          const merged = mergeLocations(limit, localMatches, remoteMatches);
           cacheRef.current.set(cacheKey, merged);
           setResults(merged);
         })
@@ -148,6 +156,7 @@ function useParticipantSuggestions(query: string, limit = 5) {
 
     return () => {
       cancelled = true;
+      controller.abort();
       window.clearTimeout(timer);
     };
   }, [limit, query]);

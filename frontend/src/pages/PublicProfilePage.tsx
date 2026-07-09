@@ -20,12 +20,9 @@ import { GatedPage } from "../components/GatedPage";
 import type { User } from "../context/AuthContext";
 import type { ApiPin, TravelGroup } from "../services/mappingApi";
 import { listLocalStories, readLocalTable } from "../services/localDb";
+import { getSavedItemsByUser, getSocialStats } from "../services/userData";
 
 const LOCKED_BADGE_LIMIT = 12;
-
-function publicCount(seed: number, fallback: number): number {
-  return Number.isFinite(seed) && seed > 0 ? seed : fallback;
-}
 
 function localAvatar(user: User) {
   if (user.avatar) return user.avatar;
@@ -150,9 +147,10 @@ function PublicProfileView({ user }: { user: GamifiedUser }) {
     const locked = (Object.keys(BADGES) as BadgeId[]).filter((badgeId) => !unlockedBadgeSet.has(badgeId)).slice(0, Math.max(0, LOCKED_BADGE_LIMIT - user.badges.length));
     return [...user.badges, ...locked].slice(0, LOCKED_BADGE_LIMIT);
   }, [unlockedBadgeSet, user.badges]);
-  const followersCount = publicCount(Math.round(user.xp / 9), user.storiesCount * 36);
-  const followingCount = publicCount(user.communitiesJoined * 27, 48);
-  const savedPlacesCount = publicCount(user.badges.length + Math.round(user.pinsCount / 3), user.storiesCount);
+  const socialStats = getSocialStats(user.id);
+  const followersCount = socialStats.followersCount;
+  const followingCount = socialStats.followingCount;
+  const savedPlacesCount = getSavedItemsByUser(user.id).length;
   const travelGroupsCount = user.communitiesJoined;
 
   const handleShare = () => {

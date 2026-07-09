@@ -39,7 +39,7 @@ async def signup(response: Response, payload: SignupRequest) -> AuthUserResponse
             now=utc_now(),
         )
     except sqlite3.IntegrityError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email or username is already registered.") from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already exists.") from exc
     token, expires_at = create_access_token(user_id=user["user_id"], email=user["email"], group_ids=user["group_ids"])
     set_session_cookie(response, token)
     return AuthUserResponse(user_id=user["user_id"], email=user["email"], group_ids=user["group_ids"], token_expires_at=expires_at)
@@ -49,7 +49,9 @@ async def signup(response: Response, payload: SignupRequest) -> AuthUserResponse
 async def login(request: Request, response: Response, payload: LoginRequest) -> AuthUserResponse:
     await enforce_login_rate_limit(request, payload.email)
     db_user = store.db.get_user_by_email(payload.email)
-    if db_user and verify_password(payload.password, db_user["password_hash"]):
+    if db_user:
+        if not verify_password(payload.password, db_user["password_hash"]):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password.")
         user_id = db_user["user_id"]
         group_ids = db_user["group_ids"]
     elif settings.bootstrap_user_email and settings.bootstrap_user_password_hash and bootstrap_credentials_match(payload.email, payload.password):
@@ -67,7 +69,7 @@ async def login(request: Request, response: Response, payload: LoginRequest) -> 
             detail="Authentication provider is not configured.",
         )
     else:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No account found. Please create an account first.")
 
     token, expires_at = create_access_token(
         user_id=user_id,

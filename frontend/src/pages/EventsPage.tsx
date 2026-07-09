@@ -622,11 +622,7 @@ function EventsContent() {
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", margin: "0.5rem 0 1.75rem" }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#C4713A", display: "inline-block" }} />
-          <span style={{ fontSize: 15, fontWeight: 700, color: "#C4713A", fontFamily: "var(--font-ui)" }}>{filtered.length}</span>
-          <span style={{ fontSize: 13, fontWeight: 500, color: "#6B6B5A", fontFamily: "var(--font-ui)" }}>events found</span>
-        </div>
+        <div style={{ marginBottom: "1.75rem" }} />
 
         {joined.length > 0 && (
           <div style={{ backgroundColor: "rgba(158,107,92,0.12)", border: "1px solid rgba(158,107,92,0.3)", borderRadius: "0.25rem", padding: "0.75rem 1.25rem", marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>

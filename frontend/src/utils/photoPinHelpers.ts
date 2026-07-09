@@ -54,6 +54,31 @@ export function safeClientFilename(value: string) {
 
 export function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
+    if (file.type.startsWith("image/")) {
+      const image = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      image.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const maxSide = 900;
+        const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        const context = canvas.getContext("2d");
+        if (!context) {
+          reject(new Error("Could not prepare photo."));
+          return;
+        }
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.76));
+      };
+      image.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("Could not read photo."));
+      };
+      image.src = objectUrl;
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result || ""));
     reader.onerror = () => reject(new Error("Could not read photo."));
@@ -115,6 +140,7 @@ export type MarkerSaveInput = {
   scope: MapScope;
   creatorId: string;
   groupIds: string[];
+  collaboratorIds?: string[];
   mapId?: string | null;
   address?: string;
   photos: PendingMarkerPhoto[];
@@ -140,6 +166,7 @@ export function markerSavePayload(input: MarkerSaveInput) {
     scope: input.scope,
     creatorId: input.creatorId,
     groupIds: input.groupIds,
+    collaboratorIds: input.collaboratorIds ?? [],
     mapId: input.mapId,
     address: input.address ?? "",
     source,

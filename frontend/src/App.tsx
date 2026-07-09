@@ -19,7 +19,6 @@ const MappingLayerPage = lazy(() => import("./pages/MappingLayerPage"));
 const MapsWorkspacePage = lazy(() => import("./pages/MapsWorkspacePage"));
 const GeoreferencedPhotosPage = lazy(() => import("./pages/GeoreferencedPhotosPage"));
 const TravelGroupsPage = lazy(() => import("./pages/TravelGroupsPage"));
-const SavedTouristSpotsPage = lazy(() => import("./pages/SavedTouristSpotsPage"));
 const AccountDeletionPage = lazy(() => import("./pages/AccountDeletionPage"));
 const CommunityPage = lazy(() => import("./pages/CommunityPage"));
 const EventsPage = lazy(() => import("./pages/EventsPage"));
@@ -562,7 +561,6 @@ function AppLayout() {
             <Route path="/map/layers" element={<MappingLayerPage />} />
             <Route path="/geo-photos" element={<GeoreferencedPhotosPage />} />
             <Route path="/travel-groups" element={<TravelGroupsPage />} />
-            <Route path="/saved-places" element={<SavedTouristSpotsPage />} />
             <Route path="/community" element={<CommunityPage />} />
             <Route path="/events" element={<EventsPage />} />
             <Route path="/profile" element={<ProfilePage />} />

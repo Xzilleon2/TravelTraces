@@ -8,13 +8,14 @@ type DraggablePhotoFrameProps = {
   className?: string;
   imageClassName?: string;
   onPositionChange: (position: { x: number; y: number }) => void;
+  onEdit?: () => void;
 };
 
 function clampPercent(value: number) {
   return Math.max(0, Math.min(100, value));
 }
 
-export function DraggablePhotoFrame({ src, alt = "", x = 50, y = 50, className, imageClassName, onPositionChange }: DraggablePhotoFrameProps) {
+export function DraggablePhotoFrame({ src, alt = "", x = 50, y = 50, className, imageClassName, onPositionChange, onEdit }: DraggablePhotoFrameProps) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -44,6 +45,7 @@ export function DraggablePhotoFrame({ src, alt = "", x = 50, y = 50, className, 
         event.currentTarget.releasePointerCapture(event.pointerId);
       }}
       onPointerCancel={() => setDragging(false)}
+      onDoubleClick={onEdit}
       style={{ touchAction: "none", cursor: dragging ? "grabbing" : "grab" }}
     >
       <img

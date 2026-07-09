@@ -98,16 +98,24 @@ async def search_locations(
 
 
 @router.get("/autocomplete", response_model=SearchResponse)
+@router.get("/mapping/autocomplete", response_model=SearchResponse)
 async def autocomplete_locations(
-    query: str = Query(..., min_length=1, max_length=160),
+    query: str | None = Query(default=None, min_length=1, max_length=160),
+    q: str | None = Query(default=None, min_length=1, max_length=160),
+    lat: float | None = Query(default=None, ge=-90, le=90),
+    lon: float | None = Query(default=None, ge=-180, le=180),
     limit: int = Query(default=8, ge=1, le=12),
 ) -> SearchResponse:
+    query = query or q
+    if not query:
+        raise HTTPException(status_code=422, detail="Search query is required.")
     query = clean_plain_text(query, max_length=160, field_name="query") or query
     results = await geocoder.autocomplete(query=query, limit=limit)
     return SearchResponse(query=query, results=[_location_response(item) for item in results])
 
 
 @router.get("/reverse", response_model=LocationResponse)
+@router.get("/mapping/reverse-geocode", response_model=LocationResponse)
 async def reverse_geocode(
     lat: float = Query(..., ge=-90, le=90),
     lon: float = Query(..., ge=-180, le=180),

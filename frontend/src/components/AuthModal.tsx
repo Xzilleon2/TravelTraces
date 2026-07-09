@@ -4,7 +4,8 @@ import { ArrowLeft, ArrowRight, Eye, EyeOff, LockKeyhole, Mail, UserRound, X } f
 import { useAuth } from "../context/AuthContext";
 import { LANDING_IMAGE_SOURCES } from "../pages/landingAssets";
 
-const PASSWORD_MIN_LENGTH = 12;
+const PASSWORD_MIN_LENGTH = 8;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function AuthModal() {
   const { authModalOpen, authMode, authError, closeAuthModal, login, signup, openAuthModal } = useAuth();
@@ -12,7 +13,9 @@ export function AuthModal() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
 
@@ -20,8 +23,10 @@ export function AuthModal() {
     setName("");
     setEmail("");
     setPassword("");
+    setConfirmPassword("");
     setError("");
     setShowPassword(false);
+    setShowConfirmPassword(false);
   }, [authMode, authModalOpen]);
 
   useEffect(() => {
@@ -42,29 +47,31 @@ export function AuthModal() {
     const normalizedEmail = email.trim();
     const normalizedPassword = password.trim();
 
-    if (!normalizedEmail || !normalizedPassword) {
-      setError("Please fill in all required fields.");
+    const normalizedConfirmPassword = confirmPassword.trim();
+
+    if (!normalizedEmail || !normalizedPassword || (authMode === "signup" && (!normalizedName || !normalizedConfirmPassword))) {
+      setError("Missing required fields.");
       return;
     }
 
-    if (!normalizedEmail.includes("@")) {
-      setError("Enter a valid email address.");
+    if (!EMAIL_PATTERN.test(normalizedEmail)) {
+      setError("Invalid email format.");
       return;
     }
 
     if (normalizedPassword.length < PASSWORD_MIN_LENGTH) {
-      setError(`Password must be at least ${PASSWORD_MIN_LENGTH} characters.`);
+      setError("Password too short.");
       return;
     }
 
     if (authMode === "signup") {
-      if (!normalizedName) {
-        setError("Please enter your full name.");
+      if (normalizedPassword !== normalizedConfirmPassword) {
+        setError("Passwords do not match.");
         return;
       }
 
       const result = await signup(normalizedName, normalizedEmail, normalizedPassword);
-      if (result.ok) navigate("/maps");
+      if (result.ok) navigate("/explore");
       else setError(result.error ?? authError ?? "Sign up failed. Check your details and try again.");
       return;
     }
@@ -141,12 +148,12 @@ export function AuthModal() {
                   type="text"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  placeholder="Maria Santos"
+                  placeholder="Username"
                   style={inputStyle}
                 />
               </div>
-            </label>
-          ) : null}
+          </label>
+        ) : null}
 
           <label className="travel-auth-field">
             <span>Email address</span>
@@ -161,6 +168,31 @@ export function AuthModal() {
               />
             </div>
           </label>
+
+          {authMode === "signup" ? (
+            <label className="travel-auth-field">
+              <span>Confirm password</span>
+              <div>
+                <LockKeyhole size={18} />
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  minLength={PASSWORD_MIN_LENGTH}
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder="Confirm your password"
+                  style={inputStyle}
+                />
+                <button
+                  type="button"
+                  className="travel-auth-eye"
+                  onClick={() => setShowConfirmPassword((value) => !value)}
+                  aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                >
+                  {showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </div>
+            </label>
+          ) : null}
 
           <label className="travel-auth-field">
             <span>Password</span>
