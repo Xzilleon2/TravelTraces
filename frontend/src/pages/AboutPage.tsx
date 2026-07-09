@@ -31,6 +31,16 @@ const TEAM = [
     number: "03",
     portrait: hersheyImg,
   },
+
+  {
+    name: "Bern Francis Gutierrez",
+    role: "Chief Creative Officer" ,
+    location: "Davao City",
+    number: "04",
+    portrait: localAvatarDataUrl("Bern Francis Gutierrez"),
+  },
+  
+
 ];
 
 export default function AboutPage() {
@@ -140,7 +150,7 @@ export default function AboutPage() {
           </div>
 
           {/* Member cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "2px" }} className="team-grid">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "2px" }} className="team-grid">
             {TEAM.map((member, i) => (
               <div
                 key={member.name}
