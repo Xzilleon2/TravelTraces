@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, BookOpen, ImagePlus, MapPin, Plus, Trash2, X } from "lucide-react";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { DraggablePhotoFrame } from "./DraggablePhotoFrame";
 import type { ApiLocation } from "../services/mappingApi";
 import { fileToDataUrl } from "../utils/photoPinHelpers";
 
@@ -24,6 +25,8 @@ type Props = {
     subtitle?: string;
     coverImage?: string;
     coverPosition?: string;
+    coverPositionX?: number;
+    coverPositionY?: number;
     description?: string;
     stops: PlannedStop[];
   }) => void;
@@ -47,18 +50,6 @@ function addDaysKey(startDate: Date, days: number): string {
 
 const todayDate = () => new Date().toISOString().slice(0, 10);
 const stopCategories = ["Hiking", "Food Place", "Hidden Gems", "Beaches", "Forest", "Culture", "More"];
-const coverPositions = [
-  { label: "Top left", short: "TL", value: "left top" },
-  { label: "Top", short: "T", value: "center top" },
-  { label: "Top right", short: "TR", value: "right top" },
-  { label: "Left", short: "L", value: "left center" },
-  { label: "Center", short: "C", value: "center center" },
-  { label: "Right", short: "R", value: "right center" },
-  { label: "Bottom left", short: "BL", value: "left bottom" },
-  { label: "Bottom", short: "B", value: "center bottom" },
-  { label: "Bottom right", short: "BR", value: "right bottom" },
-];
-
 function travelPlanConflictMessage(stops: PlannedStop[]): string | null {
   const today = todayDate();
   if (stops.some((stop) => !stop.plannedDate || !stop.plannedTime)) return "Each destination needs a planned date and time before saving.";
@@ -85,7 +76,8 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
   const [travelPlanName, setTravelPlanName] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [coverImage, setCoverImage] = useState("");
-  const [coverPosition, setCoverPosition] = useState("center center");
+  const [coverPositionX, setCoverPositionX] = useState(50);
+  const [coverPositionY, setCoverPositionY] = useState(50);
   const [description, setDescription] = useState("");
   const [plannedStops, setPlannedStops] = useState<PlannedStop[]>([]);
   const [pendingStopDelete, setPendingStopDelete] = useState<number | null>(null);
@@ -96,7 +88,8 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
     setTravelPlanName("");
     setSubtitle("");
     setCoverImage("");
-    setCoverPosition("center center");
+    setCoverPositionX(50);
+    setCoverPositionY(50);
     setDescription("");
     setPendingStopDelete(null);
     const today = new Date();
@@ -196,27 +189,19 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
           <input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => void handleCoverFile(event.target.files)} />
           {coverImage ? (
             <div className="grid gap-2 rounded-lg border border-[#3A2A22]/12 bg-white p-2">
-              <img src={coverImage} alt="" className="h-32 w-full rounded-lg object-cover" style={{ objectPosition: coverPosition }} />
-              <div>
-                <span className="mb-1 block font-[var(--font-label)] text-[0.62rem] font-bold uppercase tracking-[0.08em] text-[#6B5A50]">Visible crop area</span>
-                <div className="grid grid-cols-3 gap-1">
-                  {coverPositions.map((position) => {
-                    const active = coverPosition === position.value;
-                    return (
-                      <button
-                        key={position.value}
-                        type="button"
-                        onClick={() => setCoverPosition(position.value)}
-                        className={`min-h-7 rounded border text-[0.62rem] font-bold ${active ? "border-[#3A2A22] bg-[#3A2A22] text-[#F5F0E8]" : "border-[#3A2A22]/12 bg-[#F5F0E8] text-[#3A2A22]"}`}
-                        aria-label={`Show ${position.label.toLowerCase()} of cover photo`}
-                        title={position.label}
-                      >
-                        {position.short}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              <DraggablePhotoFrame
+                src={coverImage}
+                alt=""
+                x={coverPositionX}
+                y={coverPositionY}
+                onPositionChange={(position) => {
+                  setCoverPositionX(position.x);
+                  setCoverPositionY(position.y);
+                }}
+                className="h-32 w-full overflow-hidden rounded-lg"
+                imageClassName="h-full w-full object-cover"
+              />
+              <p className="m-0 text-xs leading-5 text-[#6B5A50]">Drag the cover image to choose what part appears on the card.</p>
             </div>
           ) : null}
         </div>
@@ -323,7 +308,9 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
               travelPlanName: travelPlanName.trim(),
               subtitle: subtitle.trim() || undefined,
               coverImage: coverImage.trim() || undefined,
-              coverPosition,
+              coverPosition: `${coverPositionX}% ${coverPositionY}%`,
+              coverPositionX,
+              coverPositionY,
               description: description.trim() || undefined,
               stops: plannedStops.map((stop) => ({ ...stop, label: stop.label.trim() || "Destination" })),
             });

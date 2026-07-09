@@ -31,6 +31,8 @@ export type TravelPlanStory = {
   subtitle?: string;
   coverImage?: string;
   coverPosition?: string;
+  coverPositionX?: number;
+  coverPositionY?: number;
   description?: string;
   likesCount?: number;
   savesCount?: number;
@@ -50,6 +52,8 @@ export type TravelPlanDraftInput = {
   subtitle?: string;
   coverImage?: string;
   coverPosition?: string;
+  coverPositionX?: number;
+  coverPositionY?: number;
   description?: string;
   stops: Array<ApiLocation & { plannedDay?: number; plannedDate?: string; plannedTime?: string; notes?: string; category?: string }>;
   routeGeometry?: [number, number][];
@@ -77,7 +81,18 @@ export function canPublishTravelPlan(plan: TravelPlanStory): boolean {
   return albumUnlocked(plan) && Boolean(plan.coverImage?.trim());
 }
 
+function numericCoverPosition(plan: TravelPlanStory) {
+  if (Number.isFinite(plan.coverPositionX) && Number.isFinite(plan.coverPositionY)) {
+    return { x: Math.max(0, Math.min(100, Number(plan.coverPositionX))), y: Math.max(0, Math.min(100, Number(plan.coverPositionY))) };
+  }
+  const position = plan.coverPosition ?? "50% 50%";
+  const x = position.includes("left") ? 0 : position.includes("right") ? 100 : Number(position.match(/(\d+(?:\.\d+)?)%/)?.[1] ?? 50);
+  const y = position.includes("top") ? 0 : position.includes("bottom") ? 100 : Number(position.match(/\d+(?:\.\d+)?%\s+(\d+(?:\.\d+)?)%/)?.[1] ?? 50);
+  return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
+}
+
 export function normalizeTravelPlan(plan: TravelPlanStory): TravelPlanStory {
+  const cover = numericCoverPosition(plan);
   const destinations = plan.destinations
     .map((destination, index) => ({
       ...destination,
@@ -91,7 +106,9 @@ export function normalizeTravelPlan(plan: TravelPlanStory): TravelPlanStory {
 
   return {
     ...plan,
-    coverPosition: plan.coverPosition || "center center",
+    coverPosition: `${cover.x}% ${cover.y}%`,
+    coverPositionX: cover.x,
+    coverPositionY: cover.y,
     likesCount: Math.max(0, Number(plan.likesCount) || 0),
     savesCount: Math.max(0, Number(plan.savesCount) || 0),
     commentsCount: Math.max(0, Number(plan.commentsCount) || 0),
@@ -140,7 +157,9 @@ export function createTravelPlanStory(input: TravelPlanDraftInput): TravelPlanSt
     travelPlanName: input.travelPlanName.trim() || "Untitled Travel Plan",
     subtitle: input.subtitle?.trim() || undefined,
     coverImage: input.coverImage,
-    coverPosition: input.coverPosition || "center center",
+    coverPosition: input.coverPosition || `${input.coverPositionX ?? 50}% ${input.coverPositionY ?? 50}%`,
+    coverPositionX: input.coverPositionX ?? 50,
+    coverPositionY: input.coverPositionY ?? 50,
     description: input.description,
     likesCount: 0,
     savesCount: 0,

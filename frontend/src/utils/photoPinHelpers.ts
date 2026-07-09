@@ -8,6 +8,8 @@ export type PhotoAttachment = {
   preview_url: string;
   thumbnail_url?: string;
   object_position?: string;
+  photoPositionX?: number;
+  photoPositionY?: number;
   captured_at?: string;
   source: "upload" | "exif" | "gps" | "camera";
   data_url?: string;
@@ -66,7 +68,9 @@ export function buildPhotoAttachment(file: File, previewUrl: string, dataUrl: st
     size_bytes: file.size,
     preview_url: previewUrl,
     thumbnail_url: previewUrl,
-    object_position: "center center",
+    object_position: "50% 50%",
+    photoPositionX: 50,
+    photoPositionY: 50,
     captured_at: new Date().toISOString(),
     source,
     data_url: dataUrl,
@@ -85,7 +89,9 @@ export function photosFromPin(pin: ApiPin): PhotoAttachment[] {
         size_bytes: Number(pin.media.size_bytes ?? 0),
         preview_url: String(pin.media.preview_url),
         thumbnail_url: String(pin.media.thumbnail_url ?? pin.media.preview_url),
-        object_position: typeof pin.media.object_position === "string" ? pin.media.object_position : "center center",
+        object_position: typeof pin.media.object_position === "string" ? pin.media.object_position : "50% 50%",
+        photoPositionX: Number(pin.media.photoPositionX ?? 50),
+        photoPositionY: Number(pin.media.photoPositionY ?? 50),
         source: pin.source === "exif" || pin.source === "gps" ? pin.source : "upload",
       },
     ];

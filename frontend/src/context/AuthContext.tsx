@@ -88,6 +88,29 @@ function readStoredUser(userId: string): User | null {
   return readLocalTable<User>("users").find((row) => row.id === userId) ?? null;
 }
 
+function mergeStoredUser(authUser: User, storedUser: User | null): User {
+  if (!storedUser) return authUser;
+  const legacyAvatar = storedUser.avatar.includes("images.unsplash.com/photo-1601632650940-3903583a835d");
+  return {
+    ...authUser,
+    ...storedUser,
+    id: authUser.id,
+    email: storedUser.email || authUser.email,
+    avatar: legacyAvatar ? "" : storedUser.avatar,
+    bio: storedUser.bio === "Island hopper - Storyteller - Palawan enthusiast." ? "" : storedUser.bio,
+    nationality: storedUser.nationality === "Filipino" ? "" : storedUser.nationality,
+    location: storedUser.location === "Quezon City, Metro Manila" ? "" : storedUser.location,
+    joinedDate: storedUser.joinedDate === "March 2023" ? "" : storedUser.joinedDate,
+    pinsCount: 0,
+    storiesCount: 0,
+    followersCount: 0,
+    followingCount: 0,
+    groupIds: authUser.groupIds,
+    friends: [],
+    followers: [],
+  };
+}
+
 function persistStoredUser(user: User): User {
   return upsertLocalRow<User>("users", user, (row) => row.id);
 }
@@ -105,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (auth) {
           const authUser = userFromAuth(auth);
           const storedUser = readStoredUser(authUser.id);
-          const nextUser = persistStoredUser(storedUser ? { ...authUser, ...storedUser, id: authUser.id, email: storedUser.email || authUser.email } : authUser);
+          const nextUser = persistStoredUser(mergeStoredUser(authUser, storedUser));
           setUser(nextUser);
         }
       })
@@ -118,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const auth = await loginWithBackend(email, password);
       const authUser = userFromAuth(auth);
       const storedUser = readStoredUser(authUser.id);
-      setUser(persistStoredUser(storedUser ? { ...authUser, ...storedUser, id: authUser.id, email: storedUser.email || authUser.email } : authUser));
+      setUser(persistStoredUser(mergeStoredUser(authUser, storedUser)));
       setAuthModalOpen(false);
       return { ok: true };
     } catch (error) {

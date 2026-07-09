@@ -5,6 +5,7 @@ import { GatedPage } from "../components/GatedPage";
 import { LargeEmptyState } from "../components/LargeEmptyState";
 import { HostTourMeetupForm, type HostTourPlace } from "../components/HostTourMeetupForm";
 import { listHostedTourMeetups, type HostedTourMeetupRecord } from "../services/eventsApi";
+import { localAvatarDataUrl } from "../utils/localAvatar";
 
 const ORGANISER_KEY: Record<string, string> = {
   "Carlo Reyes": "carlo",
@@ -73,7 +74,7 @@ function hostedRecordToEvent(record: HostedTourMeetupRecord): EventItem {
     time: formatStoredTime(record.time),
     location: `${record.destinationTitle}, ${record.province}`,
     organiser: record.organizerName,
-    organiserAvatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=48&h=48&fit=crop&auto=format",
+    organiserAvatar: localAvatarDataUrl(record.organizerName),
     participants: 1,
     maxParticipants: 20,
     img: record.imageUrl,
@@ -98,7 +99,7 @@ function EventDetailModal({ event, joined, onToggleJoin, onClose }: {
   const spotsLeft = event.maxParticipants - event.participants;
   const pct = (event.participants / event.maxParticipants) * 100;
   const displayParticipants = joined
-    ? [...event.joinedParticipants, { name: "You", avatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=48&h=48&fit=crop&auto=format", location: "Your location" }]
+    ? [...event.joinedParticipants, { name: "You", avatar: localAvatarDataUrl("You"), location: "Your location" }]
     : event.joinedParticipants;
   const viewProfile = (name: string) => {
     const key = ORGANISER_KEY[name];
@@ -383,7 +384,7 @@ function EventArticleView({ event, joined, onToggleJoin, onBack, onPrev, onNext,
   const spotsLeft = Math.max(event.maxParticipants - event.participants, 0);
   const pct = Math.min((event.participants / event.maxParticipants) * 100, 100);
   const displayParticipants = joined
-    ? [...event.joinedParticipants, { name: "You", avatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=48&h=48&fit=crop&auto=format", location: "Your location" }]
+    ? [...event.joinedParticipants, { name: "You", avatar: localAvatarDataUrl("You"), location: "Your location" }]
     : event.joinedParticipants;
   const viewProfile = (name: string) => {
     const key = ORGANISER_KEY[name];
@@ -670,4 +671,3 @@ export default function EventsPage() {
     </GatedPage>
   );
 }
-

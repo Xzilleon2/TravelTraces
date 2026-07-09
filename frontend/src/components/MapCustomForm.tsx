@@ -9,9 +9,7 @@ import {
   List,
   X,
   Check,
-  Image as ImageIcon,
   Upload,
-  Link as LinkIcon
 } from "lucide-react";
 import { sanitizeRichHtml } from "../security/sanitize";
 
@@ -34,20 +32,11 @@ interface MapCustomFormProps {
   onCancel: () => void;
 }
 
-const CATEGORIES = ["Deep Travel", "Culture", "Food", "Adventure", "Reflection", "Hidden Gems"];
-
-const PRESET_IMAGES = [
-  { name: "Turquoise Lagoon", url: "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=600&h=400&fit=crop" },
-  { name: "Emerald Hills", url: "https://images.unsplash.com/photo-1518391846015-55a9cc003b25?w=600&h=400&fit=crop" },
-  { name: "Mayon Volcano", url: "https://images.unsplash.com/photo-1528127269322-539801943592?w=600&h=400&fit=crop" },
-  { name: "Old Calle", url: "https://images.unsplash.com/photo-1622396481328-9b1b78cdd9fd?w=600&h=400&fit=crop" },
-  { name: "White Beach", url: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=600&h=400&fit=crop" },
-  { name: "Sohoton Reef", url: "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?w=600&h=400&fit=crop" }
-];
+const CATEGORIES = ["Hiking", "Food Place", "Hidden Gems", "Beaches", "Forest", "Culture", "More"];
 
 export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormProps) {
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("Deep Travel");
+  const [category, setCategory] = useState("Hiking");
   const [note, setNote] = useState("");
   const [type, setType] = useState<"visited" | "wishlist">("visited");
 
@@ -58,9 +47,8 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
   const [align, setAlign] = useState<"left" | "center" | "right">("left");
   const [isBullet, setIsBullet] = useState(false);
 
-  // Image source states (Presets, local files base64, custom URLs)
-  const [imageUrl, setImageUrl] = useState("https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=600&h=400&fit=crop");
-  const [activeImageTab, setActiveImageTab] = useState<"preset" | "upload" | "url">("preset");
+  const [imageUrl, setImageUrl] = useState("");
+  const [activeImageTab, setActiveImageTab] = useState<"upload" | "url">("upload");
   const [customUrlInput, setCustomUrlInput] = useState("");
   const [dragActive, setDragActive] = useState(false);
 
@@ -126,11 +114,10 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
     e.preventDefault();
     if (!title.trim()) return;
 
-    // Save final content; default to note string or fallback placeholder
     const finalNote = sanitizeRichHtml(
       note.trim() ||
         (editorRef.current ? editorRef.current.innerHTML : "") ||
-        "Share what makes this spot memorable. Tell your story here...",
+        "",
     );
 
     onSave({
@@ -317,12 +304,12 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
           {/* PICTURE SELECTION MODULE */}
           <div style={{ border: "1px solid rgba(58,42,34,0.12)", borderRadius: "0.25rem", backgroundColor: "#EDEAE0", padding: "0.75rem" }}>
             <span style={{ display: "block", marginBottom: "0.35rem", fontFamily: "var(--font-label)", fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "#6B6B5A" }}>
-              🖼️ Story Hero Image (Pick, Upload, or Link)
+              Story Hero Image
             </span>
 
             {/* Selector tab buttons */}
             <div style={{ display: "flex", gap: "0.25rem", marginBottom: "0.5rem" }}>
-              {(["preset", "upload", "url"] as const).map((tab) => (
+              {(["upload", "url"] as const).map((tab) => (
                 <button
                   key={tab}
                   type="button"
@@ -341,37 +328,10 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                     color: activeImageTab === tab ? "#F5F0E8" : "#3A2A22"
                   }}
                 >
-                  {tab === "preset" ? "Scenery Presets" : tab === "upload" ? "Upload Photo" : "Web URL"}
+                  {tab === "upload" ? "Upload Photo" : "Web URL"}
                 </button>
               ))}
             </div>
-
-            {/* Presets Grid */}
-            {activeImageTab === "preset" && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "0.25rem" }}>
-                {PRESET_IMAGES.map((img) => (
-                  <button
-                    key={img.name}
-                    type="button"
-                    onClick={() => setImageUrl(img.url)}
-                    style={{
-                      padding: 0,
-                      border: imageUrl === img.url ? "2px solid #C4713A" : "1px solid transparent",
-                      borderRadius: "0.15rem",
-                      cursor: "pointer",
-                      width: "100%",
-                      aspectRatio: "1.5",
-                      overflow: "hidden",
-                      position: "relative"
-                    }}
-                    title={img.name}
-                  >
-                    <img src={img.url} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} referrerPolicy="no-referrer" />
-                    <span style={{ position: "absolute", bottom: 0, right: 0, background: "rgba(0,0,0,0.65)", color: "white", fontSize: "0.45rem", padding: "1px 3px" }}>{img.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
 
             {/* Offline File drag and drop */}
             {activeImageTab === "upload" && (
@@ -764,12 +724,32 @@ export function MapCustomForm({ x, y, region, onSave, onCancel }: MapCustomFormP
                 color: "#F5F0E8",
               }}
             >
-              <img
-                src={imageUrl || "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=600&h=400&fit=crop"}
-                alt="Selected background preset"
-                referrerPolicy="no-referrer"
-                style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.85, position: "absolute", inset: 0 }}
-              />
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt="Selected story background"
+                  referrerPolicy="no-referrer"
+                  style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.85, position: "absolute", inset: 0 }}
+                />
+              ) : (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "grid",
+                    placeItems: "center",
+                    background: "linear-gradient(135deg, #3A2A22 0%, #7A4B32 100%)",
+                    color: "#FBF7F0",
+                    fontFamily: "var(--font-label)",
+                    fontSize: "0.72rem",
+                    fontWeight: 800,
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Add Photo
+                </div>
+              )}
               <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 100%)" }} />
 
               <div style={{ position: "relative", padding: "0.75rem", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", boxSizing: "border-box" }}>

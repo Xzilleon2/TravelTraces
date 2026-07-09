@@ -22,7 +22,9 @@ import {
   Gem,
 } from "lucide-react";
 import { GatedPage } from "../components/GatedPage";
+import { DraggablePhotoFrame } from "../components/DraggablePhotoFrame";
 import { useAuth } from "../context/AuthContext";
+import { localAvatarDataUrl } from "../utils/localAvatar";
 import {
   completedDestinationCount,
   readTravelPlanStories,
@@ -256,9 +258,9 @@ export function TravelPlanArticleView({
     commitPlan({ ...plan, coverImage: coverImage.trim() || undefined });
   };
 
-  const updateCoverPosition = (coverPosition: string) => {
+  const updateCoverPosition = (position: { x: number; y: number }) => {
     if (!editable) return;
-    commitPlan({ ...plan, coverPosition });
+    commitPlan({ ...plan, coverPosition: `${position.x}% ${position.y}%`, coverPositionX: position.x, coverPositionY: position.y });
   };
 
   const submitComment = () => {
@@ -268,7 +270,7 @@ export function TravelPlanArticleView({
       {
         id: Date.now(),
         author: user?.name ?? "You",
-        avatar: user?.avatar ?? "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=40&h=40&fit=crop&auto=format",
+        avatar: user?.avatar || localAvatarDataUrl(user?.name ?? "You"),
         text: commentInput.trim(),
         time: "Just now",
         likes: 0,
@@ -354,7 +356,15 @@ export function TravelPlanArticleView({
                 Choose the cover image for this Travel Plan card before publishing. This is no longer optional.
               </p>
               {plan.coverImage ? (
-                <img src={plan.coverImage} alt={`${plan.travelPlanName} cover`} style={{ width: "100%", height: "clamp(180px, 32vw, 300px)", objectFit: "cover", objectPosition: plan.coverPosition ?? "center center", borderRadius: "0.45rem", marginBottom: "1rem", display: "block" }} />
+                <DraggablePhotoFrame
+                  src={plan.coverImage}
+                  alt={`${plan.travelPlanName} cover`}
+                  x={plan.coverPositionX ?? 50}
+                  y={plan.coverPositionY ?? 50}
+                  onPositionChange={updateCoverPosition}
+                  className="mb-4 h-64 w-full overflow-hidden rounded-[0.45rem]"
+                  imageClassName="block h-full w-full object-cover"
+                />
               ) : (
                 <div style={{ display: "grid", placeItems: "center", height: "clamp(160px, 28vw, 260px)", border: "1px dashed rgba(58,42,34,0.26)", backgroundColor: "#FBF7F0", borderRadius: "0.45rem", marginBottom: "1rem", fontFamily: "var(--font-label)", fontSize: "0.76rem", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "#7A685E" }}>
                   Add cover photo here
@@ -381,36 +391,7 @@ export function TravelPlanArticleView({
                   }}
                   style={{ fontFamily: "var(--font-ui)", color: "#3A2A22" }}
                 />
-                {plan.coverImage ? (
-                  <div style={{ display: "grid", gap: "0.45rem" }}>
-                    <span style={{ fontFamily: "var(--font-label)", fontSize: "0.66rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "#7A4B32" }}>Visible crop area</span>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.35rem" }}>
-                      {[
-                        ["TL", "left top"],
-                        ["T", "center top"],
-                        ["TR", "right top"],
-                        ["L", "left center"],
-                        ["C", "center center"],
-                        ["R", "right center"],
-                        ["BL", "left bottom"],
-                        ["B", "center bottom"],
-                        ["BR", "right bottom"],
-                      ].map(([label, value]) => {
-                        const active = (plan.coverPosition ?? "center center") === value;
-                        return (
-                          <button
-                            key={value}
-                            type="button"
-                            onClick={() => updateCoverPosition(value)}
-                            style={{ minHeight: 32, border: `1px solid ${active ? "#3A2A22" : "rgba(58,42,34,0.14)"}`, borderRadius: "0.35rem", background: active ? "#3A2A22" : "#FBF7F0", color: active ? "#FBF7F0" : "#3A2A22", fontFamily: "var(--font-label)", fontSize: "0.66rem", fontWeight: 800, cursor: "pointer" }}
-                          >
-                            {label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : null}
+                {plan.coverImage ? <p style={{ margin: 0, fontFamily: "var(--font-ui)", fontSize: "0.82rem", lineHeight: 1.6, color: "#6B5A50" }}>Drag the cover image to choose what part appears on the card.</p> : null}
               </div>
             </section>
           ) : null}
@@ -621,7 +602,7 @@ export function TravelPlanArticleView({
             </div>
 
             <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1.75rem" }}>
-              <img src={user?.avatar ?? "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=40&h=40&fit=crop&auto=format"} alt="You" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0, marginTop: "0.25rem" }} />
+              <img src={user?.avatar || localAvatarDataUrl(user?.name ?? "You")} alt="You" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0, marginTop: "0.25rem" }} />
               <div style={{ flex: 1 }}>
                 <textarea
                   value={commentInput}

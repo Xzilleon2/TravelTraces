@@ -1,6 +1,7 @@
 import React from "react";
 import { useAuth } from "../context/AuthContext";
 import { ArrowRight } from "lucide-react";
+import { localAvatarDataUrl } from "../utils/localAvatar";
 const kayeenImg = "/creator-profiles/Kayeen.jpg";
 const allenImg = "/creator-profiles/Allen.jpg";
 const hersheyImg = "/creator-profiles/Hershey.jpg";
@@ -164,13 +165,7 @@ export default function AboutPage() {
                     src={member.portrait}
                     alt={member.name}
                     onError={(e) => {
-                      // Fallback support if empty placeholder is used
-                      const fallbacks: Record<string, string> = {
-                        "Kayeen M. Campaña": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500&h=600&fit=crop&auto=format",
-                        "Allen Jhon Bautista": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&h=600&fit=crop&auto=format",
-                        "Hershey Nicolle Tabanao": "https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=500&h=600&fit=crop&auto=format"
-                      };
-                      e.currentTarget.src = fallbacks[member.name] || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&h=600&fit=crop&auto=format";
+                      e.currentTarget.src = localAvatarDataUrl(member.name);
                     }}
                     style={{
                       width: "100%",

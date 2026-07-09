@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, ImagePlus, MapPin, X } from "lucide-react";
+import { DraggablePhotoFrame } from "./DraggablePhotoFrame";
 import type { ApiLocation, MapScope } from "../services/mappingApi";
 import {
   ALLOWED_MARKER_IMAGE_TYPES,
@@ -34,17 +35,6 @@ const mapScopes: Array<{ value: MapScope; label: string }> = [
   { value: "private", label: "Private Map" },
   { value: "public", label: "Public Map" },
   { value: "group", label: "Group Map" },
-];
-const photoPositions = [
-  { label: "Top left", short: "TL", value: "left top" },
-  { label: "Top", short: "T", value: "center top" },
-  { label: "Top right", short: "TR", value: "right top" },
-  { label: "Left", short: "L", value: "left center" },
-  { label: "Center", short: "C", value: "center center" },
-  { label: "Right", short: "R", value: "right center" },
-  { label: "Bottom left", short: "BL", value: "left bottom" },
-  { label: "Bottom", short: "B", value: "center bottom" },
-  { label: "Bottom right", short: "BR", value: "right bottom" },
 ];
 
 export function MarkerFormModal({ open, location, scope, onScopeChange, onClose, onSave, busy }: Props) {
@@ -101,7 +91,7 @@ export function MarkerFormModal({ open, location, scope, onScopeChange, onClose,
     setPhotos((current) => [...current, ...next]);
   };
 
-  const updatePhotoPosition = (previewUrl: string, objectPosition: string) => {
+  const updatePhotoPosition = (previewUrl: string, position: { x: number; y: number }) => {
     setPhotos((current) =>
       current.map((photo) =>
         photo.previewUrl === previewUrl
@@ -109,7 +99,9 @@ export function MarkerFormModal({ open, location, scope, onScopeChange, onClose,
               ...photo,
               attachment: {
                 ...photo.attachment,
-                object_position: objectPosition,
+                object_position: `${position.x}% ${position.y}%`,
+                photoPositionX: position.x,
+                photoPositionY: position.y,
               },
             }
           : photo,
@@ -238,11 +230,14 @@ export function MarkerFormModal({ open, location, scope, onScopeChange, onClose,
               {photos.map((photo) => (
                 <div key={photo.previewUrl} className="rounded-lg border border-[#3A2A22]/12 bg-white p-2">
                   <div className="relative">
-                    <img
+                    <DraggablePhotoFrame
                       src={photo.previewUrl}
                       alt=""
-                      className="h-28 w-full rounded border border-[#3A2A22]/15 object-cover"
-                      style={{ objectPosition: photo.attachment.object_position ?? "center center" }}
+                      x={photo.attachment.photoPositionX ?? 50}
+                      y={photo.attachment.photoPositionY ?? 50}
+                      onPositionChange={(position) => updatePhotoPosition(photo.previewUrl, position)}
+                      className="h-28 w-full overflow-hidden rounded border border-[#3A2A22]/15"
+                      imageClassName="h-full w-full object-cover"
                     />
                     <button
                       type="button"
@@ -253,28 +248,7 @@ export function MarkerFormModal({ open, location, scope, onScopeChange, onClose,
                       <X size={12} />
                     </button>
                   </div>
-                  <div className="mt-2">
-                    <span className="mb-1 block font-[var(--font-label)] text-[0.62rem] font-bold uppercase tracking-[0.08em] text-[#6B5A50]">Visible crop area</span>
-                    <div className="grid grid-cols-3 gap-1">
-                      {photoPositions.map((position) => {
-                        const active = (photo.attachment.object_position ?? "center center") === position.value;
-                        return (
-                          <button
-                            key={position.value}
-                            type="button"
-                            onClick={() => updatePhotoPosition(photo.previewUrl, position.value)}
-                            className={`min-h-7 rounded border text-[0.62rem] font-bold transition ${
-                              active ? "border-[#3A2A22] bg-[#3A2A22] text-[#F5F0E8]" : "border-[#3A2A22]/12 bg-[#F5F0E8] text-[#3A2A22]"
-                            }`}
-                            aria-label={`Show ${position.label.toLowerCase()} of photo`}
-                            title={position.label}
-                          >
-                            {position.short}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <p className="m-0 mt-2 font-[var(--font-ui)] text-xs leading-5 text-[#6B5A50]">Drag the photo to choose which part appears in the card.</p>
                 </div>
               ))}
             </div>

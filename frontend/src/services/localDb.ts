@@ -3,6 +3,8 @@ import type { HostedTourMeetupRecord } from "./eventsApi";
 
 export const LOCAL_DB_VERSION = 1;
 export const LOCAL_DB_PREFIX = "traveltraces.db.v1";
+export const LOCAL_STORAGE_SCHEMA_RESET_VERSION = "2026-07-09-local-only-v1";
+const LOCAL_STORAGE_SCHEMA_RESET_KEY = `${LOCAL_DB_PREFIX}.schema_reset_version`;
 
 export const localDbTables = {
   users: `${LOCAL_DB_PREFIX}.users`,
@@ -66,6 +68,18 @@ export type LocalStoryRecord = {
 
 function canUseStorage() {
   return typeof window !== "undefined" && Boolean(window.localStorage);
+}
+
+export function initializeLocalStorageSchema() {
+  if (!canUseStorage()) return;
+  const currentVersion = window.localStorage.getItem(LOCAL_STORAGE_SCHEMA_RESET_KEY);
+  if (currentVersion === LOCAL_STORAGE_SCHEMA_RESET_VERSION) return;
+  try {
+    window.localStorage.clear();
+    window.localStorage.setItem(LOCAL_STORAGE_SCHEMA_RESET_KEY, LOCAL_STORAGE_SCHEMA_RESET_VERSION);
+  } catch {
+    // Local storage may be blocked; the app can still run with in-memory React state.
+  }
 }
 
 export function readLocalTable<T>(table: LocalDbTable): T[] {

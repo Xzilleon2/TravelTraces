@@ -29,7 +29,7 @@ const SEA_LEAFLET_BOUNDS: LatLngBoundsExpression = [
   [-11.0, 95.0],
   [28.0, 141.0],
 ];
-const DEFAULT_GROUP_IDS = ["traveltraces-circle"];
+const DEFAULT_GROUP_IDS: string[] = [];
 
 const layerOptions: Array<{ key: LayerKey; label: string; icon: typeof Map }> = [
   { key: "standard", label: "Standard", icon: Map },

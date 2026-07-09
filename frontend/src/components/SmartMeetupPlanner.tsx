@@ -26,64 +26,9 @@ type Props = {
   onPlanChange?: (plan: MeetupPlan | null) => void;
 };
 
-const DEFAULT_FRIENDS: ConnectionProfile[] = [
-  {
-    id: "ana",
-    name: "Ana Villanueva",
-    location: "Quezon City",
-    avatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=80&h=80&fit=crop&auto=format",
-    lat: 14.676,
-    lon: 121.0437,
-  },
-  {
-    id: "carlo",
-    name: "Carlo Reyes",
-    location: "Cebu City",
-    avatar: "https://images.unsplash.com/photo-1519101739220-83f6a14852ca?w=80&h=80&fit=crop&auto=format",
-    lat: 10.3157,
-    lon: 123.8854,
-  },
-];
-
-const DEFAULT_FOLLOWERS: ConnectionProfile[] = [
-  {
-    id: "ramon",
-    name: "Ramon Dela Cruz",
-    location: "Baguio City",
-    avatar: "https://images.unsplash.com/photo-1565565915331-293fd8113954?w=80&h=80&fit=crop&auto=format",
-    lat: 16.4023,
-    lon: 120.596,
-  },
-  {
-    id: "leila",
-    name: "Leila Marcos",
-    location: "Davao City",
-    avatar: "https://images.unsplash.com/photo-1639526473371-e68e5336df56?w=80&h=80&fit=crop&auto=format",
-    lat: 7.1907,
-    lon: 125.4553,
-  },
-];
-
-const LOCAL_MEETUP_PLACES: ApiLocation[] = [
-  { label: "Rizal Park, Manila", coordinate: [14.5826, 120.9787], provider: "travelplaces-local", confidence: 0.95 },
-  { label: "Intramuros, Manila", coordinate: [14.5896, 120.9747], provider: "travelplaces-local", confidence: 0.94 },
-  { label: "BGC High Street, Taguig", coordinate: [14.5508, 121.0517], provider: "travelplaces-local", confidence: 0.93 },
-  { label: "UP Diliman Sunken Garden, Quezon City", coordinate: [14.6541, 121.0646], provider: "travelplaces-local", confidence: 0.9 },
-  { label: "Ayala Center Cebu", coordinate: [10.3181, 123.9056], provider: "travelplaces-local", confidence: 0.92 },
-  { label: "Magellan's Cross, Cebu City", coordinate: [10.293, 123.902], provider: "travelplaces-local", confidence: 0.92 },
-  { label: "SM Lanang Premier, Davao City", coordinate: [7.0985, 125.6307], provider: "travelplaces-local", confidence: 0.89 },
-  { label: "People's Park, Davao City", coordinate: [7.0645, 125.6078], provider: "travelplaces-local", confidence: 0.9 },
-  { label: "Burnham Park, Baguio City", coordinate: [16.4127, 120.5935], provider: "travelplaces-local", confidence: 0.9 },
-  { label: "Session Road, Baguio City", coordinate: [16.4138, 120.5987], provider: "travelplaces-local", confidence: 0.88 },
-  { label: "El Nido Town, Palawan", coordinate: [11.1956, 119.4075], provider: "travelplaces-local", confidence: 0.91 },
-  { label: "Coron Town Plaza, Palawan", coordinate: [11.9986, 120.2043], provider: "travelplaces-local", confidence: 0.9 },
-  { label: "Alona Beach, Bohol", coordinate: [9.5478, 123.7691], provider: "travelplaces-local", confidence: 0.9 },
-  { label: "Cloud 9, Siargao", coordinate: [9.8138, 126.1653], provider: "travelplaces-local", confidence: 0.91 },
-  { label: "Samal Island Ferry Terminal, Davao", coordinate: [7.1206, 125.6618], provider: "travelplaces-local", confidence: 0.88 },
-  { label: "Mount Apo Trailhead, Davao del Sur", coordinate: [7.0061, 125.2706], provider: "travelplaces-local", confidence: 0.88 },
-  { label: "Ben Thanh Market, Ho Chi Minh City", coordinate: [10.7725, 106.698], provider: "travelplaces-local", confidence: 0.82 },
-  { label: "Marina Bay Sands, Singapore", coordinate: [1.2834, 103.8607], provider: "travelplaces-local", confidence: 0.82 },
-];
+const DEFAULT_FRIENDS: ConnectionProfile[] = [];
+const DEFAULT_FOLLOWERS: ConnectionProfile[] = [];
+const LOCAL_MEETUP_PLACES: ApiLocation[] = [];
 
 function normalizeSearch(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();

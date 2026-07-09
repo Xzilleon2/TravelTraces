@@ -19,6 +19,7 @@ import {
 import { deletePin, listPins, type MapScope } from "../services/mappingApi";
 import { publishWorkspaceEvent } from "../utils/workspaceSync";
 import { deleteLocalStoryCascade, listLocalStories, writeLocalStories as writeLocalDbStories, type LocalStoryRecord } from "../services/localDb";
+import { localAvatarDataUrl } from "../utils/localAvatar";
 
 type StoryPhotoFrame = string | {
   preview_url?: string;
@@ -230,7 +231,7 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
     const newComment = {
       id: Date.now(),
       author: user?.name ?? "You",
-      avatar: user?.avatar ?? "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=40&h=40&fit=crop&auto=format",
+      avatar: user?.avatar || localAvatarDataUrl(user?.name ?? "You"),
       text: commentInput.trim(),
       time: "Just now",
       likes: 0,
@@ -319,16 +320,16 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
               </button>
               <div style={{ minWidth: 0, flex: "1 1 auto" }}>
                 <button onClick={() => viewProfile(story.author)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "var(--font-ui)", fontWeight: 800, fontSize: "0.96rem", color: "#1A1A1A" }}>{story.author}</button>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#5B4A40", flexWrap: "nowrap", marginTop: "0.22rem", fontFamily: "var(--font-ui)", fontSize: "0.8rem", minWidth: 0, overflow: "hidden" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#5B4A40", flexWrap: "wrap", marginTop: "0.22rem", fontFamily: "var(--font-ui)", fontSize: "0.8rem", minWidth: 0, overflow: "visible" }}>
                   <span aria-label="Generalized story location" title={storyLocation} style={{ display: "inline-flex", alignItems: "center", gap: "0.28rem", color: "#5B4A40", minWidth: 0, maxWidth: "min(16rem, 44vw)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><MapPin size={13} strokeWidth={2} style={{ flex: "0 0 auto" }} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{storyLocation}</span></span>
                   <span aria-hidden="true" style={{ color: "#9E8E7D" }}>•</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "0.28rem", color: "#5B4A40" }}><Clock size={13} strokeWidth={2} />Posted {story.date}</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "0.28rem", color: "#5B4A40", whiteSpace: "nowrap", flex: "0 0 auto" }}><Clock size={13} strokeWidth={2} />Posted {story.date}</span>
                   <span aria-hidden="true" style={{ color: "#9E8E7D" }}>•</span>
-                  <span style={{ color: "#5B4A40", whiteSpace: "nowrap" }}>{storyReadTime} read</span>
+                  <span style={{ color: "#5B4A40", whiteSpace: "nowrap", flex: "0 0 auto" }}>{storyReadTime} read</span>
                   {preciseLocationHidden ? (
                     <>
                       <span aria-hidden="true" style={{ color: "#9E8E7D" }}>•</span>
-                      <span style={{ color: "#7A4A36", fontWeight: 700, whiteSpace: "nowrap" }}>Precise location protected</span>
+                      <span style={{ color: "#7A4A36", fontWeight: 700, whiteSpace: "nowrap", flex: "0 0 auto" }}>Precise location protected</span>
                     </>
                   ) : null}
                 </div>
@@ -445,7 +446,7 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
             {/* Comment input */}
             <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1.75rem" }}>
               <img
-                src={user?.avatar ?? "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=40&h=40&fit=crop&auto=format"}
+                src={user?.avatar || localAvatarDataUrl(user?.name ?? "You")}
                 alt="You"
                 style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0, marginTop: "0.25rem" }}
               />
@@ -1260,4 +1261,3 @@ export default function StoriesPage() {
     </GatedPage>
   );
 }
-

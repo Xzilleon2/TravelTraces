@@ -199,7 +199,7 @@ function CommunityContent() {
           <>
             <div style={{ position: "relative", marginBottom: "1.5rem", maxWidth: 400 }}>
               <Search size={16} style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "#6B6B5A" }} />
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search travellers…" style={{ width: "100%", padding: "0.75rem 1rem 0.75rem 2.5rem", backgroundColor: "#EDEAE0", border: "1px solid rgba(58,42,34,0.15)", borderRadius: "0.25rem", fontSize: "0.9rem", color: "#1A1A1A", fontFamily: "var(--font-ui)", outline: "none", boxSizing: "border-box" }} />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search travellers..." style={{ width: "100%", padding: "0.75rem 1rem 0.75rem 2.5rem", backgroundColor: "#EDEAE0", border: "1px solid rgba(58,42,34,0.15)", borderRadius: "0.25rem", fontSize: "0.9rem", color: "#1A1A1A", fontFamily: "var(--font-ui)", outline: "none", boxSizing: "border-box" }} />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 400px), 1fr))", gap: "1rem" }}>
               {visibleTravellers.map((t) => <TravellerCard key={t.id} t={t} onViewProfile={viewProfile} />)}
@@ -295,4 +295,3 @@ export default function CommunityPage() {
     </GatedPage>
   );
 }
-

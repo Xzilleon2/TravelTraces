@@ -1,30 +1,9 @@
 import React, { useState } from "react";
 import { Users, Compass, Search, MapPin, Map, RefreshCw } from "lucide-react";
 import { COMPANIONS_DATA, MIDPOINT_HUBS, calculateDistance, Companion, MidpointHub } from "../utils/mapHelpers";
+import { localAvatarDataUrl } from "../utils/localAvatar";
 
-export const LOCATIONS_PRESET = [
-  { name: "Quezon City", x: 48, y: 32 },
-  { name: "Cebu City", x: 55, y: 57 },
-  { name: "Manila", x: 48, y: 35 },
-  { name: "Davao City", x: 70, y: 74 },
-  { name: "Baguio City", x: 47, y: 25 },
-  { name: "Iloilo City", x: 42, y: 56 },
-  { name: "Siargao", x: 78, y: 60 },
-  { name: "El Nido", x: 20, y: 62 },
-  { name: "Coron", x: 25, y: 55 },
-  { name: "Boracay", x: 38, y: 53 },
-  { name: "Batanes", x: 48, y: 8 },
-  { name: "Dumaguete", x: 48, y: 64 },
-  { name: "Cagayan de Oro", x: 65, y: 68 },
-  { name: "Legazpi City", x: 57, y: 41 },
-  { name: "Puerto Galera", x: 38, y: 47 },
-  { name: "Bacolod City", x: 47, y: 58 },
-  { name: "Tacloban City", x: 69, y: 52 },
-  { name: "Puerto Princesa", x: 18, y: 68 },
-  { name: "Tagbilaran (Bohol)", x: 60, y: 60 },
-  { name: "Camiguin", x: 65, y: 63 },
-  { name: "Sagada", x: 47, y: 26 }
-];
+export const LOCATIONS_PRESET: Array<{ name: string; x: number; y: number }> = [];
 
 interface CompanionFinderProps {
   userLocation: { x: number; y: number; name: string };
@@ -98,8 +77,15 @@ export function CompanionFinder({ userLocation, onSelectionChange }: CompanionFi
     const mx = (resolvedUser.x + resolvedComp.x) / 2;
     const my = (resolvedUser.y + resolvedComp.y) / 2;
 
-    // Find closest MidpointHub
-    let closestHub = MIDPOINT_HUBS[0];
+    // Find closest MidpointHub. If no local hubs exist yet, use the computed midpoint itself.
+    let closestHub: MidpointHub = {
+      name: "Calculated midpoint",
+      region: "Custom route",
+      x: mx,
+      y: my,
+      desc: "No saved meetup hub exists yet. This midpoint is calculated from the selected locations.",
+      image: "",
+    };
     let minDistance = Infinity;
 
     MIDPOINT_HUBS.forEach((hub) => {
@@ -115,7 +101,7 @@ export function CompanionFinder({ userLocation, onSelectionChange }: CompanionFi
       id: 9991,
       name: resolvedComp.name,
       location: resolvedComp.isCustom ? `${resolvedComp.name} (Estimated Map Location)` : resolvedComp.name,
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop&auto=format",
+      avatar: localAvatarDataUrl(resolvedComp.name),
       bio: "Calculated travel partner location on map.",
       x: resolvedComp.x,
       y: resolvedComp.y,

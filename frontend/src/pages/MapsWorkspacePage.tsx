@@ -33,6 +33,7 @@ import { SmartMeetupPlanner } from "../components/SmartMeetupPlanner";
 import { TravelPlanStoryForm } from "../components/TravelPlanStoryForm";
 import { WorkspaceButton } from "../components/workspace/WorkspaceButton";
 import { WorkspaceToggleGroup } from "../components/workspace/WorkspaceToggleGroup";
+import { localAvatarDataUrl } from "../utils/localAvatar";
 import {
   fieldLabel,
   iconButton,
@@ -85,7 +86,7 @@ const MAPTILER_STYLES: Record<BaseLayer, string> = Object.fromEntries(
   ]),
 ) as Record<BaseLayer, string>;
 
-const DEFAULT_GROUP_IDS = ["traveltraces-circle"];
+const DEFAULT_GROUP_IDS: string[] = [];
 const ROUTE_SOURCE_ID = "workspace-route";
 const POINT_SOURCE_ID = "workspace-points";
 const PIN_SOURCE_ID = "workspace-pins";
@@ -132,26 +133,7 @@ const workspaceModes: Array<{
   },
 ];
 
-const friendList = [
-  {
-    id: "ana",
-    name: "Ana Villanueva",
-    location: "Quezon City",
-    avatar: "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=80&h=80&fit=crop&auto=format",
-  },
-  {
-    id: "carlo",
-    name: "Carlo Reyes",
-    location: "Cebu City",
-    avatar: "https://images.unsplash.com/photo-1519101739220-83f6a14852ca?w=80&h=80&fit=crop&auto=format",
-  },
-  {
-    id: "leila",
-    name: "Leila Marcos",
-    location: "Davao City",
-    avatar: "https://images.unsplash.com/photo-1639526473371-e68e5336df56?w=80&h=80&fit=crop&auto=format",
-  },
-];
+const friendList: NonNullable<ReturnType<typeof useAuth>["user"]>["friends"] = [];
 
 function storyToMapPin(story: TravelStory): ApiPin | null {
   const point = story.storyPoint ?? STORY_MAP_POINTS[story.id];
@@ -243,14 +225,14 @@ function persistPrototypeStory(input: {
     })
     .filter((photo): photo is NonNullable<typeof photo> => Boolean(photo));
   const coverFrame = photoFrames[0];
-  const cover = coverFrame?.data_url ?? coverFrame?.preview_url ?? coverFrame?.thumbnail_url ?? "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=900&h=620&fit=crop&auto=format";
+  const cover = coverFrame?.data_url ?? coverFrame?.preview_url ?? coverFrame?.thumbnail_url ?? localAvatarDataUrl(input.pin.title);
   const storyBody = input.pin.note || `A new TravelTraces story pinned at ${input.placeName}.`;
   const storyExcerpt = input.subtitle || input.pin.note || `A new TravelTraces story pinned at ${input.placeName}.`;
   const story: TravelStory = {
     id: input.storyId,
     title: input.pin.title,
     author: input.author,
-    authorAvatar: input.authorAvatar ?? "https://images.unsplash.com/photo-1601632650940-3903583a835d?w=48&h=48&fit=crop&auto=format",
+    authorAvatar: input.authorAvatar || localAvatarDataUrl(input.author),
     region: input.placeName,
     readTime: estimatePrototypeReadTime(`${input.pin.title} ${storyExcerpt} ${storyBody}`),
     date: "Just now",
@@ -1508,6 +1490,24 @@ function MapsWorkspaceContent() {
     setStatus(`Draft pin placed at ${location.label}. Drag it for accuracy, then write your story.`);
   }, []);
 
+  const resetMapToolState = useCallback((options?: { keepSavedRoute?: boolean; keepStatus?: boolean }) => {
+    setPickTarget(null);
+    setDrawingActive(false);
+    setBoxZoomActive(false);
+    setBoxZoomDrag(null);
+    setDraftStops([]);
+    setDraftMarkerLocation(null);
+    setMarkerModalLocation(null);
+    setTravelPlanFormOpen(false);
+    setActiveSidePanel(null);
+    setActiveToolbarMenu(null);
+    dragRouteRef.current = { active: false, baseStops: [], points: [] };
+    if (!options?.keepSavedRoute) setRoute(null);
+    if (!options?.keepStatus) setStatus(null);
+    const canvas = mapRef.current?.getCanvas();
+    if (canvas) canvas.style.cursor = workspaceMapCursor({ markerPlacementActive: false, pickTarget: null, drawingActive: false, boxZoomActive: false });
+  }, []);
+
   const openMarkerAtLocation = useCallback((location: ApiLocation, message?: string) => {
     setDraftMarkerLocation(location);
     setMarkerModalLocation(null);
@@ -1588,15 +1588,14 @@ function MapsWorkspaceContent() {
           groupIds: input.scope === "group" ? groupIds : [],
         });
         addOrReplacePin(pin);
-        setMarkerModalLocation(null);
-        setDraftMarkerLocation(null);
+        resetMapToolState({ keepSavedRoute: true, keepStatus: true });
         setScope(input.scope);
         setStatus(savedLocally ? "Saved locally for prototype mode. Click the pin to open the full story." : "Marker saved. Click the pin to open the full story.");
       } finally {
         setBusy(false);
       }
     },
-    [activeMap?.map_id, addOrReplacePin, groupIds, markerModalLocation, user?.avatar, user?.name, viewerId],
+    [activeMap?.map_id, addOrReplacePin, groupIds, markerModalLocation, resetMapToolState, user?.avatar, user?.name, viewerId],
   );
 
   const handlePickedLocation = useCallback(
@@ -2020,7 +2019,7 @@ function MapsWorkspaceContent() {
     setExportFormat(format);
   }, []);
 
-  const handleCloseMarkerModal = useCallback(() => setMarkerModalLocation(null), []);
+  const handleCloseMarkerModal = useCallback(() => resetMapToolState(), [resetMapToolState]);
 
   const handleFocusPin = useCallback(
     (pin: ApiPin) => {
@@ -2943,7 +2942,7 @@ function MapsWorkspaceContent() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setActiveSidePanel(null)}
+                  onClick={() => resetMapToolState()}
                   className="grid h-10 w-10 shrink-0 place-items-center rounded-[0.9rem] border border-[#3A2A22]/12 bg-[#EFE7DC] text-[#3A2A22] transition hover:border-[#C4713A]/30 hover:bg-[#F5E6D8]"
                   aria-label="Close tool panel"
                   title="Close tool panel"
@@ -2971,11 +2970,15 @@ function MapsWorkspaceContent() {
         stops={draftStops}
         routeGeometry={route?.geometry}
         busy={busy}
-        onClose={() => setTravelPlanFormOpen(false)}
+        onClose={() => resetMapToolState()}
         onConvertToMarker={(location) => {
           setTravelPlanFormOpen(false);
           setDraftStops([]);
           setRoute(null);
+          setDrawingActive(false);
+          setBoxZoomActive(false);
+          setBoxZoomDrag(null);
+          setPickTarget(null);
           openMarkerAtLocation(location, "Only one destination remains, so this journey became a Drop Marker.");
         }}
         onSave={(input) => {
@@ -2986,13 +2989,13 @@ function MapsWorkspaceContent() {
             subtitle: input.subtitle,
             coverImage: input.coverImage,
             coverPosition: input.coverPosition,
+            coverPositionX: input.coverPositionX,
+            coverPositionY: input.coverPositionY,
             description: input.description,
             stops: input.stops,
             routeGeometry: route?.geometry,
           });
-          setTravelPlanFormOpen(false);
-          setDraftStops([]);
-          setRoute(null);
+          resetMapToolState({ keepStatus: true });
           setStatus(`Travel Plan Story "${plan.travelPlanName}" saved privately. Open Travel Plans to track the journey.`);
           navigate(`/profile?tab=drafts&plan=${encodeURIComponent(plan.id)}`);
         }}

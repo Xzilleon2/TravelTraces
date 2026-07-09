@@ -612,6 +612,15 @@ function ProfileContent() {
     setForm((current) => (current ? { ...current, [field]: value } : current));
   };
 
+  const handleProfilePhotoFile = (file: File | null) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") handleFormChange("avatar", reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSaveProfile = (event: FormEvent) => {
     event.preventDefault();
     updateUser({
@@ -662,7 +671,7 @@ function ProfileContent() {
               <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-[#5E4B40]">
                 <span className="inline-flex items-center gap-2"><MapPin size={15} />{user.location || "Location not set"}</span>
                 <span className="inline-flex items-center gap-2"><Globe2 size={15} />{user.nationality || "Nationality not set"}</span>
-                <span className="inline-flex items-center gap-2"><Calendar size={15} />Joined {user.joinedDate || "recently"}</span>
+                <span className="inline-flex items-center gap-2"><Calendar size={15} />{user.joinedDate ? `Joined ${user.joinedDate}` : "Joined date not set"}</span>
               </div>
               <p className="m-0 mt-5 max-w-3xl font-[var(--font-body)] text-base leading-7 text-[#4D4038]">
                 {user.bio || "No bio added yet."}
@@ -860,6 +869,16 @@ function ProfileContent() {
                     rows={5}
                     className="resize-none rounded-lg border border-[#3A2A22]/15 bg-[#FFF9F0] px-3 py-2 text-sm leading-6 text-[#2C211C] outline-none transition focus:border-[#C4713A] focus:ring-2 focus:ring-[#C4713A]/20"
                   />
+                </label>
+                <label className="grid gap-2 rounded-lg border border-[#3A2A22]/10 bg-[#F5F0E8] p-4">
+                  <span className="font-[var(--font-label)] text-[0.7rem] font-bold uppercase tracking-[0.1em] text-[#5E4B40]">Upload Profile Picture</span>
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                    onChange={(event) => handleProfilePhotoFile(event.target.files?.[0] ?? null)}
+                    className="text-sm text-[#2C211C]"
+                  />
+                  {form.avatar ? <img src={form.avatar} alt="Profile preview" className="h-24 w-24 rounded-full object-cover ring-4 ring-[#EFE7DC]" /> : null}
                 </label>
                 <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#3A2A22] px-5 font-[var(--font-label)] text-[0.72rem] font-bold uppercase tracking-[0.08em] text-[#FFF9F0] transition hover:bg-[#2C211C]">
                   <Save size={15} /> Save Profile
