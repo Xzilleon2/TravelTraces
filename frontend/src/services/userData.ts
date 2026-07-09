@@ -71,6 +71,20 @@ export function getSocialStats(profileUserId: string) {
   };
 }
 
+export function getMutualFriends(user: User): User["friends"] {
+  const users = readLocalTable<User>("users");
+  const followingIds = connectionIds(user).following;
+  return users
+    .filter((candidate) => candidate.id !== user.id)
+    .filter((candidate) => followingIds.has(candidate.id) && connectionIds(candidate).following.has(user.id))
+    .map((candidate) => ({
+      id: candidate.id,
+      name: candidate.name || candidate.email,
+      location: candidate.location,
+      avatar: candidate.avatar,
+    }));
+}
+
 export function toggleFollow(viewer: User, profile: User) {
   const viewerIds = connectionIds(viewer).following;
   const isFollowing = viewerIds.has(profile.id);

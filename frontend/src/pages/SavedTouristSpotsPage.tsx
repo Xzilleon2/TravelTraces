@@ -3,7 +3,8 @@ import { Bookmark, Clock, Compass, Gem, Heart, Landmark, MapPin, Mountain, Plus,
 import { useNavigate } from "react-router";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { GatedPage } from "../components/GatedPage";
-import { LOCAL_STORIES_KEY, SAVED_STORIES_KEY, STORIES, STORY_COLLECTIONS_KEY, type TravelStory } from "./StoriesPage";
+import { SAVED_STORIES_KEY, STORIES, STORY_COLLECTIONS_KEY, type TravelStory } from "./StoriesPage";
+import { listLocalStories } from "../services/localDb";
 
 type StoryCollection = {
   id: string;
@@ -23,12 +24,7 @@ const categoryIcons: Record<string, typeof Compass> = {
 };
 
 function readLocalStories(): TravelStory[] {
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(LOCAL_STORIES_KEY) ?? "[]") as TravelStory[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  return listLocalStories() as TravelStory[];
 }
 
 function readSavedStoryIds(): number[] {

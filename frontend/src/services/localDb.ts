@@ -37,6 +37,7 @@ export const localDbTables = {
   travelCollections: `${LOCAL_DB_PREFIX}.travel_collections`,
   savedTouristSpots: `${LOCAL_DB_PREFIX}.saved_tourist_spots`,
   memberLocations: `${LOCAL_DB_PREFIX}.member_locations`,
+  todayAgendas: `${LOCAL_DB_PREFIX}.today_agendas`,
   auditLog: `${LOCAL_DB_PREFIX}.audit_log`,
 } as const;
 
@@ -73,7 +74,7 @@ function canUseStorage() {
   return typeof window !== "undefined" && Boolean(window.localStorage);
 }
 
-function placeholderImage(label = "TravelTraces") {
+export function placeholderImage(label = "TravelTraces") {
   const safeLabel = label.replace(/[<>&"]/g, "").slice(0, 48) || "TravelTraces";
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560"><rect width="900" height="560" fill="#EFE7DC"/><circle cx="450" cy="250" r="76" fill="#C4713A" opacity=".18"/><text x="50%" y="53%" text-anchor="middle" font-family="Georgia,serif" font-size="42" fill="#3A2A22">${safeLabel}</text></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
@@ -153,7 +154,18 @@ export function writeLocalTable<T>(table: LocalDbTable, rows: T[]) {
     if (!(error instanceof DOMException) || error.name !== "QuotaExceededError") throw error;
     const compactRows = rowsForStorage(table, rows.slice(0, table === "stories" || table === "pins" ? 8 : rows.length));
     window.localStorage.removeItem("traveltraces.localStories");
-    window.localStorage.setItem(localDbTables[table], JSON.stringify(compactRows));
+    try {
+      window.localStorage.setItem(localDbTables[table], JSON.stringify(compactRows));
+    } catch (retryError) {
+      if (!(retryError instanceof DOMException) || retryError.name !== "QuotaExceededError") throw retryError;
+      if (table === "stories") {
+        window.localStorage.setItem(localDbTables[table], JSON.stringify((compactRows as LocalStoryRecord[]).slice(0, 3).map(compactStoryRecord)));
+      } else if (table === "pins") {
+        window.localStorage.setItem(localDbTables[table], JSON.stringify((compactRows as ApiPin[]).slice(0, 3).map(compactPinRecord)));
+      } else {
+        window.localStorage.setItem(localDbTables[table], JSON.stringify([]));
+      }
+    }
   }
   window.dispatchEvent(new CustomEvent("traveltraces:local-db-updated", { detail: { table } }));
 }
@@ -176,6 +188,9 @@ export function migrateLegacyLocalStorage() {
   const legacyStories = JSON.parse(window.localStorage.getItem("traveltraces.localStories") ?? "[]") as LocalStoryRecord[];
   if (Array.isArray(legacyStories) && legacyStories.length && !readLocalTable<LocalStoryRecord>("stories").length) {
     writeLocalTable("stories", legacyStories);
+  }
+  if (Array.isArray(legacyStories) && legacyStories.length) {
+    window.localStorage.removeItem("traveltraces.localStories");
   }
 
   const legacyPlans = JSON.parse(window.localStorage.getItem("traveltraces.travelPlanStories.v1") ?? "[]") as unknown[];
@@ -226,7 +241,7 @@ export function listLocalPins(viewerId: string, groupIds: string[] = [], scope?:
     if (scope && pin.scope !== scope) return false;
     if (pin.scope === "public") return true;
     if (pin.creator_id === viewerId) return true;
-    if (pin.scope === "group") return pin.group_ids.some((groupId) => groupIds.includes(groupId));
+    if (pin.scope === "group") return pin.group_ids.some((groupId) => groupIds.includes(groupId)) || Boolean(pin.collaboratorIds?.includes(viewerId));
     return false;
   });
 }

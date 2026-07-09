@@ -1,6 +1,6 @@
 Project TravelTraces {
   database_type: "PostgreSQL"
-  Note: "Corrected ERD for TravelTraces based on the current website: authentication/session state, public and owner-safe profiles, explore places, stories, map pins, Draw Route travel plan drafts, published travel plan stories, calendar items, saved story/place collections, groups, events, chat, badges, albums, and account deletion/audit flows."
+  Note: "Corrected ERD for TravelTraces based on the current website: authentication/session state, signup category preferences, public and owner-safe profiles, explore places, stories, map pins, Today's Agenda 24-hour map status, Draw Route travel plan drafts, published travel plan stories, calendar items, saved story/place collections, groups, events, chat, badges, albums, localStorage prototype tables, and account deletion/audit flows."
 }
 
 Enum user_role {
@@ -16,6 +16,7 @@ Enum account_status {
 
 Enum visibility_scope {
   private
+  friends
   group
   public
 }
@@ -52,6 +53,7 @@ Enum source_entity_type {
   explore_place
   travel_plan
   travel_plan_destination
+  today_agenda
   event
 }
 
@@ -96,11 +98,17 @@ Table users {
   full_name varchar [not null]
   username varchar [unique]
   avatar_url varchar
+  avatar_position_x decimal(5,2) [not null, default: 50, note: "Free-form image crop position saved by the avatar/photo drag editor."]
+  avatar_position_y decimal(5,2) [not null, default: 50, note: "Free-form image crop position saved by the avatar/photo drag editor."]
   cover_url varchar
   tagline varchar
   location varchar
   nationality varchar
   bio text
+  interests_json json [note: "Category selection after signup, e.g. Beaches, Mountains, Food, Adventure, Culture, Wildlife, Festivals. Used to personalize Explore/Stories/Travel Plan feeds."]
+  travel_style varchar
+  profile_completion_percent int [not null, default: 0]
+  profile_completion_dismissed_at timestamp [note: "Per-user dismissal for the profile completion reminder while the profile is incomplete."]
   role user_role [not null, default: "user"]
   status account_status [not null, default: "active"]
   profile_visibility visibility_scope [not null, default: "public"]
@@ -128,6 +136,7 @@ Table users {
 Table auth_sessions {
   session_id varchar [pk]
   user_id varchar [not null]
+  email_snapshot varchar [note: "Local prototype auth rows store email alongside user_id for duplicate-email and login checks."]
   session_token_hash varchar [not null, unique]
   token_expires_at timestamp [not null]
   revoked_at timestamp
@@ -316,9 +325,11 @@ Table stories {
   latitude decimal(10,7)
   longitude decimal(10,7)
   cover_image_url varchar
+  cover_position_x decimal(5,2) [not null, default: 50]
+  cover_position_y decimal(5,2) [not null, default: 50]
   read_time varchar
   visibility visibility_scope [not null, default: "public"]
-  status story_status [not null, default: "published", note: "Story posts are never drafts. Users can switch visibility between private, group, and public, and can edit/delete their own published story post."]
+  status story_status [not null, default: "published", note: "Story posts are never drafts. Users can switch visibility between private, friends, group, and public, and can edit/delete their own published story post."]
   deletion_status deletion_status [not null, default: "active"]
   likes_count int [not null, default: 0]
   saves_count int [not null, default: 0]
@@ -334,6 +345,9 @@ Table story_photos {
   story_id varchar [not null]
   image_url varchar [not null]
   caption varchar
+  object_position varchar
+  photo_position_x decimal(5,2) [not null, default: 50]
+  photo_position_y decimal(5,2) [not null, default: 50]
   sort_order int [not null, default: 0]
   created_at timestamp [not null]
 }
@@ -342,6 +356,8 @@ Table story_comments {
   comment_id varchar [pk]
   story_id varchar [not null]
   user_id varchar [not null]
+  author_snapshot varchar [note: "Local storyEngagements stores author text directly for responsive cross-tab comment display."]
+  avatar_snapshot varchar
   parent_comment_id varchar
   content text [not null]
   likes_count int [not null, default: 0]
@@ -351,12 +367,14 @@ Table story_comments {
 }
 
 Table story_likes {
+  reaction_id varchar [pk]
   story_id varchar [not null]
   user_id varchar [not null]
+  reaction_type varchar [not null, default: "like"]
   created_at timestamp [not null]
 
   indexes {
-    (story_id, user_id) [pk]
+    (story_id, user_id, reaction_type) [unique]
   }
 }
 
@@ -436,6 +454,7 @@ Table pins {
   scope visibility_scope [not null, default: "private"]
   source varchar [not null, default: "manual"]
   media_json json [note: "Frontend localStorage prototype stores story links as media.storyId. Legacy media.storyDraftId is only recognized for cleanup/backward compatibility; Stories do not have drafts."]
+  collaborator_ids_json json [note: "Local prototype field for Collab Map pins. Production uses pin_collaborators; only mutual followers/friends are eligible."]
   deletion_status deletion_status [not null, default: "active"]
   created_at timestamp [not null]
   updated_at timestamp [not null]
@@ -457,6 +476,20 @@ Table pin_groups {
   indexes {
     (pin_id, group_id) [pk]
   }
+}
+
+Table pin_collaborators {
+  pin_id varchar [not null]
+  collaborator_id varchar [not null]
+  added_by varchar [not null]
+  can_edit boolean [not null, default: false]
+  added_at timestamp [not null]
+
+  indexes {
+    (pin_id, collaborator_id) [pk]
+  }
+
+  Note: "Collab Map collaborators are restricted to friends: User A follows User B and User B follows User A."
 }
 
 Table routes {
@@ -508,6 +541,9 @@ Table travel_plan_stories {
   subtitle varchar
   owner_name_snapshot varchar [note: "Stored for card/article display while still keeping owner_id as the relationship source of truth."]
   cover_image_url varchar [note: "Drafts may start without a cover. A completed Travel Plan cannot be published until the owner chooses or uploads this cover image."]
+  cover_position varchar
+  cover_position_x decimal(5,2) [not null, default: 50]
+  cover_position_y decimal(5,2) [not null, default: 50]
   description text
   route_geometry_json json
   visibility visibility_scope [not null, default: "private", note: "Travel plans stay private while planning or ongoing. Public visibility is allowed only after completion."]
@@ -560,6 +596,7 @@ Table travel_plan_destinations {
   planned_time time
   planned_description text [note: "Maps to the frontend destination.description field. This is the inline article copy shown as TYPE HERE before the visit can be documented."]
   notes text [note: "Inline route note for this point, edited directly in the article-style draft."]
+  photos_json json [note: "Temporary local draft photos for destination article display before/while documentation is being edited."]
   status travel_plan_destination_status [not null, default: "planned"]
   documentable_after timestamp [not null, note: "Destination can be documented only after this scheduled date/time has arrived."]
   reordered_at timestamp [note: "Updated when the owner drags this destination to a new ordered position."]
@@ -601,8 +638,33 @@ Table travel_plan_destination_photos {
   document_id varchar [not null]
   image_url varchar [not null]
   caption varchar
+  object_position varchar
+  photo_position_x decimal(5,2) [not null, default: 50]
+  photo_position_y decimal(5,2) [not null, default: 50]
   sort_order int [not null, default: 0]
   created_at timestamp [not null]
+}
+
+Table today_agendas {
+  agenda_id varchar [pk]
+  owner_id varchar [not null]
+  owner_name_snapshot varchar [not null]
+  owner_avatar_snapshot varchar
+  title varchar [not null]
+  activity varchar [not null]
+  place_name varchar [not null]
+  latitude decimal(10,7) [not null]
+  longitude decimal(10,7) [not null]
+  scope visibility_scope [not null, default: "public"]
+  group_ids_json json [not null, note: "Local TodayAgenda stores groupIds as a string array when scope is group."]
+  created_at timestamp [not null]
+  expires_at timestamp [not null, note: "Automatically expires and disappears after 24 hours."]
+  deleted_at timestamp
+
+  indexes {
+    (owner_id, expires_at)
+    (scope, expires_at)
+  }
 }
 
 Table travel_plan_albums {
@@ -826,6 +888,7 @@ Table events {
   event_id varchar [pk]
   organizer_id varchar [not null]
   organizer_name_snapshot varchar
+  location_id int [note: "Local hosted tour form uses a numeric destination/location id."]
   place_id varchar
   destination_title varchar
   province varchar
@@ -842,6 +905,7 @@ Table events {
   max_participants int [not null]
   status event_status [not null, default: "published"]
   hero_image_url varchar
+  image_url varchar [note: "Local eventsApi payload stores imageUrl; hero_image_url is the production display equivalent."]
   tour_guide_license varchar
   hosted_tour_source varchar [not null, default: "event_page"]
   created_at timestamp [not null]
@@ -885,9 +949,18 @@ Table event_tags {
 
 Table conversations {
   conversation_id varchar [pk]
+  owner_id varchar [note: "Local chat panel stores conversations per owner for prototype isolation."]
   type conversation_type [not null]
   name varchar
   avatar_url varchar
+  avatar_background varchar
+  initials varchar
+  last_message text
+  time_label varchar
+  online boolean [not null, default: false]
+  unread boolean [not null, default: false]
+  muted boolean [not null, default: false]
+  gamified_key varchar
   event_id varchar
   group_id varchar
   created_by varchar
@@ -911,14 +984,52 @@ Table conversation_users {
 Table messages {
   message_id varchar [pk]
   conversation_id varchar [not null]
+  owner_id varchar [note: "Local chat panel stores messages per owner for prototype isolation."]
   sender_id varchar
+  sender_direction varchar [note: "Local UI value: me or them."]
+  sender_name_snapshot varchar
   message_type message_type [not null, default: "text"]
   body text [not null]
   attachment_url varchar
   pin_id varchar
+  time_label varchar
+  read boolean [not null, default: false]
   read_at timestamp
   created_at timestamp [not null]
   deleted_at timestamp
+}
+
+Table user_local_buckets {
+  bucket_id varchar [pk]
+  user_id varchar [not null]
+  bucket_name varchar [not null]
+  value_json json [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (user_id, bucket_name) [unique]
+  }
+
+  Note: "Represents namespaced localStorage buckets like traveltraces:user:{userId}:savedStories, savedTravelPlans, savedMarkers, profile, achievements, draft plans, travel groups, calendar, settings, and chatbox state."
+}
+
+Table place_search_cache {
+  search_cache_id varchar [pk]
+  query varchar [not null]
+  normalized_query varchar [not null]
+  provider varchar [not null]
+  result_json json [not null]
+  latitude_hint decimal(10,7)
+  longitude_hint decimal(10,7)
+  created_at timestamp [not null]
+  expires_at timestamp
+
+  indexes {
+    (normalized_query, provider)
+  }
+
+  Note: "Supports smart place search autocomplete across local app data, saved places, tourist spots, pins, MapTiler, Photon/Pelias, and fallback Nominatim."
 }
 
 Table travel_collections {
@@ -1026,6 +1137,9 @@ Ref: pins.travel_plan_destination_id > travel_plan_destinations.destination_id [
 Ref: pin_photos.pin_id > pins.pin_id [delete: cascade]
 Ref: pin_groups.pin_id > pins.pin_id [delete: cascade]
 Ref: pin_groups.group_id > travel_groups.circle_id [delete: cascade]
+Ref: pin_collaborators.pin_id > pins.pin_id [delete: cascade]
+Ref: pin_collaborators.collaborator_id > users.user_id [delete: cascade]
+Ref: pin_collaborators.added_by > users.user_id [delete: cascade]
 
 Ref: routes.creator_id > users.user_id [delete: cascade]
 Ref: routes.travel_plan_id > travel_plan_stories.travel_plan_id [delete: cascade]
@@ -1057,6 +1171,7 @@ Ref: travel_plan_likes.user_id > users.user_id [delete: cascade]
 Ref: saved_travel_plans.travel_plan_id > travel_plan_stories.travel_plan_id [delete: cascade]
 Ref: saved_travel_plans.user_id > users.user_id [delete: cascade]
 Ref: saved_travel_plans.collection_id > travel_collections.collection_id [delete: set null]
+Ref: today_agendas.owner_id > users.user_id [delete: cascade]
 Ref: user_calendar_items.user_id > users.user_id [delete: cascade]
 Ref: user_calendar_items.travel_plan_id > travel_plan_stories.travel_plan_id [delete: cascade]
 Ref: user_calendar_items.destination_id > travel_plan_destinations.destination_id [delete: cascade]
@@ -1093,14 +1208,17 @@ Ref: event_tags.event_id > events.event_id [delete: cascade]
 
 Ref: conversations.event_id > events.event_id [delete: set null]
 Ref: conversations.group_id > travel_groups.circle_id [delete: set null]
+Ref: conversations.owner_id > users.user_id [delete: cascade]
 Ref: conversations.created_by > users.user_id [delete: set null]
 Ref: conversation_users.conversation_id > conversations.conversation_id [delete: cascade]
 Ref: conversation_users.user_id > users.user_id [delete: cascade]
 Ref: messages.conversation_id > conversations.conversation_id [delete: cascade]
+Ref: messages.owner_id > users.user_id [delete: cascade]
 Ref: messages.sender_id > users.user_id [delete: set null]
 Ref: messages.pin_id > pins.pin_id [delete: set null]
 
 Ref: travel_collections.owner_id > users.user_id [delete: cascade]
+Ref: user_local_buckets.user_id > users.user_id [delete: cascade]
 Ref: saved_tourist_spots.owner_id > users.user_id [delete: cascade]
 Ref: saved_tourist_spots.place_id > explore_places.place_id [delete: set null]
 Ref: saved_tourist_spots.story_id > stories.story_id [delete: set null]

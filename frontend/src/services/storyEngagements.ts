@@ -26,6 +26,15 @@ export type StoryEngagement = {
 
 const CHANNEL_NAME = "traveltraces:story-engagements";
 let channel: BroadcastChannel | null = null;
+let fallbackCommentCounter = 0;
+
+function uniqueStoryCommentId(storyId: string): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `story-comment-${crypto.randomUUID()}`;
+  }
+  fallbackCommentCounter += 1;
+  return `story-comment-${storyId}-${Date.now()}-${fallbackCommentCounter}`;
+}
 
 function getChannel() {
   if (typeof BroadcastChannel === "undefined") return null;
@@ -43,7 +52,21 @@ function allReactions() {
 }
 
 function allComments() {
-  return readLocalTable<StoryComment>("storyComments");
+  const rows = readLocalTable<StoryComment>("storyComments");
+  const seen = new Set<string>();
+  let changed = false;
+  const uniqueRows = rows.map((comment) => {
+    if (comment.id && !seen.has(comment.id)) {
+      seen.add(comment.id);
+      return comment;
+    }
+    changed = true;
+    const nextComment = { ...comment, id: uniqueStoryCommentId(comment.storyId) };
+    seen.add(nextComment.id);
+    return nextComment;
+  });
+  if (changed) writeLocalTable<StoryComment>("storyComments", uniqueRows);
+  return uniqueRows;
 }
 
 export function readStoryEngagement(storyId: string | number): StoryEngagement {
@@ -68,7 +91,7 @@ export function toggleStoryReaction(storyId: string | number, userId: string) {
 
 export function addStoryComment(storyId: string | number, input: Omit<StoryComment, "id" | "storyId" | "createdAt" | "likes">) {
   const id = String(storyId);
-  const comment: StoryComment = { ...input, id: `story-comment-${id}-${Date.now()}`, storyId: id, createdAt: new Date().toISOString(), likes: 0 };
+  const comment: StoryComment = { ...input, id: uniqueStoryCommentId(id), storyId: id, createdAt: new Date().toISOString(), likes: 0 };
   writeLocalTable<StoryComment>("storyComments", [...allComments(), comment]);
   broadcast(id);
   return comment;

@@ -472,6 +472,8 @@ function MapContent() {
     setActiveFormCoords(null);
   };
 
+  const selectedPinId = selectedPin?.id ?? null;
+
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F5F0E8", display: "flex", flexDirection: "column" }}>
       {/* Upper header section */}
@@ -802,15 +804,15 @@ function MapContent() {
                           cursor: "pointer",
                           textAlign: "left",
                           transition: "background-color 0.1s",
-                          backgroundColor: selectedPin?.id === p.id ? "rgba(58,42,34,0.08)" : "",
+                          backgroundColor: selectedPinId === p.id ? "rgba(58,42,34,0.08)" : "",
                         }}
                         onMouseEnter={(e) => {
-                          if (selectedPin?.id !== p.id) {
+                          if (selectedPinId !== p.id) {
                             e.currentTarget.style.backgroundColor = "rgba(58,42,34,0.05)";
                           }
                         }}
                         onMouseLeave={(e) => {
-                          if (selectedPin?.id !== p.id) {
+                          if (selectedPinId !== p.id) {
                             e.currentTarget.style.backgroundColor = "";
                           }
                         }}

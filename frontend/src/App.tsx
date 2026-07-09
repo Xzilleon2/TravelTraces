@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router";
 import { AuthProvider } from "./context/AuthContext";
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
@@ -8,6 +8,8 @@ import { AppSkeleton } from "./components/AppSkeleton";
 import { ArrowUp } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
 import { LANDING_IMAGE_LIST } from "./pages/landingAssets";
+
+const onboardingCategories = ["Beaches", "Mountains", "Food Place", "Adventure", "Culture", "Wildlife", "Festivals", "Hidden Gems", "Forest", "Heritage", "Island Hopping", "Road Trips"];
 
 // Page imports
 const LandingPage = lazy(() => import("./pages/LandingPage"));
@@ -322,6 +324,85 @@ function LandingOpeningScreen({ progress, phase }: { progress: number; phase: "l
   );
 }
 
+function CategorySelectionModal() {
+  const navigate = useNavigate();
+  const { needsInterestSelection, completeInterestSelection } = useAuth();
+  const [selected, setSelected] = useState<string[]>([]);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!needsInterestSelection) return undefined;
+    setSelected([]);
+    setError("");
+    document.body.classList.add("modal-open");
+    return () => document.body.classList.remove("modal-open");
+  }, [needsInterestSelection]);
+
+  if (!needsInterestSelection) return null;
+
+  const toggleCategory = (category: string) => {
+    setError("");
+    setSelected((current) => (current.includes(category) ? current.filter((item) => item !== category) : [...current, category]));
+  };
+
+  const save = () => {
+    if (selected.length < 3) {
+      setError("Choose at least 3 travel interests so TravelTraces can personalize your feed.");
+      return;
+    }
+    completeInterestSelection(selected);
+    navigate("/explore");
+  };
+
+  return (
+    <div className="fixed inset-0 z-[1200] grid place-items-center bg-[#1A1411]/70 px-4 py-6 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="interest-title">
+      <section className="w-[min(100%,44rem)] rounded-2xl border border-[#EFE7DC]/60 bg-[#FBF7F0] p-[clamp(1.5rem,4vw,2.5rem)] text-center text-[#2C211C] shadow-[0_28px_80px_rgba(26,20,17,0.32)]">
+        <p className="m-0 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.18em] text-[#9E6B5C]">Personalize your TravelTraces</p>
+        <h2 id="interest-title" className="mx-auto mt-3 max-w-[12ch] font-[var(--font-display)] text-[clamp(2.25rem,7vw,4rem)] font-semibold leading-none">
+          What kind of trips pull you in?
+        </h2>
+        <p className="mx-auto mt-4 max-w-[42ch] font-[var(--font-body)] text-base leading-7 text-[#5B4A40]">
+          Pick a few interests. These become the first signal for your Explore, Stories, and route recommendations.
+        </p>
+
+        <div className="mx-auto mt-7 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-3">
+          {onboardingCategories.map((category) => {
+            const active = selected.includes(category);
+            return (
+              <button
+                key={category}
+                type="button"
+                aria-pressed={active}
+                onClick={() => toggleCategory(category)}
+                className={`min-h-12 rounded-full border px-4 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.08em] transition ${
+                  active
+                    ? "border-[#3A2A22] bg-[#3A2A22] text-[#FBF7F0] shadow-[0_12px_28px_rgba(58,42,34,0.18)]"
+                    : "border-[#3A2A22]/14 bg-[#EFE7DC] text-[#3A2A22] hover:border-[#C4713A]/45 hover:bg-[#F5E6D8]"
+                }`}
+              >
+                {category}
+              </button>
+            );
+          })}
+        </div>
+
+        {error ? <p className="mt-5 font-[var(--font-ui)] text-sm font-bold text-[#9B2F25]">{error}</p> : null}
+
+        <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={save}
+            className="min-h-12 rounded-full bg-[#C4713A] px-7 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.1em] text-[#FBF7F0] shadow-[0_16px_32px_rgba(196,113,58,0.24)]"
+          >
+            Continue to Explore
+          </button>
+          <span className="font-[var(--font-ui)] text-sm text-[#6B5A50]">{selected.length} selected</span>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function AppLayout() {
   const location = useLocation();
   const { isAuthenticated, authReady } = useAuth();
@@ -586,6 +667,7 @@ function AppLayout() {
 
       {!isImmersiveMap && <Footer />}
       <AuthModal />
+      <CategorySelectionModal />
     </div>
   );
 }
