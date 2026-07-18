@@ -3,6 +3,9 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def _csv_env(name: str, default: str) -> list[str]:
     value = os.getenv(name, default)
@@ -50,6 +53,12 @@ class Settings:
     bootstrap_user_password_hash: str | None = os.getenv("BOOTSTRAP_USER_PASSWORD_HASH")
     bootstrap_user_group_ids: list[str] = None  # type: ignore[assignment]
     database_path: str = os.getenv("TRAVELPLACES_DB_PATH", "data/TravelPlaces.db")
+    groq_api_key: str = os.getenv("GROQ_API_KEY", "")
+    groq_model: str = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
+    groq_base_url: str = os.getenv(
+        "GROQ_BASE_URL",
+    )
+    
 
     def __post_init__(self) -> None:
         if self.cors_origins is None:
