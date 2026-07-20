@@ -253,7 +253,22 @@ export type TouristSpot = {
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 const USE_LOCAL_DB = !API_BASE_URL;
-const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_KEY ?? "l2E5iy9xxhzUX1SjABdO";
+const MAPTILER_KEY = (import.meta.env.VITE_MAPTILER_KEY || "OxFhSEPyrURM6Iii2vm0").trim();
+const reverseLocationCache = new Map<string, ApiLocation>();
+const reverseLocationPending = new Map<string, Promise<ApiLocation>>();
+
+function reverseCacheKey(lat: number, lon: number): string {
+  return `${lat.toFixed(5)},${lon.toFixed(5)}`;
+}
+
+function fallbackLocation(lat: number, lon: number): ApiLocation {
+  return {
+    coordinate: [lat, lon],
+    label: `Selected place near ${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+    provider: "local-db",
+    confidence: 0.7,
+  };
+}
 
 async function localDb() {
   return import("./localDb");
@@ -356,32 +371,52 @@ export async function autocompleteLocations(query: string, limit = 8): Promise<A
 }
 
 export async function reverseLocation(lat: number, lon: number): Promise<ApiLocation> {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    return fallbackLocation(0, 0);
+  }
+  const cacheKey = reverseCacheKey(lat, lon);
+  const cached = reverseLocationCache.get(cacheKey);
+  if (cached) return cached;
+
   if (USE_LOCAL_DB) {
     if (MAPTILER_KEY) {
-      try {
+      const pending = reverseLocationPending.get(cacheKey);
+      if (pending) return pending;
+
+      const request: Promise<ApiLocation> = (async (): Promise<ApiLocation> => {
         const params = new URLSearchParams({ key: MAPTILER_KEY, limit: "1", language: "en" });
         const response = await fetch(`https://api.maptiler.com/geocoding/${lon},${lat}.json?${params}`);
+        if (!response.ok) throw new Error(`MapTiler reverse geocoding failed with ${response.status}`);
         const data = (await response.json()) as { features?: Array<{ place_name?: string; text?: string; relevance?: number }> };
         const feature = data.features?.[0];
         const label = feature?.place_name || feature?.text;
         if (label) {
           return {
-            coordinate: [lat, lon],
+            coordinate: [lat, lon] as [number, number],
             label,
             provider: "maptiler",
             confidence: Math.max(0.55, Math.min(0.98, Number(feature?.relevance) || 0.75)),
           };
         }
+        return fallbackLocation(lat, lon);
+      })();
+
+      reverseLocationPending.set(cacheKey, request);
+      try {
+        const resolved = await request;
+        reverseLocationCache.set(cacheKey, resolved);
+        return resolved;
       } catch {
-        // Use coordinate fallback below when geocoding is unavailable.
+        const fallback = fallbackLocation(lat, lon);
+        reverseLocationCache.set(cacheKey, fallback);
+        return fallback;
+      } finally {
+        reverseLocationPending.delete(cacheKey);
       }
     }
-    return {
-      coordinate: [lat, lon],
-      label: `Selected place near ${lat.toFixed(4)}, ${lon.toFixed(4)}`,
-      provider: "local-db",
-      confidence: 0.7,
-    };
+    const fallback = fallbackLocation(lat, lon);
+    reverseLocationCache.set(cacheKey, fallback);
+    return fallback;
   }
   const params = new URLSearchParams({ lat: String(lat), lon: String(lon) });
   return requestJson<ApiLocation>(`/api/reverse?${params}`);

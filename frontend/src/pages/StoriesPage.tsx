@@ -16,9 +16,9 @@ import {
   type TravelPlanDestination,
   type TravelPlanStory,
 } from "../services/travelPlanStories";
-import { deletePin, listPins, type MapScope } from "../services/mappingApi";
+import { deletePin, listPins, type ApiPin, type MapScope } from "../services/mappingApi";
 import { publishWorkspaceEvent } from "../utils/workspaceSync";
-import { deleteLocalStoryCascade, listLocalStories, writeLocalStories as writeLocalDbStories, type LocalStoryRecord } from "../services/localDb";
+import { deleteLocalStoryCascade, listLocalStories, placeholderImage, readLocalTable, writeLocalStories as writeLocalDbStories, writeLocalTable, type LocalStoryRecord } from "../services/localDb";
 import { addStoryComment, readStoryEngagement, subscribeStoryEngagements, toggleStoryReaction, type StoryComment } from "../services/storyEngagements";
 import { localAvatarDataUrl } from "../utils/localAvatar";
 
@@ -65,8 +65,6 @@ const STORY_CATEGORY_ICON: Record<string, typeof Compass> = {
   Culture: Landmark,
   More: Compass,
 };
-export const LOCAL_STORIES_KEY = "traveltraces.localStories";
-
 export type TravelStory = LocalStoryRecord;
 
 function readLocalStories(): TravelStory[] {
@@ -182,10 +180,28 @@ function shouldHidePreciseLocation(story: Pick<TravelStory, "title" | "category"
   return isSensitiveStory(story);
 }
 
+function preferenceScore(category: string, interests: string[] = []): number {
+  const normalizedCategory = category.toLowerCase();
+  return interests.some((interest) => normalizedCategory.includes(interest.toLowerCase()) || interest.toLowerCase().includes(normalizedCategory)) ? 1 : 0;
+}
+
 function storyPhotoUrl(photo: StoryPhotoFrame | undefined, fallback = ""): string {
   if (!photo) return fallback;
-  if (typeof photo === "string") return photo;
+  if (typeof photo === "string") return photo.trim() || fallback;
   return String(photo.data_url ?? photo.preview_url ?? photo.thumbnail_url ?? fallback);
+}
+
+function safeStoryImageUrl(src: string | undefined, label: string): string {
+  const value = String(src ?? "").trim();
+  return value || placeholderImage(label);
+}
+
+function linkedPinStoryId(pin: ApiPin): number | null {
+  const media = pin.media as { storyId?: unknown; storyDraftId?: unknown } | null;
+  const linkedId = Number(media?.storyId ?? media?.storyDraftId);
+  if (Number.isFinite(linkedId)) return linkedId;
+  const generated = String(pin.pin_id).match(/^(story-|local-marker-)(\d+)$/);
+  return generated ? Number(generated[2]) : null;
 }
 
 function storyPhotoPosition(photo: StoryPhotoFrame | undefined, fallback = "center center"): string {
@@ -224,7 +240,7 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
   const localPhotos = Array.isArray(story.photos) && story.photos.length ? story.photos : null;
   const photos = localPhotos ?? STORY_PHOTOS[story.id] ?? [story.img];
   const activePhoto = photos[photoIndex] ?? photos[0];
-  const activePhotoUrl = storyPhotoUrl(activePhoto, story.img);
+  const activePhotoUrl = safeStoryImageUrl(storyPhotoUrl(activePhoto, story.img), story.title);
   const activePhotoPosition = storyPhotoPosition(activePhoto, story.imagePosition ?? "center center");
   const hasMultiplePhotos = photos.length > 1;
   const storyPoint = story.storyPoint ?? STORY_MAP_POINTS[story.id];
@@ -365,7 +381,7 @@ export function StoryArticleView({ story, onBack, onPrev, onNext, hasPrev, hasNe
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", borderTop: "1px solid rgba(58,42,34,0.14)", borderBottom: "1px solid rgba(58,42,34,0.14)", padding: "1rem 0", flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.8rem", flex: "1 1 22rem", minWidth: 0 }}>
               <button onClick={() => viewProfile(story.author)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-                <img src={story.authorAvatar} alt={story.author} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", display: "block" }} />
+                <img src={story.authorAvatar || localAvatarDataUrl(story.author)} alt={story.author} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", display: "block" }} />
               </button>
               <div style={{ minWidth: 0, flex: "1 1 auto" }}>
                 <button onClick={() => viewProfile(story.author)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "var(--font-ui)", fontWeight: 800, fontSize: "0.96rem", color: "#1A1A1A" }}>{story.author}</button>
@@ -975,7 +991,14 @@ function StoriesContent() {
     const requestedStory = Number(params.get("story") ?? params.get("localStory"));
     return Number.isFinite(requestedStory) && requestedStory > 0 ? requestedStory : null;
   });
-  const allStories: TravelStory[] = useMemo(() => [...localStories, ...STORIES].sort((a, b) => b.likes - a.likes), [localStories]);
+  const allStories: TravelStory[] = useMemo(
+    () =>
+      [...localStories, ...STORIES].sort((a, b) => {
+        const preferenceDelta = preferenceScore(b.category, user?.interests) - preferenceScore(a.category, user?.interests);
+        return preferenceDelta || b.likes - a.likes;
+      }),
+    [localStories, user?.interests],
+  );
 
   const isOwnStory = (story: TravelStory) => {
     if (!story.local) return false;
@@ -1076,7 +1099,22 @@ function StoriesContent() {
     const nextVisibility: TravelStory["visibility"] = nextScope === "group" ? "friends" : nextScope;
     const updatedStory: TravelStory = { ...story, scope: nextScope, visibility: nextVisibility, updatedAt: new Date().toISOString() };
     const nextLocalStories = readLocalStories().map((item) => (item.id === story.id ? updatedStory : item));
+    const nextPins = readLocalTable<ApiPin>("pins").reduce<ApiPin[]>((rows, pin) => {
+      if (linkedPinStoryId(pin) !== story.id) return [...rows, pin];
+      if (rows.some((row) => linkedPinStoryId(row) === story.id)) return rows;
+      return [
+        ...rows,
+        {
+          ...pin,
+          scope: nextScope,
+          group_ids: nextScope === "group" ? (story.groupIds ?? user?.groupIds ?? []) : [],
+          updated_at: new Date().toISOString(),
+        },
+      ];
+    }, []);
     writeLocalStories(nextLocalStories);
+    writeLocalTable<ApiPin>("pins", nextPins);
+    nextPins.filter((pin) => linkedPinStoryId(pin) === story.id).forEach((pin) => publishWorkspaceEvent({ type: "pin.created", pin }));
     setLocalStories(nextLocalStories);
     setScopeFilter(nextScope === "group" ? "group" : nextScope === "private" ? "mine" : "public");
   };
@@ -1210,7 +1248,7 @@ function StoriesContent() {
             style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0", borderRadius: "0.25rem", overflow: "hidden", backgroundColor: "#EDEAE0", marginBottom: "2rem", cursor: "pointer" }}
             className="featured-story-grid"
           >
-            <img src={filtered[0].img} alt={filtered[0].title} style={{ width: "100%", height: 380, objectFit: "cover", objectPosition: filtered[0].imagePosition ?? "center center", display: "block" }} />
+            <img src={safeStoryImageUrl(filtered[0].img, filtered[0].title)} alt={filtered[0].title} style={{ width: "100%", height: 380, objectFit: "cover", objectPosition: filtered[0].imagePosition ?? "center center", display: "block" }} />
             <div style={{ padding: "2.5rem", display: "flex", flexDirection: "column", justifyContent: "center" }}>
               <span style={{ fontFamily: "var(--font-label)", fontSize: "0.7rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#C4713A", marginBottom: "0.75rem" }}>{filtered[0].category}</span>
               <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.75rem", fontWeight: 600, color: "#3A2A22", lineHeight: 1.3, marginBottom: "1rem" }}>{filtered[0].title}</h2>
@@ -1239,7 +1277,7 @@ function StoriesContent() {
               onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.1)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
             >
-              <img src={s.img} alt={s.title} style={{ width: "100%", height: 180, objectFit: "cover", objectPosition: s.imagePosition ?? "center center", display: "block" }} />
+              <img src={safeStoryImageUrl(s.img, s.title)} alt={s.title} style={{ width: "100%", height: 180, objectFit: "cover", objectPosition: s.imagePosition ?? "center center", display: "block" }} />
               <div style={{ padding: "1.25rem" }}>
                 <span style={{ fontFamily: "var(--font-label)", fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#C4713A" }}>{s.category}</span>
                 <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.15rem", fontWeight: 600, color: "#3A2A22", lineHeight: 1.35, margin: "0.4rem 0 0.75rem" }}>{s.title}</h3>

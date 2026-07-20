@@ -52,6 +52,8 @@ type AuthContextType = {
   updateUser: (user: User) => void;
   authModalOpen: boolean;
   authMode: "login" | "signup";
+  needsInterestSelection: boolean;
+  completeInterestSelection: (interests: string[]) => void;
   openAuthModal: (mode?: "login" | "signup") => void;
   closeAuthModal: () => void;
 };
@@ -134,6 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [authError, setAuthError] = useState<string | null>(null);
+  const [needsInterestSelection, setNeedsInterestSelection] = useState(false);
 
   useEffect(() => {
     void fetchCurrentUser()
@@ -169,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthError(null);
       const auth = await signupWithBackend(name, email, password);
       setUser(persistStoredUser(userFromAuth(auth, name)));
+      setNeedsInterestSelection(true);
       setAuthModalOpen(false);
       return { ok: true };
     } catch (error) {
@@ -190,6 +194,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateUser = (updated: User) => {
     setUser(persistStoredUser(updated));
+  };
+
+  const completeInterestSelection = (interests: string[]) => {
+    setUser((current) => {
+      if (!current) return current;
+      return persistStoredUser({ ...current, interests });
+    });
+    setNeedsInterestSelection(false);
   };
 
   const openAuthModal = (mode: "login" | "signup" = "login") => {
@@ -216,6 +228,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateUser,
         authModalOpen,
         authMode,
+        needsInterestSelection,
+        completeInterestSelection,
         openAuthModal,
         closeAuthModal,
       }}

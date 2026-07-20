@@ -11,6 +11,7 @@ import {
   MapPin,
   MousePointer2,
   BookOpen,
+  Clock3,
   Mountain,
   Route,
   Search,
@@ -57,9 +58,11 @@ import {
 import { publishWorkspaceEvent, subscribeWorkspaceEvents } from "../utils/workspaceSync";
 import { markerSavePayload, primaryPhotoUrl, type PendingMarkerPhoto } from "../utils/photoPinHelpers";
 import { createTravelPlanStory } from "../services/travelPlanStories";
+import { agendaToPin, createTodayAgenda, listActiveTodayAgendas } from "../services/todayAgenda";
+import { getMutualFriends } from "../services/userData";
 import { smartPlaceSearch } from "../services/smartPlaceSearch";
 import { SEA_BOUNDS } from "../utils/seaBounds";
-import { DELETED_STORY_PIN_IDS_KEY, LOCAL_STORIES_KEY, STORIES, STORY_MAP_POINTS, STORY_PHOTOS, type TravelStory } from "./StoriesPage";
+import { DELETED_STORY_PIN_IDS_KEY, STORIES, STORY_MAP_POINTS, STORY_PHOTOS, type TravelStory } from "./StoriesPage";
 import { listLocalStories, upsertLocalStory } from "../services/localDb";
 
 type BaseLayer = "street" | "satellite" | "terrain";
@@ -68,7 +71,7 @@ type PathFinderMode = "search_users" | "draw_route";
 type DrawRouteInputMode = "click" | "drag";
 type PickTarget = "from" | "to" | "marker" | null;
 type ExportFormat = "png" | "jpeg";
-type TravelToolbarTool = "path" | "draw" | "sharing" | "meetup" | "markers";
+type TravelToolbarTool = "path" | "draw" | "sharing" | "meetup" | "markers" | "agenda";
 type WorkspaceSidePanel = TravelToolbarTool | "export" | null;
 type BoxZoomDrag = { startX: number; startY: number; currentX: number; currentY: number };
 type StoryMapHandoff = { storyId?: number; title?: string; place?: string; coordinate?: { lat: number; lon: number } };
@@ -253,13 +256,6 @@ function persistPrototypeStory(input: {
     local: true,
   };
 
-  try {
-    const current = JSON.parse(window.localStorage.getItem(LOCAL_STORIES_KEY) ?? "[]") as TravelStory[];
-    const next = [story, ...current.filter((item) => item.id !== story.id)].slice(0, 24);
-    window.localStorage.setItem(LOCAL_STORIES_KEY, JSON.stringify(next));
-  } catch {
-    window.localStorage.setItem(LOCAL_STORIES_KEY, JSON.stringify([story]));
-  }
   upsertLocalStory(story);
 }
 
@@ -964,6 +960,10 @@ function MapsWorkspaceContent() {
   const [placementPreview, setPlacementPreview] = useState<string | null>(null);
 
   const [pins, setPins] = useState<ApiPin[]>([]);
+  const [todayAgendas, setTodayAgendas] = useState(() => listActiveTodayAgendas(viewerId, groupIds));
+  const [agendaTitle, setAgendaTitle] = useState("");
+  const [agendaActivity, setAgendaActivity] = useState("");
+  const [agendaScope, setAgendaScope] = useState<MapScope>("public");
   const [travelGroups, setTravelGroups] = useState<TravelGroup[]>([]);
   const [activeTravelGroupId, setActiveTravelGroupId] = useState("");
   const [travelLocations, setTravelLocations] = useState<TravelGroupLocation[]>([]);
@@ -994,10 +994,11 @@ function MapsWorkspaceContent() {
   const scopedGroupIds = useMemo(() => (scope === "group" ? groupIds : []), [scope, groupIds]);
   const activeMode = workspaceModes.find((mode) => mode.key === scope) ?? workspaceModes[0];
   const localStoryPins = useMemo(() => localMapStories.map(storyToMapPin).filter((pin): pin is ApiPin => Boolean(pin)), [localMapStories]);
+  const todayAgendaPins = useMemo(() => todayAgendas.map(agendaToPin), [todayAgendas]);
   const deletedStoryPinIdSet = useMemo(() => new Set(deletedStoryPinIds), [deletedStoryPinIds]);
   const validStoryIdSet = useMemo(() => new Set([...STORIES, ...localMapStories].map((story) => story.id)), [localMapStories]);
   const mapPins = useMemo(
-    () => [...COMMUNITY_STORY_PINS, ...localStoryPins, ...pins].filter((pin) => {
+    () => [...COMMUNITY_STORY_PINS, ...localStoryPins, ...todayAgendaPins, ...pins].filter((pin) => {
       const linkedStoryId = pinLinkedStoryId(pin);
       if (linkedStoryId === null) return true;
       if (deletedStoryPinIdSet.has(linkedStoryId)) return false;
@@ -1006,11 +1007,11 @@ function MapsWorkspaceContent() {
       }
       return true;
     }),
-    [deletedStoryPinIdSet, localStoryPins, pins, validStoryIdSet],
+    [deletedStoryPinIdSet, localStoryPins, pins, todayAgendaPins, validStoryIdSet],
   );
   const visiblePins = useMemo(() => mapPins.filter((pin) => pin.scope === scope), [mapPins, scope]);
   const markerPlacementActive = pickTarget === "marker";
-  const workspaceFriends = user?.friends?.length ? user.friends : friendList;
+  const workspaceFriends = user ? getMutualFriends(user) : friendList;
   const workspaceFollowers = user?.followers ?? [];
 
   const routeData = useMemo(() => routeToGeoJson(route), [route]);
@@ -1033,6 +1034,19 @@ function MapsWorkspaceContent() {
   useEffect(() => {
     draftStopsRef.current = draftStops;
   }, [draftStops]);
+
+  useEffect(() => {
+    const refreshAgendas = () => setTodayAgendas(listActiveTodayAgendas(viewerId, groupIds));
+    refreshAgendas();
+    const interval = window.setInterval(refreshAgendas, 60_000);
+    window.addEventListener("traveltraces:today-agenda-updated", refreshAgendas);
+    window.addEventListener("storage", refreshAgendas);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("traveltraces:today-agenda-updated", refreshAgendas);
+      window.removeEventListener("storage", refreshAgendas);
+    };
+  }, [groupIds, viewerId]);
 
   const refreshScopedData = useCallback(async () => {
     const mapId = activeMap?.map_id;
@@ -1179,7 +1193,8 @@ function MapsWorkspaceContent() {
       }
       if (event.type === "pin.deleted") {
         if (typeof event.storyId === "number") {
-          setDeletedStoryPinIds((current) => Array.from(new Set([event.storyId, ...current])));
+          const deletedStoryId = event.storyId;
+          setDeletedStoryPinIds((current) => Array.from(new Set([deletedStoryId, ...current])));
         }
         if (event.pinId) {
           setPins((current) => current.filter((pin) => pin.pin_id !== event.pinId));
@@ -2066,6 +2081,45 @@ function MapsWorkspaceContent() {
     }
   }, [activeTravelGroupId, captureCurrentPosition, refreshTravelLocations, viewerId, visibilityScope]);
 
+  const handleCreateTodayAgenda = useCallback(async () => {
+    if (!user) {
+      setStatus("Sign in before sharing today's agenda.");
+      return;
+    }
+    const title = agendaTitle.trim();
+    const activity = agendaActivity.trim();
+    if (!title || !activity) {
+      setStatus("Add a destination and activity for today's agenda.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const position = await captureCurrentPosition();
+      const location = await reverseLocation(position.coords.latitude, position.coords.longitude);
+      const agenda = createTodayAgenda({
+        ownerId: viewerId,
+        ownerName: user.name || user.email,
+        ownerAvatar: user.avatar,
+        title,
+        activity,
+        placeName: location.label,
+        coordinate: { lat: position.coords.latitude, lon: position.coords.longitude },
+        scope: agendaScope,
+        groupIds: agendaScope === "group" ? groupIds : [],
+      });
+      setTodayAgendas(listActiveTodayAgendas(viewerId, groupIds));
+      setAgendaTitle("");
+      setAgendaActivity("");
+      setScope(agenda.scope);
+      mapRef.current?.flyTo({ center: [agenda.coordinate.lon, agenda.coordinate.lat], zoom: 13, duration: 700 });
+      setStatus("Today's Agenda is live for 24 hours.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Today's Agenda could not use your GPS location.");
+    } finally {
+      setBusy(false);
+    }
+  }, [agendaActivity, agendaScope, agendaTitle, captureCurrentPosition, groupIds, user, viewerId]);
+
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -2338,6 +2392,7 @@ function MapsWorkspaceContent() {
               { value: "fastest", label: "fastest" },
             ]}
             onChange={handleRouteModeChange}
+            activeVariant="toggle-active"
           />
           <WorkspaceButton variant="primary" icon={Route} disabled={busy} onClick={() => void handleGenerateRoute()}>
             Generate Snapped Route
@@ -2376,7 +2431,7 @@ function MapsWorkspaceContent() {
       />
       {drawRouteInputMode === "click" ? (
         <label className="grid gap-2">
-          <span className={fieldLabel}>Number of Points: {drawTargetPointCount}</span>
+        <span className={fieldLabel}>Number of Points: {drawTargetPointCount}</span>
           <input
             type="range"
             min={2}
@@ -2412,12 +2467,7 @@ function MapsWorkspaceContent() {
       </div>
       <label className="grid gap-2">
         <span className={fieldLabel}>Route Color</span>
-        <input
-          type="color"
-          value={routeColor}
-          onChange={(event) => setRouteColor(event.target.value)}
-          className="h-12 w-full cursor-pointer rounded-lg border border-[#3A2A22]/15 bg-[#F5F0E8] p-1"
-        />
+        <input type="color" value={routeColor} onChange={(event) => setRouteColor(event.target.value)} className="h-12 w-full cursor-pointer rounded-lg border border-[#3A2A22]/15 bg-[#F5F0E8] p-1" />
       </label>
       <label className="grid gap-2">
         <span className={fieldLabel}>Path Width: {routeWidth}px</span>
@@ -2539,7 +2589,7 @@ function MapsWorkspaceContent() {
         </div>
         {markerSearch.trim().length >= 2 ? (
           <div className="mt-3 grid gap-2">
-            {markerSuggestions.busy ? <div className="rounded bg-white px-3 py-2 text-xs text-[#6B6B5A]">Searching places...</div> : null}
+            {markerSuggestions.busy ? <div className="rounded bg-white px-3 py-2 text-xs text-[#6B6B5A]">Searching...</div> : null}
             {markerSuggestions.results.slice(0, 4).map((item) => (
               <button
                 key={`${item.label}-${item.coordinate.join(",")}`}
@@ -2548,9 +2598,9 @@ function MapsWorkspaceContent() {
                   setMarkerSearch(item.label);
                   openMarkerAtLocation(item, `Story marker placed at ${item.label}. Drag it for accuracy, then write your story.`);
                 }}
-                className="rounded-lg border border-[#3A2A22]/10 bg-white px-3 py-2 text-left text-xs transition hover:border-[#9E6B5C]/50"
+                className="rounded border border-[#3A2A22]/10 bg-white px-3 py-2 text-left text-xs transition hover:border-[#3A2A22]/40"
               >
-                <span className="flex items-center gap-2 font-semibold text-[#1A1A1A]"><MapPin size={13} />{item.label}</span>
+                <span className="block font-semibold text-[#3A2A22]">{item.label}</span>
                 <span className="mt-1 block text-[#6B6B5A]">{item.provider} / {Math.round(item.confidence * 100)}% match</span>
               </button>
             ))}
@@ -2587,6 +2637,51 @@ function MapsWorkspaceContent() {
           </button>
         ))}
         {!visiblePins.length ? <div className="rounded-lg bg-[#F5F0E8] p-4 text-sm text-[#6B6B5A]">Travel post markers will appear here.</div> : null}
+      </div>
+    </div>
+  );
+
+  const agendaControls = (
+    <div className="grid gap-4">
+      <div className="rounded-xl border border-[#3A2A22]/10 bg-[#F5F0E8] p-4">
+        <p className="m-0 font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.1em] text-[#C4713A]">Today's Agenda</p>
+        <p className="m-0 mt-2 text-sm leading-6 text-[#5B4A40]">Share where you are headed right now. This marker uses your GPS location and disappears after 24 hours.</p>
+      </div>
+      <label className="grid gap-2">
+        <span className={fieldLabel}>Destination or plan</span>
+        <input value={agendaTitle} onChange={(event) => setAgendaTitle(event.target.value)} className={inputField} placeholder="Coffee in Baguio, sunset walk..." />
+      </label>
+      <label className="grid gap-2">
+        <span className={fieldLabel}>Activity</span>
+        <input value={agendaActivity} onChange={(event) => setAgendaActivity(event.target.value)} className={inputField} placeholder="Working, hiking, food crawl..." />
+      </label>
+      <div>
+        <span className={`${fieldLabel} mb-2 block`}>Privacy</span>
+        <WorkspaceToggleGroup
+          value={agendaScope}
+          options={[
+            { value: "private", label: "Private" },
+            { value: "group", label: "Collab" },
+            { value: "public", label: "Public" },
+          ]}
+          activeVariant="toggle-active-dark"
+          onChange={(value) => setAgendaScope(value as MapScope)}
+        />
+      </div>
+      <WorkspaceButton variant="primary" icon={LocateFixed} disabled={busy} onClick={() => void handleCreateTodayAgenda()}>
+        Use GPS & Post 24h Agenda
+      </WorkspaceButton>
+      <div className="grid max-h-48 gap-2 overflow-y-auto pr-1">
+        {todayAgendas.length ? (
+          todayAgendas.slice(0, 5).map((agenda) => (
+            <button key={agenda.id} type="button" onClick={() => handleFocusPin(agendaToPin(agenda))} className="rounded-lg border border-[#3A2A22]/10 bg-[#FBF7F0] p-3 text-left text-sm">
+              <span className="flex items-center gap-2 font-semibold text-[#2C211C]"><Clock3 size={14} />{agenda.title}</span>
+              <span className="mt-1 block text-xs leading-5 text-[#6B5A50]">{agenda.activity} / expires {new Date(agenda.expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+            </button>
+          ))
+        ) : (
+          <div className="rounded-lg bg-[#F5F0E8] p-4 text-sm text-[#6B6B5A]">No active agendas yet.</div>
+        )}
       </div>
     </div>
   );
@@ -2639,6 +2734,7 @@ function MapsWorkspaceContent() {
       />
     ),
     markers: markerControls,
+    agenda: agendaControls,
   };
 
   const travelToolRows: Array<{
@@ -2653,6 +2749,7 @@ function MapsWorkspaceContent() {
     { key: "sharing", label: "Live Travel Sharing", description: "Share, stop, check in, and control visibility.", shortcut: "Ctrl+L", icon: <LocateFixed size={18} /> },
     { key: "meetup", label: "Smart Meetup Planner", description: "Participants, travel limits, and venue suggestions.", shortcut: "Ctrl+K", icon: <Users size={18} /> },
     { key: "markers", label: "Travel Markers", description: "Drop a marker and create a database-backed travel post.", shortcut: "Ctrl+M", icon: <MapPin size={18} /> },
+    { key: "agenda", label: "Today's Agenda", description: "Post a GPS-based 24-hour destination status.", shortcut: "Ctrl+A", icon: <Clock3 size={18} /> },
   ];
 
   const mapStyleRows: Array<{

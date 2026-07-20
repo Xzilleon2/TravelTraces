@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { Search, MapPin, Star, ArrowLeft, BookOpen, Pin, Users, Camera, Clock, ChevronLeft, ChevronRight, ExternalLink, Compass, Mountain, Waves, Building2, TreePine, Droplets, Anchor, Gem, Landmark, Utensils } from "lucide-react";
 import { GatedPage } from "../components/GatedPage";
 import { LargeEmptyState } from "../components/LargeEmptyState";
+import { useAuth } from "../context/AuthContext";
 import { GAMIFIED_USERS, getLevelFromXp } from "../components/gamification";
 import { STORIES, StoryArticleView, type TravelStory } from "./StoriesPage";
 
@@ -618,15 +619,25 @@ function DestinationCard({ d, onClick }: { d: Destination; onClick: () => void }
 /* ─── Page ──────────────────────────────────────────────────── */
 
 function ExploreContent() {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [selected, setSelected] = useState<Destination | null>(null);
 
-  const filtered = DESTINATIONS.filter((d) => {
-    const matchSearch = d.name.toLowerCase().includes(search.toLowerCase()) || d.region.toLowerCase().includes(search.toLowerCase()) || d.province.toLowerCase().includes(search.toLowerCase());
-    const matchCategory = destinationMatchesCategory(d, category);
-    return matchSearch && matchCategory;
-  });
+  const filtered = useMemo(
+    () =>
+      DESTINATIONS.filter((d) => {
+        const matchSearch = d.name.toLowerCase().includes(search.toLowerCase()) || d.region.toLowerCase().includes(search.toLowerCase()) || d.province.toLowerCase().includes(search.toLowerCase());
+        const matchCategory = destinationMatchesCategory(d, category);
+        return matchSearch && matchCategory;
+      }).sort((a, b) => {
+        const interests = user?.interests ?? [];
+        const aScore = interests.some((interest) => destinationMatchesCategory(a, interest)) ? 1 : 0;
+        const bScore = interests.some((interest) => destinationMatchesCategory(b, interest)) ? 1 : 0;
+        return bScore - aScore || b.rating - a.rating;
+      }),
+    [category, search, user?.interests],
+  );
 
   if (selected) {
     return <DestinationGuideView dest={selected} onBack={() => setSelected(null)} />;

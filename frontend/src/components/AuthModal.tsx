@@ -71,7 +71,7 @@ export function AuthModal() {
       }
 
       const result = await signup(normalizedName, normalizedEmail, normalizedPassword);
-      if (result.ok) navigate("/explore");
+      if (result.ok) return;
       else setError(result.error ?? authError ?? "Sign up failed. Check your details and try again.");
       return;
     }
@@ -169,6 +169,29 @@ export function AuthModal() {
             </div>
           </label>
 
+          <label className="travel-auth-field">
+            <span>Password</span>
+            <div>
+              <LockKeyhole size={18} />
+              <input
+                type={showPassword ? "text" : "password"}
+                minLength={PASSWORD_MIN_LENGTH}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Enter your password"
+                style={inputStyle}
+              />
+              <button
+                type="button"
+                className="travel-auth-eye"
+                onClick={() => setShowPassword((value) => !value)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
+            </div>
+          </label>
+
           {authMode === "signup" ? (
             <label className="travel-auth-field">
               <span>Confirm password</span>
@@ -193,29 +216,6 @@ export function AuthModal() {
               </div>
             </label>
           ) : null}
-
-          <label className="travel-auth-field">
-            <span>Password</span>
-            <div>
-              <LockKeyhole size={18} />
-              <input
-                type={showPassword ? "text" : "password"}
-                minLength={PASSWORD_MIN_LENGTH}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Enter your password"
-                style={inputStyle}
-              />
-              <button
-                type="button"
-                className="travel-auth-eye"
-                onClick={() => setShowPassword((value) => !value)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-              </button>
-            </div>
-          </label>
 
           <div className="travel-auth-options">
             <label>
@@ -383,8 +383,9 @@ export function AuthModal() {
           display: grid;
           place-items: center;
           min-height: 100dvh;
-          padding: clamp(2rem, 6vw, 5rem);
+          padding: clamp(1.35rem, 4.5vw, 3.5rem);
           background: #FBF7F0;
+          overflow-y: auto;
         }
 
         .travel-auth-close {
@@ -407,7 +408,7 @@ export function AuthModal() {
         }
 
         .travel-auth-heading {
-          margin-bottom: 3rem;
+          margin-bottom: clamp(1.25rem, 3vw, 2.15rem);
         }
 
         .travel-auth-heading p {
@@ -435,8 +436,8 @@ export function AuthModal() {
 
         .travel-auth-field {
           display: grid;
-          gap: 0.55rem;
-          margin-bottom: 1.45rem;
+          gap: 0.42rem;
+          margin-bottom: clamp(0.85rem, 1.7vw, 1.2rem);
         }
 
         .travel-auth-field > span {
@@ -543,7 +544,7 @@ export function AuthModal() {
 
         .travel-auth-divider {
           height: 1px;
-          margin: 2.8rem 0 2rem;
+          margin: clamp(1.4rem, 3vw, 2.1rem) 0 clamp(1rem, 2vw, 1.45rem);
           background: rgba(58, 42, 34, 0.1);
         }
 

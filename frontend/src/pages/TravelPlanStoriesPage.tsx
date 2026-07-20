@@ -433,8 +433,9 @@ export function TravelPlanArticleView({
               const pointTitle = destination.title || destination.placeName || `Point ${destination.order}`;
               const date = destination.dateVisited || destination.plannedDate || "Date pending";
               const time = destination.plannedTime ? ` ${destination.plannedTime}` : "";
-              const primaryPhoto = destination.photos?.[0];
-              const extraPhotos = destination.photos?.slice(1, 4) ?? [];
+              const pointPhotos = (destination.photos ?? []).map((photo) => photo.trim()).filter(Boolean);
+              const primaryPhoto = pointPhotos[0];
+              const extraPhotos = pointPhotos.slice(1, 4);
               const isEditing = editingDestinationId === destination.id;
               const canWriteDestination = editable && plannedMomentHasArrived(destination);
               return (
@@ -664,7 +665,7 @@ export function TravelPlanArticleView({
             <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
               {comments.map((comment) => (
                 <div key={comment.id} style={{ display: "flex", gap: "0.75rem" }}>
-                  <img src={comment.avatar} alt={comment.author} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                  <img src={comment.avatar || localAvatarDataUrl(comment.author)} alt={comment.author} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                   <div style={{ flex: 1 }}>
                     <div style={{ backgroundColor: "#EDEAE0", borderRadius: "0 0.75rem 0.75rem 0.75rem", padding: "0.75rem 1rem" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>

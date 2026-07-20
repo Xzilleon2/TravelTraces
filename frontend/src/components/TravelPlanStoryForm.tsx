@@ -158,7 +158,7 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
       </div>
 
       <div className="space-y-5 p-5">
-        <div className="rounded-xl border border-[#C4713A]/20 bg-[#C4713A]/10 p-3 text-sm leading-6 text-[#5B4A40]">
+        <div className="rounded-xl border border-[#EA9940]/20 bg-[#EA9940]/10 p-3 text-sm leading-6 text-[#5B4A40]">
           <span className="block font-[var(--font-label)] text-xs font-bold uppercase tracking-[0.1em] text-[#9E4F27]">Route Summary</span>
           {plannedStops.length} destination{plannedStops.length === 1 ? "" : "s"} in order
           {routeGeometry?.length ? ` / ${routeGeometry.length} snapped route points` : ""}. Plans stay private until every destination is completed.
@@ -278,7 +278,7 @@ export function TravelPlanStoryForm({ open, stops, routeGeometry, busy, onClose,
                   </label>
                   <label className="grid gap-1">
                     <span className="text-xs font-semibold text-[#5B4A40]">Planned date</span>
-                    <input type="date" min={todayDate()} value={stop.plannedDate ?? ""} onChange={(event) => updateStop(index, { plannedDate: event.target.value < todayDate() ? todayDate() : event.target.value })} className="min-h-10 rounded-lg border border-[#3A2A22]/12 bg-white px-3 text-sm outline-none focus:border-[#C4713A]" />
+                    <input type="date" min={todayDate()} value={stop.plannedDate ?? ""} onChange={(event) => updateStop(index, { plannedDate: event.target.value })} className="min-h-10 rounded-lg border border-[#3A2A22]/12 bg-white px-3 text-sm outline-none focus:border-[#C4713A]" />
                   </label>
                 </div>
                 <div className="grid gap-2">

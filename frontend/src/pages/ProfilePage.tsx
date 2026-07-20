@@ -48,7 +48,8 @@ type ProfileData = {
   groups: TravelGroup[];
 };
 
-type ProfileForm = Pick<User, "name" | "email" | "avatar" | "location" | "joinedDate" | "bio" | "nationality" | "travelStyle"> & {
+type ProfileForm = Pick<User, "name" | "email" | "avatar" | "location" | "joinedDate" | "bio" | "nationality"> & {
+  travelStyle: string;
   interests: string;
 };
 
@@ -537,19 +538,20 @@ function ProfileContent() {
   useEffect(() => {
     const currentUser = user;
     if (!currentUser) return undefined;
+    const currentUserId = currentUser.id;
     let cancelled = false;
 
     async function loadProfileData() {
       setLoading(true);
       const [pinsResult, spotsResult, groupsResult] = await Promise.allSettled([
-        listPins(currentUser.id, groupIds),
-        listTouristSpots(currentUser.id),
-        listTravelGroups(currentUser.id),
+        listPins(currentUserId, groupIds),
+        listTouristSpots(currentUserId),
+        listTravelGroups(currentUserId),
       ]);
 
       if (cancelled) return;
       setData({
-        pins: pinsResult.status === "fulfilled" ? pinsResult.value.filter((pin) => pin.creator_id === currentUser.id) : [],
+        pins: pinsResult.status === "fulfilled" ? pinsResult.value.filter((pin) => pin.creator_id === currentUserId) : [],
         spots: spotsResult.status === "fulfilled" ? spotsResult.value : [],
         groups: groupsResult.status === "fulfilled" ? groupsResult.value : [],
       });

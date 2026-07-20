@@ -156,6 +156,19 @@ export function MarkerFormModal({ open, location, scope, friends = [], onScopeCh
           <h3 className="m-0 mt-1 font-[var(--font-display)] text-2xl">Create Travel Post</h3>
         </div>
 
+        <button type="button" onClick={onClose} className="rounded-full bg-[#F5F0E8]/10 p-2" aria-label="Close marker form">
+          <X size={18} />
+        </button>
+      </div>
+
+      <div className="space-y-4 p-5">
+        <div className="rounded bg-[#EDEAE0] p-3 text-sm text-[#6B6B5A]">
+          <span className="block font-semibold text-[#3A2A22]">{placeName || location.label || "Selected place"}</span>
+          <span className="mt-1 block">
+            {latitude.toFixed(5)}, {longitude.toFixed(5)}
+          </span>
+        </div>
+
         {selectedScope === "group" ? (
           <div className="rounded-lg border border-[#3A2A22]/12 bg-white p-3">
             <span className="mb-2 block font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#3A2A22]">Collaborators</span>
@@ -180,22 +193,10 @@ export function MarkerFormModal({ open, location, scope, friends = [], onScopeCh
                 })}
               </div>
             ) : (
-              <p className="m-0 text-sm leading-6 text-[#6B5A50]">Add friends first before creating a Collab Map post.</p>
+              <p className="m-0 text-sm leading-6 text-[#6B5A50]">Follow each other first. Only mutual friends can be added to a Collab Map post.</p>
             )}
           </div>
         ) : null}
-        <button type="button" onClick={onClose} className="rounded-full bg-[#F5F0E8]/10 p-2" aria-label="Close marker form">
-          <X size={18} />
-        </button>
-      </div>
-
-      <div className="space-y-4 p-5">
-        <div className="rounded bg-[#EDEAE0] p-3 text-sm text-[#6B6B5A]">
-          <span className="block font-semibold text-[#3A2A22]">{placeName || location.label || "Selected place"}</span>
-          <span className="mt-1 block">
-            {latitude.toFixed(5)}, {longitude.toFixed(5)}
-          </span>
-        </div>
 
         <div>
           <span className="mb-2 block font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#3A2A22]">Post map</span>
@@ -329,19 +330,25 @@ export function MarkerFormModal({ open, location, scope, friends = [], onScopeCh
           type="button"
           disabled={busy || !title.trim()}
           onClick={() =>
-            void onSave({
-              placeName: placeName.trim() || location.label,
-              title: title.trim(),
-              subtitle: subtitle.trim(),
-              description: description.trim(),
-              category,
-              scope: selectedScope,
-              photos,
-              collaboratorIds,
-              source: photos.some((item) => item.source === "exif") ? "exif" : photos.some((item) => item.source === "gps") ? "gps" : "manual",
-            })
+            {
+              if (selectedScope === "group" && collaboratorIds.length === 0) {
+                setError("Choose at least one mutual friend for a Collab Map post.");
+                return;
+              }
+              void onSave({
+                placeName: placeName.trim() || location.label,
+                title: title.trim(),
+                subtitle: subtitle.trim(),
+                description: description.trim(),
+                category,
+                scope: selectedScope,
+                photos,
+                collaboratorIds,
+                source: photos.some((item) => item.source === "exif") ? "exif" : photos.some((item) => item.source === "gps") ? "gps" : "manual",
+              });
+            }
           }
-          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded bg-[#C4713A] px-4 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#F5F0E8] disabled:opacity-60"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded bg-[#C4713A] px-4 font-[var(--font-label)] text-xs font-semibold uppercase tracking-[0.08em] text-[#F5F0E8] disabled:cursor-not-allowed disabled:opacity-60"
         >
           <MapPin size={15} />
           Post Story
