@@ -16,6 +16,7 @@ const LandingPage = lazy(() => import("./pages/LandingPage"));
 const ExplorePage = lazy(() => import("./pages/ExplorePage"));
 const StoriesPage = lazy(() => import("./pages/StoriesPage"));
 const TravelPlanStoriesPage = lazy(() => import("./pages/TravelPlanStoriesPage"));
+const ChatbotPage = lazy(() => import("./pages/ChatbotPage"));
 const MapPage = lazy(() => import("./pages/MapPage"));
 const MappingLayerPage = lazy(() => import("./pages/MappingLayerPage"));
 const MapsWorkspacePage = lazy(() => import("./pages/MapsWorkspacePage"));
@@ -407,6 +408,7 @@ function AppLayout() {
   const location = useLocation();
   const { isAuthenticated, authReady } = useAuth();
   const isImmersiveMap = location.pathname === "/maps";
+  const isFullHeightWorkspace = isImmersiveMap || location.pathname === "/chat";
   const showScrollTop = ["/explore", "/stories", "/travel-plan-stories", "/community", "/events"].includes(location.pathname);
   const wordmark = "TravelTraces";
   const minimumLoadingDurationMs = 5000 + wordmark.length * 125;
@@ -638,6 +640,7 @@ function AppLayout() {
             <Route path="/explore" element={<ExplorePage />} />
             <Route path="/stories" element={<StoriesPage />} />
             <Route path="/travel-plan-stories" element={<TravelPlanStoriesPage />} />
+            <Route path="/chat" element={<ChatbotPage />} />
             <Route path="/map" element={<MapPage />} />
             <Route path="/map/layers" element={<MappingLayerPage />} />
             <Route path="/geo-photos" element={<GeoreferencedPhotosPage />} />
@@ -665,7 +668,7 @@ function AppLayout() {
         </button>
       )}
 
-      {!isImmersiveMap && <Footer />}
+      {!isFullHeightWorkspace && <Footer />}
       <AuthModal />
       <CategorySelectionModal />
     </div>

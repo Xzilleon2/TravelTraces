@@ -10,6 +10,7 @@ const memberLinks = [
   { to: "/explore", label: "Explore" },
   { to: "/stories", label: "Stories" },
   { to: "/travel-plan-stories", label: "Travel Plans" },
+  { to: "/chat", label: "AI Chat" },
   { to: "/maps", label: "Maps" },
   { to: "/community", label: "Community" },
   { to: "/events", label: "Events" },
@@ -148,7 +149,7 @@ export function Navbar() {
           </NavLink>
 
           {/* Desktop nav */}
-          <div style={{ alignItems: "center", gap: isPublicHeader ? "0.55rem" : "0.18rem", flexWrap: "nowrap" }} className="hidden xl:flex">
+          <div style={{ alignItems: "center", gap: isPublicHeader ? "0.4rem" : "0.18rem", flexWrap: "nowrap" }} className="hidden xl:flex">
             {isAuthenticated ? (
               memberLinks.map((link) => (
                 <NavLink
@@ -157,7 +158,9 @@ export function Navbar() {
                   style={({ isActive }) => ({
                     ...linkBaseStyle,
                     color: isActive ? "#C4713A" : "#3A2A22",
-                    backgroundColor: isActive ? "rgba(196,113,58,0.1)" : "transparent",
+                    backgroundColor: "transparent",
+                    borderBottom: isActive ? "1.5px solid #C4713A" : "1.5px solid transparent",
+                    borderRadius: 0,
                   })}
                 >
                   {link.label}

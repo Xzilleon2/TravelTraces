@@ -50,6 +50,9 @@ class Settings:
     bootstrap_user_password_hash: str | None = os.getenv("BOOTSTRAP_USER_PASSWORD_HASH")
     bootstrap_user_group_ids: list[str] = None  # type: ignore[assignment]
     database_path: str = os.getenv("TRAVELPLACES_DB_PATH", "data/TravelPlaces.db")
+    chat_model_url: str | None = os.getenv("CHAT_MODEL_URL")
+    chat_model_api_key: str | None = os.getenv("CHAT_MODEL_API_KEY")
+    chat_model_timeout_s: float = float(os.getenv("CHAT_MODEL_TIMEOUT_S", "60"))
 
     def __post_init__(self) -> None:
         if self.cors_origins is None:
