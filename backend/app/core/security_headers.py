@@ -13,9 +13,9 @@ CSP = (
     "connect-src 'self' https://api.maptiler.com https://*.maptiler.com https://router.project-osrm.org https://nominatim.openstreetmap.org "
     "https://photon.komoot.io https://*.tile.openstreetmap.org https://server.arcgisonline.com wss: ws:; "
     "img-src 'self' data: blob: https://api.maptiler.com https://*.maptiler.com https://*.tile.openstreetmap.org https://server.arcgisonline.com https://images.unsplash.com; "
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
     "font-src 'self' data: https://api.maptiler.com https://*.maptiler.com https://fonts.gstatic.com; "
-    "script-src 'self' https://cdn.jsdelivr.net; "
+    "script-src 'self'; "
     "worker-src 'self' blob:; "
     "media-src 'self' blob: data:; "
     "manifest-src 'self'; "
@@ -37,44 +37,45 @@ SECURITY_HEADERS = {
     "Content-Security-Policy": CSP,
 }
 
-
-#async def security_middleware(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
-#    content_length = request.headers.get("content-length")
-#    if content_length:
-#        try:
-#            if int(content_length) > settings.max_request_bytes:
-#                return JSONResponse({"detail": "Request body too large."}, status_code=413)
-#        except ValueError:
-#            return JSONResponse({"detail": "Invalid Content-Length header."}, status_code=400)
-#
-#    response = await call_next(request)
-#    for key, value in SECURITY_HEADERS.items():
-#        response.headers.setdefault(key, value)
-#    if request.url.path.startswith("/api/"):
-#        response.headers.setdefault("Cache-Control", "no-store")
-#
-#    return response
-
-async def security_middleware(
-    request: Request,
-    call_next: Callable[[Request], Awaitable[Response]]
-) -> Response:
-
+# Comment if want to test/Doc
+async def security_middleware(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
     content_length = request.headers.get("content-length")
     if content_length:
         try:
             if int(content_length) > settings.max_request_bytes:
-                return JSONResponse(
-                    {"detail": "Request body too large."},
-                    status_code=413,
-                )
+                return JSONResponse({"detail": "Request body too large."}, status_code=413)
         except ValueError:
-            return JSONResponse(
-                {"detail": "Invalid Content-Length header."},
-                status_code=400,
-            )
+            return JSONResponse({"detail": "Invalid Content-Length header."}, status_code=400)
 
     response = await call_next(request)
+    for key, value in SECURITY_HEADERS.items():
+        response.headers.setdefault(key, value)
+    if request.url.path.startswith("/api/"):
+        response.headers.setdefault("Cache-Control", "no-store")
+
+    return response
+
+# undo comment if want to test /doc
+#async def security_middleware(
+#    request: Request,
+#    call_next: Callable[[Request], Awaitable[Response]]
+#) -> Response:
+#
+#    content_length = request.headers.get("content-length")
+#    if content_length:
+#        try:
+#            if int(content_length) > settings.max_request_bytes:
+#                return JSONResponse(
+#                    {"detail": "Request body too large."},
+#                    status_code=413,
+#                )
+#        except ValueError:
+#            return JSONResponse(
+#               {"detail": "Invalid Content-Length header."},
+#               status_code=400,
+#           )
+#
+#    response = await call_next(request)
 
     # Don't apply CSP to FastAPI documentation
     if request.url.path in {

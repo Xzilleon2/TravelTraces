@@ -1,55 +1,75 @@
-from fastapi import APIRouter
-from pydantic import BaseModel
-from fastapi import HTTPException
+from __future__ import annotations
 
-from app.services.ai.ai_service import ask_groq
+from datetime import datetime, timezone
+from typing import Literal
+from uuid import uuid4
 
-router = APIRouter()
+from fastapi import APIRouter, HTTPException
+from fastapi.concurrency import run_in_threadpool
+from pydantic import BaseModel, Field
+
+from app.services.ai.ai_service import ask_groq_chat
+
+
+class ChatMessage(BaseModel):
+    id: str
+    role: Literal["user", "assistant", "system"]
+    content: str
+    created_at: str
+
+
+class ChatContext(BaseModel):
+    display_name: str | None = None
+    location: str | None = None
+    interests: list[str] = Field(default_factory=list)
 
 
 class ChatRequest(BaseModel):
-    message: str
-
-router = APIRouter(
-    prefix="/api",
-    tags=["AI Chat"]
-)
-
-@router.post("/chat")
-async def chat(req: ChatRequest):
-    try:
-        answer = ask_groq(req.message)
-        return {"response": answer}
-    except Exception as e:
-        print(e)
-        raise HTTPException(status_code=500, detail=str(e))
-from __future__ import annotations
-
-from fastapi import APIRouter, Depends, HTTPException, status
-
-from app.core.auth import RequestActor, get_request_actor
-from app.models.chat import ChatRequest, ChatResponse
-from app.services.chat import (
-    ChatModelResponseError,
-    ChatModelTimeoutError,
-    ChatModelUnavailableError,
-    request_chat_completion,
-)
+    route: Literal["/chat"] = "/chat"
+    owner_id: str
+    conversation_id: str | None = None
+    message: ChatMessage
+    history: list[ChatMessage] = Field(default_factory=list)
+    context: ChatContext = Field(default_factory=ChatContext)
 
 
-router = APIRouter(prefix="/api", tags=["chat"])
+class ChatResponseMessage(BaseModel):
+    id: str
+    role: Literal["assistant"]
+    content: str
+    created_at: str
+
+
+class ChatResponse(BaseModel):
+    conversation_id: str
+    message: ChatResponseMessage
+    model: str | None = None
+
+
+router = APIRouter(prefix="/api", tags=["AI Chat"])
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(payload: ChatRequest, actor: RequestActor = Depends(get_request_actor)) -> ChatResponse:
+async def chat(req: ChatRequest) -> ChatResponse:
     try:
-        return await request_chat_completion(payload, actor)
-    except ChatModelUnavailableError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Trace is temporarily unavailable while its AI model connection is being configured.",
-        ) from exc
-    except ChatModelTimeoutError as exc:
-        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=str(exc)) from exc
-    except ChatModelResponseError as exc:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+        answer, model_name = await run_in_threadpool(
+            ask_groq_chat,
+            req.message.content,
+            [turn.model_dump(exclude={"id", "created_at"}) for turn in req.history],
+            req.context.display_name,
+            req.context.location,
+            req.context.interests,
+        )
+        conversation_id = req.conversation_id or f"chat-{uuid4().hex}"
+        return ChatResponse(
+            conversation_id=conversation_id,
+            message=ChatResponseMessage(
+                id=f"assistant-{uuid4().hex}",
+                role="assistant",
+                content=answer,
+                created_at=datetime.now(timezone.utc).isoformat(),
+            ),
+            model=model_name,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
