@@ -1,4 +1,5 @@
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+import type { Pins } from "./chatpinApi";
 
 export type ChatApiRole = "user" | "assistant" | "system";
 
@@ -9,17 +10,20 @@ export type ChatApiMessage = {
   created_at: string;
 };
 
+export type ChatContext = {
+  display_name?: string;
+  location?: string;
+  interests: string[];
+  pins?: Pins[];
+};
+
 export type ChatApiRequest = {
   route: "/chat";
   owner_id: string;
   conversation_id?: string;
   message: ChatApiMessage;
   history: ChatApiMessage[];
-  context: {
-    display_name?: string;
-    location?: string;
-    interests: string[];
-  };
+  context: ChatContext;
 };
 
 export type ChatApiResponse = {

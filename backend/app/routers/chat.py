@@ -17,11 +17,21 @@ class ChatMessage(BaseModel):
     content: str
     created_at: str
 
+class ChatPin(BaseModel):
+    id: str
+    title: str | None = None
+    description: str | None = None
+    latitude: float
+    longitude: float
+    address: str | None = None
+    category: str | None = None
+
 
 class ChatContext(BaseModel):
     display_name: str | None = None
     location: str | None = None
     interests: list[str] = Field(default_factory=list)
+    pins: list[ChatPin] = Field(default_factory=list)
 
 
 class ChatRequest(BaseModel):
@@ -45,7 +55,6 @@ class ChatResponse(BaseModel):
     message: ChatResponseMessage
     model: str | None = None
 
-
 router = APIRouter(prefix="/api", tags=["AI Chat"])
 
 
@@ -59,6 +68,7 @@ async def chat(req: ChatRequest) -> ChatResponse:
             req.context.display_name,
             req.context.location,
             req.context.interests,
+            [pin.model_dump() for pin in req.context.pins],
         )
         conversation_id = req.conversation_id or f"chat-{uuid4().hex}"
         return ChatResponse(

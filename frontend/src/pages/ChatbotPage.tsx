@@ -30,6 +30,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { requestTraceReply, type ChatApiMessage } from "../services/chatApi";
+import { fetchPins, type Pins } from "../services/chatpinApi";
 
 type ChatRole = "user" | "assistant";
 
@@ -182,6 +183,8 @@ export default function ChatbotPage() {
   const [toast, setToast] = useState("");
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const [pins, setPins] = useState<Pins[]>([]);
+  const [pinsLoading, setPinsLoading] = useState(true);
 
   const payload = useMemo<ChatPayload>(() => ({ route: "/chat", ownerId, conversationId, messages, updatedAt: new Date().toISOString() }), [conversationId, messages, ownerId]);
   const recentChats = messages.filter((message) => message.role === "user").slice(-3).reverse();
@@ -214,6 +217,27 @@ export default function ChatbotPage() {
     textarea.style.height = `${Math.min(textarea.scrollHeight, 180)}px`;
   }, [input]);
 
+  useEffect(() => {
+    if (!ownerId || ownerId === "guest") return;
+
+    const loadPins = async () => {
+      try {
+        setPinsLoading(true);
+
+        const data = await fetchPins(ownerId);
+
+        setPins(data.pins);
+      } catch (err) {
+        console.error("Failed to fetch pins", err);
+        setPins([]);
+      } finally {
+        setPinsLoading(false);
+      }
+    };
+
+    void loadPins();
+  }, [ownerId]);
+
   const persistLastPrompt = (message: ChatMessage) => {
     const promptJson = {
       route: "/chat",
@@ -228,8 +252,21 @@ export default function ChatbotPage() {
   };
 
   const sendMessage = async (preset?: string) => {
+    
     const content = (preset ?? input).trim();
+
     if (!content || typing) return;
+
+    const requiresPins =
+      /\b(route|itinerary|nearby|closest|around|near|map|directions|travel\s*plan|my\s*pins|saved\s*places)\b/i.test(
+        content
+      );
+
+    if (requiresPins && pinsLoading) {
+      setToast("Loading your saved locations...");
+      return;
+    }
+
     const userMessage: ChatMessage = {
       id: createId("chat-user"),
       role: "user",
@@ -237,13 +274,17 @@ export default function ChatbotPage() {
       createdAt: new Date().toISOString(),
       status: "sent",
     };
-    setMessages((current) => [...current, userMessage]);
+
+    setMessages((previous) => [...previous, userMessage]);
     persistLastPrompt(userMessage);
+
     setInput("");
     setTravelIdeasOpen(false);
     setTyping(true);
+
     try {
-      const history: ChatApiMessage[] = messages
+      // Include the newest user message in the history
+      const history: ChatApiMessage[] = [...messages, userMessage]
         .filter((message) => message.status === "sent")
         .slice(-30)
         .map((message) => ({
@@ -252,38 +293,50 @@ export default function ChatbotPage() {
           content: message.content,
           created_at: message.createdAt,
         }));
+
       const response = await requestTraceReply({
         route: "/chat",
         owner_id: ownerId,
         conversation_id: conversationId,
+
         message: {
           id: userMessage.id,
           role: "user",
           content: userMessage.content,
           created_at: userMessage.createdAt,
         },
+
         history,
+
         context: {
-          display_name: user?.name || undefined,
-          location: user?.location || undefined,
+          display_name: user?.name,
+          location: user?.location,
           interests: user?.interests ?? [],
+
+          // Only send pins if the question actually needs them
+          pins: requiresPins ? pins : [],
         },
       });
+
       setConversationId(response.conversation_id);
-      setMessages((current) => [
-        ...current,
-        {
-          id: response.message.id,
-          role: "assistant",
-          content: response.message.content,
-          createdAt: response.message.created_at,
-          status: "sent",
-        },
-      ]);
+
+      const assistantMessage: ChatMessage = {
+        id: response.message.id,
+        role: "assistant",
+        content: response.message.content,
+        createdAt: response.message.created_at,
+        status: "sent",
+      };
+
+      setMessages((previous) => [...previous, assistantMessage]);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Trace could not complete that request. Please try again.";
-      setMessages((current) => [
-        ...current,
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Trace couldn't complete that request. Please try again.";
+
+      setMessages((previous) => [
+        ...previous,
         {
           id: createId("chat-error"),
           role: "assistant",
