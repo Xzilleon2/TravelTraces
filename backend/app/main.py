@@ -12,6 +12,7 @@ from app.routers.chat import router as chat_router
 from app.routers.circles import router as circles_router
 from app.routers.mapping import router as mapping_router
 from app.routers.telemetry import router as telemetry_router
+from app.routers.chat import router as chat_router
 
 
 def create_app() -> FastAPI:
@@ -57,6 +58,7 @@ def create_app() -> FastAPI:
     app.include_router(circles_router)
     app.include_router(mapping_router)
     app.include_router(telemetry_router)
+    app.include_router(chat_router)
     return app
 
 
