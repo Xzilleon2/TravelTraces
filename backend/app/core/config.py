@@ -59,6 +59,9 @@ class Settings:
         "GROQ_BASE_URL",
     )
     
+    chat_model_url: str | None = os.getenv("CHAT_MODEL_URL")
+    chat_model_api_key: str | None = os.getenv("CHAT_MODEL_API_KEY")
+    chat_model_timeout_s: float = float(os.getenv("CHAT_MODEL_TIMEOUT_S", "60"))
 
     def __post_init__(self) -> None:
         if self.cors_origins is None:

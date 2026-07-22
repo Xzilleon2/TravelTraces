@@ -1,6 +1,6 @@
 Project TravelTraces {
   database_type: "PostgreSQL"
-  Note: "Corrected ERD for TravelTraces based on the current website: authentication/session state, signup category preferences, public and owner-safe profiles, explore places, stories, map pins, Today's Agenda 24-hour map status, Draw Route travel plan drafts, published travel plan stories, calendar items, saved story/place collections, groups, events, chat, badges, albums, localStorage prototype tables, and account deletion/audit flows."
+  Note: "Corrected ERD for TravelTraces based on the current website: authentication/session state, signup category preferences, public and owner-safe profiles, explore places, stories, map pins, Today's Agenda 24-hour map status, Draw Route travel plan drafts, published travel plan stories, calendar items, saved story/place collections, groups, events, social chat, Trace AI conversations, badges, albums, localStorage prototype tables, and account deletion/audit flows."
 }
 
 Enum user_role {
@@ -89,6 +89,18 @@ Enum message_type {
   image
   pin
   system
+}
+
+Enum ai_chat_role {
+  user
+  assistant
+  system
+}
+
+Enum ai_chat_message_status {
+  pending
+  sent
+  failed
 }
 
 Table users {
@@ -999,6 +1011,48 @@ Table messages {
   deleted_at timestamp
 }
 
+Table ai_chat_conversations {
+  conversation_id varchar [pk]
+  owner_id varchar [not null]
+  route varchar [not null, default: "/chat", note: "Frontend workspace route represented in the JSON chat contract."]
+  title varchar [note: "Generated from the opening prompt or explicitly renamed by the owner."]
+  model_name varchar [note: "Model identifier returned by the configured Trace AI provider; secrets and provider URLs remain environment configuration."]
+  saved boolean [not null, default: false]
+  pinned boolean [not null, default: false]
+  last_message_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp
+
+  indexes {
+    (owner_id, updated_at)
+    (owner_id, saved)
+    (owner_id, pinned)
+  }
+
+  Note: "Trace AI workspace conversation. The browser currently prototypes this through traveltraces.aiChat.v1; POST /api/chat creates or continues the backend conversation while the page remains GET /chat."
+}
+
+Table ai_chat_messages {
+  message_id varchar [pk]
+  conversation_id varchar [not null]
+  role ai_chat_role [not null]
+  content text [not null]
+  status ai_chat_message_status [not null, default: "sent"]
+  bookmarked boolean [not null, default: false]
+  model_name varchar [note: "Populated for assistant messages when the AI provider returns a model identifier."]
+  error_status_code int [note: "Optional gateway status for failed model requests, such as 502, 503, or 504."]
+  created_at timestamp [not null]
+  deleted_at timestamp
+
+  indexes {
+    (conversation_id, created_at)
+    (conversation_id, bookmarked)
+  }
+
+  Note: "Stores the ordered user, assistant, and system history sent by the typed /api/chat JSON contract. Failed responses remain retryable without fabricating assistant content."
+}
+
 Table user_local_buckets {
   bucket_id varchar [pk]
   user_id varchar [not null]
@@ -1011,7 +1065,7 @@ Table user_local_buckets {
     (user_id, bucket_name) [unique]
   }
 
-  Note: "Represents namespaced localStorage buckets like traveltraces:user:{userId}:savedStories, savedTravelPlans, savedMarkers, profile, achievements, draft plans, travel groups, calendar, settings, and chatbox state."
+  Note: "Represents namespaced localStorage buckets like traveltraces:user:{userId}:savedStories, savedTravelPlans, savedMarkers, profile, achievements, draft plans, travel groups, calendar, settings, chatbox state, and the temporary traveltraces.aiChat.v1 Trace AI payload."
 }
 
 Table place_search_cache {
@@ -1216,6 +1270,8 @@ Ref: messages.conversation_id > conversations.conversation_id [delete: cascade]
 Ref: messages.owner_id > users.user_id [delete: cascade]
 Ref: messages.sender_id > users.user_id [delete: set null]
 Ref: messages.pin_id > pins.pin_id [delete: set null]
+Ref: ai_chat_conversations.owner_id > users.user_id [delete: cascade]
+Ref: ai_chat_messages.conversation_id > ai_chat_conversations.conversation_id [delete: cascade]
 
 Ref: travel_collections.owner_id > users.user_id [delete: cascade]
 Ref: user_local_buckets.user_id > users.user_id [delete: cascade]
