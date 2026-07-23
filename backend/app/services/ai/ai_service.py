@@ -43,7 +43,7 @@ def _build_system_prompt(
 
         "If there are no saved pins and the user asks for personalized routes, nearby recommendations from their saved places, or itineraries based on their TravelTraces locations, politely explain that no saved locations were found and ask them to create their first location pin from the Maps page before requesting personalized route planning.",
 
-        "If there are no saved pins but the question is a general travel question, answer normally.",
+        "If there are no saved pins but the question is a general travel question, answer that the user can find information about their travels by creating location pins on the Maps page.",
     ]
 
     user_context: list[str] = []
