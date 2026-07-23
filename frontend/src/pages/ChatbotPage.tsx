@@ -66,7 +66,7 @@ const quickActions: QuickAction[] = [
   {
     title: "Plan a Trip",
     description: "Create a personalized multi-stop itinerary based on destination, dates, and budget.",
-    prompt: "Plan a multi-stop Southeast Asia trip with dates, budget, and route flow.",
+    prompt: "Plan a multi-stop trip with dates, budget, and route flow.",
     icon: Map,
     accent: "#4C8FA8",
   },
